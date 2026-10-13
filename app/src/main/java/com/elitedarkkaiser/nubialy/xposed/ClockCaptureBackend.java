@@ -13,11 +13,13 @@ import java.util.WeakHashMap;
 /** NX809J inspected Clock backend: observation only, absolutely no color/view writes. */
 final class ClockCaptureBackend {
     private static final Map<TextView, ClockCapture<ColorStateList>> clocks = new WeakHashMap<>();
-    private static boolean ready, failed, capturing;
+    private static boolean ready, failed, capturing, attempted;
     private static long captures, updates, releases;
     private static String failure = "Not installed";
     private static String result = "Clock capture has not run.";
-    static void install(ClassLoader loader) {
+    static synchronized void install(ClassLoader loader) {
+        if (attempted) return;
+        attempted = true;
         ArrayList<XC_MethodHook.Unhook> hooks = new ArrayList<>();
         String stage = "Clock class lookup";
         try {

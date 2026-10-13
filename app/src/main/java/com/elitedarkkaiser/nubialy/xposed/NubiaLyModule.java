@@ -29,18 +29,22 @@ public final class NubiaLyModule implements IXposedHookLoadPackage {
         if (!"com.android.systemui".equals(param.packageName) || !"com.android.systemui".equals(param.processName)) return;
         if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE)) return;
         if (Build.VERSION.SDK_INT != 36) return;
-        ClockCaptureBackend.install(param.classLoader);
         try {
             XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
                 @Override protected void afterHookedMethod(MethodHookParam hook) {
                     if (hook.hasThrowable()) return;
-                    try { SystemUiGuardReceiver.install((Application) hook.thisObject); }
+                    try {
+                        Application application = (Application) hook.thisObject;
+                        if (!"com.android.systemui".equals(application.getPackageName())) return;
+                        ClockCaptureBackend.install(application.getClassLoader());
+                        SystemUiGuardReceiver.install(application);
+                    }
                     catch (Throwable unavailable) { XposedBridge.log("nubia-ly: guard diagnostic unavailable."); }
                 }
             });
         } catch (Throwable unavailable) {
             XposedBridge.log("nubia-ly: System UI lifecycle diagnostic unavailable; cosmetics blocked.");
         }
-        XposedBridge.log("nubia-ly: Vector module entry loaded on NX809J; read-only clock observer registered; no visual overrides.");
+        XposedBridge.log("nubia-ly: Vector module entry loaded on NX809J; clock observer deferred until application attach; no visual overrides.");
     }
 }

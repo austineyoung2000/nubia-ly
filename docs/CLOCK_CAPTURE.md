@@ -29,3 +29,7 @@ Send the capture/change/release counts or a screenshot. This test verifies obser
 ## Diagnostic update — 0.1.7
 
 The initial 0.1.6 phone report reached System UI but reported backend unavailable with zero captures. It does not establish which check failed. The diagnostic update preserves the installation/callback stage and exception type in the visible result and Vector log, without recording exception messages, firmware identifiers or user content. A not-yet-initialized adapter/classifier is skipped rather than permanently failing the observer. All visual gates remain closed. Update the APK and reboot, publish the lifecycle permit and Start; send the exact backend diagnostic if it remains blocked.
+
+## Attached application loader — 0.1.8
+
+The 0.1.7 phone diagnostic reports Clock class lookup (ClassNotFoundError), before any capture. Move discovery out of the early package-load callback and into the existing successful Application.attach callback, using the attached System UI application's class loader. Installation is attempted once per process; no retry loop or alternate-device class scan is added. The loading point is the next hypothesis to test, not proof of successful discovery. Update and reboot, then publish the lifecycle permit and Start. Report the new diagnostic or capture counts.
