@@ -25,3 +25,7 @@ The ledger deliberately keeps the latest stock color, not only the initial color
 8. Publish/start again; let 65 seconds pass from publication, then check: EXPIRED or STOPPED, with verified releases. Reboot: IDLE with zero captures; no automatic session.
 
 Send the capture/change/release counts or a screenshot. This test verifies observer discovery and read-only state handling, not live visual rollback. No Quick Settings grid change is available. If the app cannot open, disable only nubia-ly in Vector and reboot; complete boot-loop recovery remains unverified.
+
+## Diagnostic update — 0.1.7
+
+The initial 0.1.6 phone report reached System UI but reported backend unavailable with zero captures. It does not establish which check failed. The diagnostic update preserves the installation/callback stage and exception type in the visible result and Vector log, without recording exception messages, firmware identifiers or user content. A not-yet-initialized adapter/classifier is skipped rather than permanently failing the observer. All visual gates remain closed. Update the APK and reboot, publish the lifecycle permit and Start; send the exact backend diagnostic if it remains blocked.
