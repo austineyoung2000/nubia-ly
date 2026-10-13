@@ -113,7 +113,7 @@ GitHub Actions produces `nubia-ly-debug-apk`. A release build is conditional on 
 
 Use a dedicated app signing key. Without signing secrets, CI produces only the debug APK; incomplete release secrets cause the signing step to fail rather than label an unsigned APK as signed.
 
-**Validation at scaffold creation:** pure Java policy smoke tests passed; manifest/resource XML, workflow structure, module registration and source archive were checked. Android compilation, signed release production, Vector loading and phone testing remain pending until CI/device testing is performed.
+**Validation at scaffold creation:** pure Java policy smoke tests passed; manifest/resource XML, workflow structure, module registration and source archive were checked. Android compilation, policy checks and unit tests subsequently passed in [GitHub Actions](https://github.com/austineyoung2000/nubia-ly/actions/runs/38456648254) at `6d892d4376fa6420eb50addac79c52996bba5751`; a [debug test APK](https://github.com/austineyoung2000/nubia-ly/actions/runs/38456648254/artifacts/11842337147) is available. Release signing is not configured. Vector loading and phone testing remain pending. App source remains in [draft PR1](https://github.com/austineyoung2000/nubia-ly/pull/1), not merged.
 
 ## Phone testing and contribution workflow
 
