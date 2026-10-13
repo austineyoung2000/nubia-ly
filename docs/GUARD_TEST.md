@@ -38,3 +38,15 @@ Do not regard the app probe as proof that System UI can read it. The System UI e
 This is an independent stop/boot-invalidation transport test, not complete boot-loop recovery. Deleting a receipt cannot undo hooks already installed in a running process. Current System UI hooks are inert. Before future cosmetics, implement a bounded preview transaction and ensure all feature entry paths recheck a validated guard; reboot with an invalid receipt must skip those hooks. Validate recovery without the app/UI on the actual firmware/root environment. If normal manager access is available, disabling only nubia-ly in Vector and rebooting remains the manual fallback. Do not guess Vector database or root-manager safe-mode paths.
 
 Magisk/KernelSU module entry points follow their official module guides. Their behavior on this phone and APatch behavior are not yet claimed as verified. Removing/disabling the guard does not remove Vector or Toolbox.
+
+## Live System UI diagnostic (0.1.3)
+
+Update the signed APK normally, keep Vector enabled with System UI scope, and reboot once to load the diagnostic. The app registers a signature permission; inside NX809J/Android 16 System UI the Vector module installs one Application.attach lifecycle hook to register a read-only dynamic receiver. This uses the platform lifecycle, not a guessed Nubia cosmetic method. Receiver registration failure is caught and leaves the check unavailable. No visual hooks are installed.
+
+The receiver is exported only so nubia-ly can reach it, and requires the app's signature-level GUARD_DIAGNOSTIC permission. Requests target com.android.systemui; only a version-matched response with the current random request nonce and within eight seconds is displayed as evidence. It reads only the existing bounded root-owned probe. At most one background read may be in flight; a stalled worker is not replayed and cannot queue more work. A caller timeout does not claim that filesystem work stopped. Late replies and callbacks after app closure are ignored. No automatic check, heartbeat, root grant, polling, stock resources or Vector registry changes.
+
+After reboot tap **Check System UI guard** before publishing a probe. Expect “System UI replied, but its guard probe is blocked or unreadable.” This proves the diagnostic replied, not guard readability.
+
+Publish the existing 60-second probe in Termux, then immediately tap **Check System UI guard**. Expect “System UI read a valid current-boot probe.” Stop using module Action or the existing stop command, then check again. Expect a System UI reply reporting blocked. Repeat for expiry and reboot as desired. If there is no reply, check System UI scope and Vector logs; do not restart/kill System UI or change SELinux.
+
+The existing guard module is unchanged and does not need reinstallation. Probe readability is diagnostic evidence, not permission to apply cosmetics or proof of future boot-loop recovery.

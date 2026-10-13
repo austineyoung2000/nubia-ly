@@ -135,3 +135,7 @@ A persistent emergency-stop latch defaults to stopped. The app can save the stop
 ## Independent guard test (0.1.2, draft)
 
 A separate probe-only root-manager ZIP provides an independent Action/Termux stop and boot invalidation. A root-owned atomic probe is bound to the current boot and expires within 60 seconds. Rootless app/System UI readers fail closed on missing, malformed, unsafe or unreadable state. No SELinux policy is changed, and no customization can be activated. See the [phone checklist and limits](docs/GUARD_TEST.md). This is a prerequisite transport test; complete recovery from future cosmetic hooks still requires validation before those features ship.
+
+## System UI guard verification (0.1.3, draft)
+
+**Check System UI guard** sends one signature-protected read-only request to the running System UI process. Fresh version/nonce-matched replies distinguish “System UI replied but blocked” from “System UI read a valid current-boot probe”; absent/stale replies stay unverified. One diagnostic lifecycle hook registers the receiver, with no cosmetic hooks or root commands. No continuous polling. Update using the existing permanent key and reboot to load the new receiver. The guard module itself is unchanged. See the [live diagnostic phone test](docs/GUARD_TEST.md).

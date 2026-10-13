@@ -18,6 +18,7 @@ public final class MainActivity extends AppCompatActivity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private TextView compatibility;
     private TextView rootStatus;
+    private SystemUiGuardClient systemUiCheck;
     private TextView activationStatus;
     private TextView recoveryStatus;
     private MaterialButton inspectButton;
@@ -115,8 +116,22 @@ public final class MainActivity extends AppCompatActivity {
         });
         recovery.addView(label("Optional companion guard: install its test ZIP using your root manager. Its Action button stops the guard probe independently of this app. Each reboot invalidates the probe. This is a transport test, not cosmetic permission or verified boot-loop recovery.", 14, false));
         recovery.addView(label("This build cannot arm customizations. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
+        systemUiCheck = new SystemUiGuardClient(this);
+        TextView systemUiStatus = label("System UI guard access has not been checked.", 14, false);
+        recovery.addView(systemUiStatus);
+        MaterialButton checkSystemUi = button("Check System UI guard");
+        recovery.addView(checkSystemUi);
+        checkSystemUi.setOnClickListener(v -> {
+            checkSystemUi.setEnabled(false);
+            systemUiStatus.setText("Waiting for System UI's guard check…");
+            systemUiCheck.check(result -> {
+                if (closed || isFinishing() || isDestroyed()) return;
+                checkSystemUi.setEnabled(true);
+                systemUiStatus.setText(result);
+            });
+        });
         refreshSafetyStatus();
-        content.addView(label("0.1.2 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.3 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {
@@ -202,5 +217,5 @@ public final class MainActivity extends AppCompatActivity {
     }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private void spacer(int height) { View space = new View(this); content.addView(space, new LinearLayout.LayoutParams(1, dp(height))); }
-    @Override protected void onDestroy() { closed = true; generation++; worker.shutdownNow(); super.onDestroy(); }
+    @Override protected void onDestroy() { closed = true; generation++; if (systemUiCheck != null) systemUiCheck.cancel(); worker.shutdownNow(); super.onDestroy(); }
 }

@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <permission android:name="com.elitedarkkaiser.nubialy.permission.GUARD_DIAGNOSTIC"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.elitedarkkaiser.nubialy.permission.GUARD_DIAGNOSTIC" />
     <queries><package android:name="com.android.systemui" /></queries>
     <application android:allowBackup="false" android:label="nubia-ly"
         android:icon="@drawable/ic_nubialy" android:theme="@style/Theme.NubiaLy"

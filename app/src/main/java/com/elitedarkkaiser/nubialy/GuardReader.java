@@ -12,17 +12,19 @@ import java.nio.charset.StandardCharsets;
 public final class GuardReader {
     private static final String DIRECTORY = "/data/local/tmp/nubia-ly-guard";
     private GuardReader() {}
-    public static String inspect() {
+    public record Snapshot(boolean readable, String message) {}
+    public static String inspect() { return inspectSnapshot().message(); }
+    public static Snapshot inspectSnapshot() {
         try {
             if (!safeRootPath(DIRECTORY, true) || !safeRootPath(DIRECTORY + "/probe", false))
-                return "Recovery probe blocked: no valid root-owned receipt.";
+                return new Snapshot(false, "Recovery probe blocked: no valid root-owned receipt.");
             String bootId = boundedRead("/proc/sys/kernel/random/boot_id", 64).trim();
             String receipt = boundedRead(DIRECTORY + "/probe", 160);
             return GuardPolicy.probeValid(receipt, bootId, SystemClock.elapsedRealtime() / 1000)
-                ? "Recovery probe readable for this boot. Cosmetics remain blocked."
-                : "Recovery probe blocked: expired, malformed or from another boot.";
+                ? new Snapshot(true, "Recovery probe readable for this boot. Cosmetics remain blocked.")
+                : new Snapshot(false, "Recovery probe blocked: expired, malformed or from another boot.");
         } catch (Exception unavailable) {
-            return "Recovery probe blocked: state missing or unreadable. No changes permitted.";
+            return new Snapshot(false, "Recovery probe blocked: state missing or unreadable. No changes permitted.");
         }
     }
     private static boolean safeRootPath(String path, boolean directory) throws Exception {

@@ -29,6 +29,12 @@ public final class PolicySmokeTest {
         require(!GuardPolicy.probeValid(probe.replace("probe-only", "apply"), boot, 100));
         require(!GuardPolicy.probeValid(null, boot, 100));
         require(!GuardPolicy.probeValid(probe + "unexpected", boot, 100));
+        require(SystemUiGuardProtocol.accepts(boot, boot, 4, 4, 8000));
+        require(!SystemUiGuardProtocol.accepts(boot, boot, 4, 4, 8001));
+        require(!SystemUiGuardProtocol.accepts(boot, boot, 4, 3, 100));
+        require(!SystemUiGuardProtocol.accepts(boot, null, 4, 4, 100));
+        require(!SystemUiGuardProtocol.accepts(boot, "87654321-1234-1234-1234-123456789abc", 4, 4, 100));
+        require(!SystemUiGuardProtocol.accepts(boot, boot, 4, 4, -1));
         System.out.println("Policy smoke tests passed: device, firmware, SDK, hash and no-apply gates.");
     }
     private static void require(boolean value) { if (!value) throw new AssertionError(); }
