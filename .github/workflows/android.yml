@@ -1,0 +1,62 @@
+name: nubia-ly Android CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Install SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Policy tests
+        run: sh tests/run-policy-tests.sh
+      - name: Unit tests and debug APK
+        run: gradle testDebugUnitTest assembleDebug
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubia-ly-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+      - name: Prepare release signing
+        env:
+          KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            if [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+              echo "Release signing secrets are incomplete."
+              exit 1
+            fi
+            printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/nubia-ly.jks"
+            echo "HAS_SIGNING=true" >> "$GITHUB_ENV"
+          fi
+      - name: Build signed release
+        if: env.HAS_SIGNING == 'true'
+        env:
+          SIGNING_STORE_FILE: ${{ runner.temp }}/nubia-ly.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: gradle assembleRelease
+      - name: Upload signed release
+        if: env.HAS_SIGNING == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubia-ly-signed-release-apk
+          path: app/build/outputs/apk/release/*.apk
