@@ -7,6 +7,9 @@ public final class SystemUiGuardProtocol {
     public static final int RESPONSE = 1201;
     public static final long DEADLINE_MS = 8000;
     private SystemUiGuardProtocol() {}
+    public static boolean admitted(long deadlineMs, long nowMs) {
+        return nowMs >= 0 && deadlineMs > nowMs && deadlineMs - nowMs <= DEADLINE_MS;
+    }
     public static boolean accepts(String requestNonce, String replyNonce, int version,
             int replyVersion, long elapsedMs) {
         return requestNonce != null && requestNonce.matches("[0-9a-f-]{36}")

@@ -11,6 +11,10 @@ public final class PreviewSmokeTest {
         require(PreviewPolicy.parse(receipt.replace("lifecycle-only", "cosmetic"), BOOT, 1000) == null);
         require(PreviewPolicy.parse("nubia-ly-probe-v1\n" + BOOT + "\n61\nprobe-only\n", BOOT, 1000) == null);
         require(PreviewPolicy.parse(receipt + "junk", BOOT, 1000) == null);
+        require(SystemUiGuardProtocol.admitted(9000, 1000));
+        require(!SystemUiGuardProtocol.admitted(9000, 9000));
+        require(!SystemUiGuardProtocol.admitted(9000, 999));
+        require(!SystemUiGuardProtocol.admitted(0, 1000));
         PreviewLifecycle session = new PreviewLifecycle();
         require(session.state(1000) == PreviewLifecycle.Phase.IDLE);
         long first = session.begin();

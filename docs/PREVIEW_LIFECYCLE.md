@@ -6,6 +6,8 @@ This milestone tests session control in System UI without changing any appearanc
 
 The updated optional `nubia_ly_guard` module provides `guardctl.sh preview`. It publishes `/data/local/tmp/nubia-ly-guard/preview` atomically, with its own exact `nubia-ly-preview-v1` protocol, kernel boot ID, absolute uptime deadline of at most 60 seconds, `lifecycle-only` purpose and random permit ID. Root ownership, directory/file modes, regular-file type, canonical paths and bounded size are checked by the app reader. A probe token, wrong purpose, malformed receipt, old boot or expired deadline is rejected. The two fixed broker read methods accept no caller-chosen path.
 
+Start admission and activation must both occur before the original eight-second caller deadline, including System UI queue time. A queued stale Start is rejected without changing an existing session.
+
 Start is explicit: the app validates the fresh lifecycle permit and saves a separate lifecycle-test opt-in, while the cosmetic emergency-stop latch remains stopped. System UI validates through the UID/package-protected app broker and starts only the simulation. There is no auto-start, saved active session, boot enforcement or replay after System UI restart.
 
 The active session retains the original permit ID/deadline. Replacing the file cannot extend or switch the running session: the next validation stops it. Another Start is a new explicit attempt, still bounded by the permit's original deadline.

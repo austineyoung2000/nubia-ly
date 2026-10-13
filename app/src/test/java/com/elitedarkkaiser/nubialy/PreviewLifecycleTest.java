@@ -3,6 +3,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 public final class PreviewLifecycleTest {
     private static final String ID = "12345678-1234-1234-1234-123456789abc";
+    @Test public void startAdmissionIncludesQueueTime() {
+        assertTrue(SystemUiGuardProtocol.admitted(9000, 1000));
+        assertFalse(SystemUiGuardProtocol.admitted(9000, 9000));
+        assertFalse(SystemUiGuardProtocol.admitted(9000, 999));
+        assertFalse(SystemUiGuardProtocol.admitted(0, 1000));
+    }
     @Test public void stoppedAttemptCannotBeActivatedByLateWorker() {
         PreviewLifecycle session = new PreviewLifecycle(); long ticket = session.begin(); session.stop();
         assertFalse(session.activate(ticket, new PreviewPolicy.Permit(ID, 61000), 1000));

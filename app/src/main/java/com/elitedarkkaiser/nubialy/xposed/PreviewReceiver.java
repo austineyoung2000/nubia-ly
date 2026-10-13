@@ -22,7 +22,7 @@ final class PreviewReceiver extends BroadcastReceiver {
                 || !("start".equals(operation) || "status".equals(operation) || "stop".equals(operation))) return;
         PendingResult pending = goAsync();
         try {
-            runtime.request(operation, result -> {
+            runtime.request(operation, intent.getLongExtra("request_deadline_ms", 0), result -> {
                 try {
                     result.putString("nonce", nonce); result.putInt("version", BuildConfig.VERSION_CODE);
                     pending.setResultExtras(result); pending.setResultCode(SystemUiGuardProtocol.RESPONSE);

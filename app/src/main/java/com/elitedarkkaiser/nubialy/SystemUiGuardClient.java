@@ -31,6 +31,7 @@ public final class SystemUiGuardClient {
         Intent intent = new Intent(preview ? SystemUiGuardProtocol.PREVIEW_ACTION : SystemUiGuardProtocol.ACTION).setPackage("com.android.systemui")
             .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
         intent.putExtra("nonce", nonce);
+        intent.putExtra("request_deadline_ms", started + SystemUiGuardProtocol.DEADLINE_MS);
         if (preview) intent.putExtra("operation", operation);
         try {
             context.sendOrderedBroadcast(intent, null, new BroadcastReceiver() {

@@ -23,11 +23,11 @@ final class PreviewRuntime {
     private String reason = "No lifecycle test started.";
     private Runnable tick, expiry;
     PreviewRuntime(Context context) { this.context = context; }
-    void request(String operation, Consumer<Bundle> reply) {
+    void request(String operation, long requestDeadline, Consumer<Bundle> reply) {
         actor.post(() -> {
             try {
                 switch (operation) {
-                    case "start" -> start(reply);
+                    case "start" -> start(requestDeadline, reply);
                     case "status" -> {
                         if (session.state(now()) == PreviewLifecycle.Phase.ACTIVE) validate(session.generation(), reply);
                         else { cancelTimers(); reply.accept(snapshot()); }
@@ -38,13 +38,20 @@ final class PreviewRuntime {
             } catch (Throwable unavailable) { stop("Lifecycle diagnostic unavailable."); reply.accept(snapshot()); }
         });
     }
-    private void start(Consumer<Bundle> reply) {
+    private void start(long requestDeadline, Consumer<Bundle> reply) {
+        if (!SystemUiGuardProtocol.admitted(requestDeadline, now())) {
+            Bundle rejected = snapshot(); rejected.putString("phase", "REJECTED");
+            rejected.putString("reason", "Start admission deadline passed; no new session started.");
+            reply.accept(rejected); return;
+        }
         cancelTimers();
         long ticket = session.begin();
         reason = "Checking fresh lifecycle-only permit.";
         read(ticket, permit -> {
             if (!session.current(ticket)) { reply.accept(snapshot()); return; }
-            if (!session.activate(ticket, permit, now())) {
+            if (!SystemUiGuardProtocol.admitted(requestDeadline, now())) {
+                session.stop(); reason = "Start expired before activation; no session started.";
+            } else if (!session.activate(ticket, permit, now())) {
                 reason = "Start blocked: lifecycle permit or broker unavailable.";
             } else {
                 reason = "Lifecycle simulation started; no appearance changes.";
