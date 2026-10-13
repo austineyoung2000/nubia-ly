@@ -20,8 +20,8 @@ public final class MainActivity extends AppCompatActivity {
     private TextView rootStatus;
     private SystemUiGuardClient systemUiCheck;
     private SystemUiGuardClient previewCheck;
-    private TextView previewStatus, colorStatus;
-    private MaterialButton previewStart, previewRefresh, previewStop, startColor, statusColor, endColor;
+    private TextView previewStatus;
+    private MaterialButton previewStart, previewRefresh, previewStop;
     private TextView activationStatus;
     private TextView recoveryStatus;
     private MaterialButton inspectButton;
@@ -80,6 +80,11 @@ public final class MainActivity extends AppCompatActivity {
             TextView badge = label(feature.state() == FeatureCatalog.State.BLOCKED ? "Blocked experiment" : "Coming later", 13, true);
             badge.setTextColor(0xffffbe98);
             featureCard.addView(badge);
+            if ("status_bar".equals(feature.id())) {
+                badge.setText("Clock color editor");
+                featureCard.setOnClickListener(v -> startActivity(new android.content.Intent(this, ClockEditorActivity.class)));
+                continue;
+            }
             featureCard.setOnClickListener(v -> new MaterialAlertDialogBuilder(this)
                 .setTitle(feature.title()).setMessage(feature.description() + "\n\nNo change will be applied in this build.")
                 .setPositiveButton("Got it", null).show());
@@ -101,7 +106,7 @@ public final class MainActivity extends AppCompatActivity {
                         previewCheck.cancel(); setPreviewButtons(true);
                         previewStatus.setText("Emergency stop saved. Lifecycle stop requested; check status to verify.");
                         previewCheck.preview("stop", result -> {
-                            if (!closed && !isFinishing() && !isDestroyed()) { previewStatus.setText(result); if (colorStatus != null) colorStatus.setText(result); }
+                            if (!closed && !isFinishing() && !isDestroyed()) previewStatus.setText(result);
                         });
                     }
                     recoveryStatus.setText(saved ? "Emergency stop saved. Preview restoration requested."
@@ -170,37 +175,8 @@ public final class MainActivity extends AppCompatActivity {
                 });
             });
         });
-        LinearLayout color = card("Temporary clock color", "Preview lavender for up to 30 seconds. End, guard Action and expiry restore the latest stock clock color. Requires the updated guard and a separate clock permit.");
-        colorStatus = label("No visual preview checked. Permanent customizations remain blocked.", 14, false); color.addView(colorStatus);
-        startColor = button("Preview lavender clock"); color.addView(startColor);
-        statusColor = button("Check clock preview"); color.addView(statusColor);
-        endColor = button("Restore clock color"); color.addView(endColor);
-        startColor.setOnClickListener(v -> {
-            setPreviewButtons(false);
-            worker.execute(() -> {
-                boolean allowed = RecoveryStore.allowClock(getApplicationContext());
-                runOnUiThread(() -> {
-                    if (closed || isFinishing() || isDestroyed()) return;
-                    setPreviewButtons(true);
-                    if (!allowed) { colorStatus.setText("Start blocked: enable Vector and publish a fresh clock-color permit."); return; }
-                    requestColor("clock_start");
-                });
-            });
-        });
-        statusColor.setOnClickListener(v -> requestColor("status"));
-        endColor.setOnClickListener(v -> {
-            setPreviewButtons(false);
-            worker.execute(() -> {
-                boolean saved = RecoveryStore.stop(getApplicationContext());
-                runOnUiThread(() -> {
-                    if (closed || isFinishing() || isDestroyed()) return;
-                    requestColor("stop");
-                    if (!saved) colorStatus.setText("Persistent disarm failed; restore requested. Check clock preview.");
-                });
-            });
-        });
         refreshSafetyStatus();
-        content.addView(label("0.1.9 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.10 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {
@@ -220,13 +196,6 @@ public final class MainActivity extends AppCompatActivity {
     private void setPreviewButtons(boolean enabled) {
         if (previewStart == null) return;
         previewStart.setEnabled(enabled); previewRefresh.setEnabled(enabled); previewStop.setEnabled(enabled);
-        if (startColor != null) { startColor.setEnabled(enabled); statusColor.setEnabled(enabled); endColor.setEnabled(enabled); }
-    }
-    private void requestColor(String operation) {
-        setPreviewButtons(false);
-        previewCheck.preview(operation, result -> {
-            if (!closed && !isFinishing() && !isDestroyed()) { setPreviewButtons(true); colorStatus.setText(result); }
-        });
     }
     private void requestPreview(String operation) {
         setPreviewButtons(false);

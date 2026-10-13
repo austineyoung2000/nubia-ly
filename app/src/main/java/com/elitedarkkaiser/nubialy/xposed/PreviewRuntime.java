@@ -25,11 +25,14 @@ final class PreviewRuntime {
     private Runnable tick, expiry;
     PreviewRuntime(Context context) { this.context = context; }
     void request(String operation, long requestDeadline, Consumer<Bundle> reply) {
+        request(operation, requestDeadline, ClockColorPolicy.DEFAULT, reply);
+    }
+    void request(String operation, long requestDeadline, int color, Consumer<Bundle> reply) {
         actor.post(() -> {
             try {
                 switch (operation) {
-                    case "start" -> start(false, requestDeadline, reply);
-                    case "clock_start" -> start(true, requestDeadline, reply);
+                    case "start" -> start(false, requestDeadline, color, reply);
+                    case "clock_start" -> start(true, requestDeadline, color, reply);
                     case "status" -> {
                         if (session.state(now()) == PreviewLifecycle.Phase.ACTIVE) validate(session.generation(), reply);
                         else { cancelTimers(); reply.accept(snapshot()); }
@@ -40,15 +43,15 @@ final class PreviewRuntime {
             } catch (Throwable unavailable) { stop("Lifecycle diagnostic unavailable."); reply.accept(snapshot()); }
         });
     }
-    private void start(boolean color, long requestDeadline, Consumer<Bundle> reply) {
-        if (!SystemUiGuardProtocol.admitted(requestDeadline, now())) {
+    private void start(boolean colorPreview, long requestDeadline, int color, Consumer<Bundle> reply) {
+        if ((colorPreview && !ClockColorPolicy.valid(color)) || !SystemUiGuardProtocol.admitted(requestDeadline, now())) {
             Bundle rejected = snapshot(); rejected.putString("phase", "REJECTED");
             rejected.putString("reason", "Start admission deadline passed; no new session started.");
             reply.accept(rejected); return;
         }
         cancelTimers();
         ClockCaptureBackend.end();
-        visual = color;
+        visual = colorPreview;
         long ticket = session.begin();
         reason = "Checking fresh lifecycle-only permit.";
         read(ticket, permit -> {
@@ -58,10 +61,10 @@ final class PreviewRuntime {
             } else if (!session.activate(ticket, permit, now())) {
                 reason = "Start blocked: lifecycle permit or broker unavailable.";
             } else {
-                if (!(visual ? ClockColorBackend.begin(session.deadline()) : ClockCaptureBackend.begin())) {
+                if (!(visual ? ClockColorBackend.begin(session.deadline(), color) : ClockCaptureBackend.begin())) {
                     stop(visual ? "Clock preview unavailable; check restoration result." : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
                 }
-                reason = visual ? "Temporary lavender clock preview started." : "Clock capture rehearsal started; no appearance changes.";
+                reason = visual ? "Temporary selected-color clock preview started." : "Clock capture rehearsal started; no appearance changes.";
                 expiry = () -> { session.state(now()); cancelTimers(); };
                 actor.postDelayed(expiry, session.deadline() - now());
                 schedule(ticket);
@@ -124,7 +127,7 @@ final class PreviewRuntime {
         if (phase != PreviewLifecycle.Phase.ACTIVE) { ClockCaptureBackend.end(); ClockColorBackend.end(); }
         if (phase == PreviewLifecycle.Phase.EXPIRED) reason = visual ? "Clock permit expired; restoration requested." : "Lifecycle permit expired; no appearance changes were made.";
         Bundle result = new Bundle(); result.putString("phase", phase.name());
-        result.putString("reason", reason); result.putString("clock_capture", visual ? ClockColorBackend.status() : ClockCaptureBackend.status()); result.putBoolean("visual", visual); result.putLong("deadline_ms", session.deadline());
+        result.putString("reason", reason); result.putString("clock_capture", visual ? ClockColorBackend.status() : ClockCaptureBackend.status()); result.putBoolean("visual", visual); result.putInt("clock_color", ClockColorBackend.color()); result.putLong("deadline_ms", session.deadline());
         return result;
     }
     private void stop(String why) { session.stop(); reason = why; cancelTimers(); }

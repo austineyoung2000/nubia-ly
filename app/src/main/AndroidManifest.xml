@@ -13,6 +13,7 @@
         <provider android:name=".GuardBrokerProvider"
             android:authorities="com.elitedarkkaiser.nubialy.guard"
             android:exported="true" android:grantUriPermissions="false" />
+        <activity android:name=".ClockEditorActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

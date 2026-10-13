@@ -18,9 +18,13 @@ public final class SystemUiGuardClient {
     private Runnable timeout;
     private long generation;
     public SystemUiGuardClient(Context context) { this.context = context.getApplicationContext(); }
-    public void check(Consumer<String> result) { request(false, null, result); }
-    public void preview(String operation, Consumer<String> result) { request(true, operation, result); }
-    private void request(boolean preview, String operation, Consumer<String> result) {
+    public void check(Consumer<String> result) { request(false, null, null, result); }
+    public void preview(String operation, Consumer<String> result) { request(true, operation, null, result); }
+    public void previewColor(int color, Consumer<String> result) {
+        if (!ClockColorPolicy.valid(color)) { result.accept("Preview blocked: choose an opaque RGB color."); return; }
+        request(true, "clock_start", color, result);
+    }
+    private void request(boolean preview, String operation, Integer color, Consumer<String> result) {
         cancel();
         callback = result;
         long request = generation;
@@ -33,6 +37,7 @@ public final class SystemUiGuardClient {
         intent.putExtra("nonce", nonce);
         intent.putExtra("request_deadline_ms", started + SystemUiGuardProtocol.DEADLINE_MS);
         if (preview) intent.putExtra("operation", operation);
+        if (color != null) intent.putExtra("clock_color", color.intValue());
         try {
             context.sendOrderedBroadcast(intent, null, new BroadcastReceiver() {
                 @Override public void onReceive(Context ignored, Intent response) {
@@ -52,6 +57,10 @@ public final class SystemUiGuardClient {
                         String phase = extras.getString("phase", "UNKNOWN");
                         long deadline = extras.getLong("deadline_ms", 0);
                         if ("ACTIVE".equals(phase) && deadline <= SystemClock.elapsedRealtime()) phase = "EXPIRED";
+                        if (color != null && "ACTIVE".equals(phase) && extras.getBoolean("visual", false)
+                                && extras.getInt("clock_color", 0) != color.intValue()) {
+                            finish(request, "System UI color reply did not match the requested selection. Preview unverified; restore clock color."); return;
+                        }
                         finish(request, "System UI lifecycle: " + phase + (extras.getBoolean("visual", false) ? ". Temporary clock color preview.\n" : ". No appearance changes.\n")
                             + ("ACTIVE".equals(phase) ? "Expires within " + Math.max(0, (deadline - SystemClock.elapsedRealtime()) / 1000)
                                 + " seconds; check status for a fresh result." : extras.getString("reason", "No valid session."))

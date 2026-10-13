@@ -4,6 +4,7 @@ import android.content.res.ColorStateList;
 import android.os.*;
 import android.widget.TextView;
 import com.elitedarkkaiser.nubialy.ColorRestore;
+import com.elitedarkkaiser.nubialy.ClockColorPolicy;
 import de.robv.android.xposed.*;
 import java.util.*;
 
@@ -17,12 +18,14 @@ final class ClockColorBackend {
     private static volatile long generation;
     private static int applied, restored;
     private static String message = "No clock color preview started.";
-    private static final int COLOR = 0xffc0a8ff;
-    static boolean begin(long until) {
+    private static int selectedColor = ClockColorPolicy.DEFAULT;
+    static int color() { return selectedColor; }
+    static boolean begin(long until, int color) {
+        if (!ClockColorPolicy.valid(color)) return false;
         end();
         if (failed || !states.isEmpty() || until <= SystemClock.elapsedRealtime()
                 || until - SystemClock.elapsedRealtime() > 30000) return false;
-        applied = restored = 0; deadline = until;
+        applied = restored = 0; deadline = until; selectedColor = color;
         try {
             XC_MethodHook callback = new XC_MethodHook() {
                 @Override protected void beforeHookedMethod(MethodHookParam p) {
@@ -59,7 +62,7 @@ final class ClockColorBackend {
             active = true;
             for (TextView view : ClockCaptureBackend.attachedClocks()) if (view.isAttachedToWindow()) track(view);
             if (!active || applied == 0) { end(); message = "No eligible attached clock; preview blocked."; return false; }
-            message = "Lavender clock preview active."; return true;
+            message = "Clock preview " + ClockColorPolicy.hex(selectedColor) + " active."; return true;
         } catch (Throwable unavailable) { abort("Clock preview installation failed."); return false; }
     }
     static void track(TextView view) {
@@ -72,7 +75,7 @@ final class ClockColorBackend {
     }
     private static void paint(TextView view) {
         writing = true;
-        try { view.setTextColor(COLOR); } finally { writing = false; }
+        try { view.setTextColor(selectedColor); } finally { writing = false; }
     }
     static void detach(TextView view) { if (states.containsKey(view)) restore(view); }
     private static void restore(TextView view) {

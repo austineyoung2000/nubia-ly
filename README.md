@@ -153,3 +153,7 @@ The 0.1.6 test build adds a read-only NX809J status-bar clock capture rehearsal.
 ## Temporary clock-color test
 
 The 0.1.9 draft adds an explicit fixed lavender status-bar clock preview, bounded to a separate 30-second root permit. End, expiry, guard Action, Emergency stop and screen-off restore the latest stock color with readback. Update both APK and guard module. This is a phone-validation test, not a persistent cosmetic release or verified full boot-loop recovery. See [install and phone checklist](docs/CLOCK_COLOR_PREVIEW.md).
+
+## Status bar clock editor
+
+The 0.1.10 test adds named color presets and a custom Material RGB/hex picker under Status bar. Only your color selection is saved. Explicit previews use the existing 30-second clock permit and stock restoration; saving and reopening never apply automatically. See [editor phone test](docs/CLOCK_EDITOR.md). Keep the 0.1.9 guard module installed.

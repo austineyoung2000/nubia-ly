@@ -30,13 +30,15 @@ public class TextView {private ColorStateList colors; public boolean failPaint;
 import android.os.SystemClock;import android.widget.TextView;import android.content.res.ColorStateList;import com.android.systemui.statusbar.policy.Clock;import de.robv.android.xposed.XposedHelpers;
 public class BackendTest {static void check(boolean b){if(!b)throw new AssertionError(ClockColorBackend.status());}
  public static void main(String[] args){Clock a=new Clock(1),b=new Clock(2); ClockCaptureBackend.views.add(a);ClockCaptureBackend.views.add(b);
- check(ClockColorBackend.begin(130000));check(a.getTextColors().color()==0xffc0a8ff);
+ check(ClockColorBackend.begin(130000,0xffc0a8ff));check(a.getTextColors().color()==0xffc0a8ff);
  TextView unrelated=new TextView(3);unrelated.setTextColor(4);check(unrelated.getTextColors().color()==4);
  ColorStateList dark=new ColorStateList(5);a.setTextColor(dark);check(a.getTextColors().color()==0xffc0a8ff);
  ClockColorBackend.end();check(a.getTextColors().equals(dark));check(b.getTextColors().color()==2);check(XposedHelpers.hooks.isEmpty());check(ClockColorBackend.status().contains("remaining: 0"));
- check(ClockColorBackend.begin(130000));ClockColorBackend.detach(a);check(a.getTextColors().equals(dark));ClockColorBackend.end();check(b.getTextColors().color()==2);
- check(ClockColorBackend.begin(130000));SystemClock.time=130000;a.setTextColor(9);check(a.getTextColors().color()==9);check(b.getTextColors().color()==2);check(XposedHelpers.hooks.isEmpty());
- SystemClock.time=140000;a.failPaint=true;check(!ClockColorBackend.begin(170000));check(a.getTextColors().color()==9);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000));
+ check(ClockColorBackend.begin(130000,0xffc0a8ff));ClockColorBackend.detach(a);check(a.getTextColors().equals(dark));ClockColorBackend.end();check(b.getTextColors().color()==2);
+ check(ClockColorBackend.begin(130000,0xffc0a8ff));SystemClock.time=130000;a.setTextColor(9);check(a.getTextColors().color()==9);check(b.getTextColors().color()==2);check(XposedHelpers.hooks.isEmpty());
+ SystemClock.time=140000;check(ClockColorBackend.begin(170000,0xff112233));check(a.getTextColors().color()==0xff112233);
+ check(!ClockColorBackend.begin(170000,0x00112233));check(ClockColorBackend.healthy());ClockColorBackend.end();check(a.getTextColors().color()==9);
+ a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==9);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, unrelated views, stock updates, restore, detach, expiry, partial apply failure and failed-session fence");}}
 '''
 }
@@ -45,6 +47,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-clock-backend-') as work:
     for name, source in sources.items():
         path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source)
     files=[str(p) for p in work.rglob('*.java')]
-    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
+    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
     subprocess.run(['java','com.sun.tools.javac.Main','-d',str(work/'classes'),*files],check=True)
     subprocess.run(['java','-cp',str(work/'classes'),'com.elitedarkkaiser.nubialy.xposed.BackendTest'],check=True)
