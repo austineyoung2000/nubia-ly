@@ -19,7 +19,7 @@ public final class GuardBrokerProvider extends ContentProvider {
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
         enforceSystemUi();
-        if ((!GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method))
+        if ((!GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method))
                 || arg != null || extras == null)
             throw new IllegalArgumentException("Unsupported guard request");
         String nonce = extras.getString("nonce");
@@ -36,9 +36,12 @@ public final class GuardBrokerProvider extends ContentProvider {
         // Keep authentication before any identity change. File access uses this app's domain.
         long identity = Binder.clearCallingIdentity();
         try {
-            if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method)) {
-                PreviewPolicy.Permit permit = RecoveryStore.lifecycleAllowed(getContext())
-                    ? GuardReader.inspectPreview() : null;
+            if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method) || GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
+                PreviewPolicy.Permit permit;
+                if (GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
+                    permit = GuardReader.inspectClock();
+                    if (!RecoveryStore.clockAllowed(getContext(), permit)) permit = null;
+                } else permit = RecoveryStore.lifecycleAllowed(getContext()) ? GuardReader.inspectPreview() : null;
                 reply.putInt("status", permit != null ? GuardBrokerPolicy.READABLE : GuardBrokerPolicy.BLOCKED);
                 if (permit != null) {
                     reply.putString("permit_id", permit.id());

@@ -16,9 +16,14 @@ java com.sun.tools.javac.Main -d "$work" \
  "$repo/tests/PolicySmokeTest.java" \
  "$repo/tests/PreviewSmokeTest.java" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ClockCapture.java" \
- "$repo/tests/ClockCaptureSmokeTest.java"
+ "$repo/tests/ClockCaptureSmokeTest.java" \
+ "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ClockPermitPolicy.java" \
+ "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java" \
+ "$repo/tests/ClockColorSmokeTest.java"
 java -cp "$work" com.elitedarkkaiser.nubialy.PolicySmokeTest
 
 java -cp "$work" com.elitedarkkaiser.nubialy.PreviewSmokeTest
 
 java -cp "$work" com.elitedarkkaiser.nubialy.ClockCaptureSmokeTest
+
+java -cp "$work" com.elitedarkkaiser.nubialy.ClockColorSmokeTest

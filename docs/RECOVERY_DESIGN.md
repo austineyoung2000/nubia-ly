@@ -35,3 +35,7 @@ A separate lifecycle-only permit, explicit start, absolute expiry, independent s
 ## Clock capture prerequisite in 0.1.6
 
 A read-only Clock observer captures full stock ColorStateList and releases/compares it through lifecycle stop, expiry and revocation. Stock updates supersede the initial color. All visual apply gates remain closed; this rehearsal does not validate actual color writes, rollback or crash-loop recovery. See [clock capture test](CLOCK_CAPTURE.md).
+
+## Scoped transient clock recovery in 0.1.9
+
+The first visual test implements latest-stock ColorStateList capture/restore with readback, original expiry, independent root permit revocation, screen-off restoration and no process/boot replay. A distinct visual permit is required. Permanent customizations remain unavailable and complete boot-loop recovery remains unverified. See [contract and phone tests](CLOCK_COLOR_PREVIEW.md).

@@ -49,13 +49,14 @@ final class ClockCaptureBackend {
                         try {
                             if (Looper.myLooper() != Looper.getMainLooper()) return;
                             TextView view = (TextView) hook.thisObject;
-                            if (name.equals("onDetachedFromWindow")) { release(view); clocks.remove(view); return; }
+                            if (name.equals("onDetachedFromWindow")) { ClockColorBackend.detach(view); release(view); clocks.remove(view); return; }
                             Object a = XposedHelpers.callMethod(view, "getAdapt");
                             if (a == null) return;
                             Object type = XposedHelpers.getObjectField(a, "mViewType");
                             if (type == null) return;
                             if (!Boolean.TRUE.equals(XposedHelpers.callMethod(type, "isTopStatusBar"))) return;
                             clocks.computeIfAbsent(view, ignored -> new ClockCapture<>());
+                            ClockColorBackend.track(view);
                             observe(view);
                         } catch (Throwable unavailable) { fail("Clock callback: " + name, unavailable); }
                     }
@@ -66,6 +67,11 @@ final class ClockCaptureBackend {
             for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable ignored) {}
             fail(stage, unavailable);
         }
+    }
+    static boolean available() { return ready && !failed; }
+    static java.util.List<TextView> attachedClocks() {
+        if (!ready || failed) return java.util.List.of();
+        return new ArrayList<>(clocks.keySet());
     }
     static boolean begin() {
         end(); captures = updates = releases = 0;

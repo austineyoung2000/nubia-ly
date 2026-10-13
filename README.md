@@ -149,3 +149,7 @@ This milestone changes no appearance and provides no cosmetic permission. Origin
 ## Clock-color preview preparation
 
 The 0.1.6 test build adds a read-only NX809J status-bar clock capture rehearsal. It identifies the vendor-classified top clock and tracks stock color changes through the bounded lifecycle before a future visual override. No clock color changes are enabled. See [phone test and limitations](docs/CLOCK_CAPTURE.md).
+
+## Temporary clock-color test
+
+The 0.1.9 draft adds an explicit fixed lavender status-bar clock preview, bounded to a separate 30-second root permit. End, expiry, guard Action, Emergency stop and screen-off restore the latest stock color with readback. Update both APK and guard module. This is a phone-validation test, not a persistent cosmetic release or verified full boot-loop recovery. See [install and phone checklist](docs/CLOCK_COLOR_PREVIEW.md).

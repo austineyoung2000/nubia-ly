@@ -25,7 +25,7 @@ public final class SystemUiGuardReceiver extends BroadcastReceiver {
                 null, Context.RECEIVER_EXPORTED);
             PreviewReceiver.install(context);
             installed = true;
-            XposedBridge.log("nubia-ly: System UI guard diagnostic registered; no cosmetic hooks.");
+            XposedBridge.log("nubia-ly: System UI guard diagnostic registered; no automatic preview.");
         } catch (Throwable unavailable) {
             XposedBridge.log("nubia-ly: System UI diagnostic registration unavailable; cosmetics blocked.");
         }

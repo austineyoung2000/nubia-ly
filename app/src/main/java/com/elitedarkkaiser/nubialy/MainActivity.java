@@ -20,8 +20,8 @@ public final class MainActivity extends AppCompatActivity {
     private TextView rootStatus;
     private SystemUiGuardClient systemUiCheck;
     private SystemUiGuardClient previewCheck;
-    private TextView previewStatus;
-    private MaterialButton previewStart, previewRefresh, previewStop;
+    private TextView previewStatus, colorStatus;
+    private MaterialButton previewStart, previewRefresh, previewStop, startColor, statusColor, endColor;
     private TextView activationStatus;
     private TextView recoveryStatus;
     private MaterialButton inspectButton;
@@ -70,10 +70,10 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout vector = card("Vector framework", "Enable nubia-ly for System UI in Vector, then reboot.");
         activationStatus = label("", 14, false);
         vector.addView(activationStatus);
-        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. A read-only clock observer is installed; no visual overrides are enabled.", 14, false));
+        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. The clock observer supports an explicitly started temporary color preview.", 14, false));
         spacer(20);
         content.addView(label("Your canvas", 24, true));
-        content.addView(label("Customization features are being developed. This foundation build only inspects your device.", 14, false));
+        content.addView(label("Customization features are being developed. This test build includes a temporary clock-color preview.", 14, false));
         spacer(10);
         for (FeatureCatalog.Feature feature : FeatureCatalog.FEATURES) {
             LinearLayout featureCard = card(feature.title(), feature.description());
@@ -101,10 +101,10 @@ public final class MainActivity extends AppCompatActivity {
                         previewCheck.cancel(); setPreviewButtons(true);
                         previewStatus.setText("Emergency stop saved. Lifecycle stop requested; check status to verify.");
                         previewCheck.preview("stop", result -> {
-                            if (!closed && !isFinishing() && !isDestroyed()) previewStatus.setText(result);
+                            if (!closed && !isFinishing() && !isDestroyed()) { previewStatus.setText(result); if (colorStatus != null) colorStatus.setText(result); }
                         });
                     }
-                    recoveryStatus.setText(saved ? "Emergency stop saved. Customizations remain blocked."
+                    recoveryStatus.setText(saved ? "Emergency stop saved. Preview restoration requested."
                         : "Could not save emergency stop. Customizations remain blocked in this build.");
                 });
             });
@@ -125,7 +125,7 @@ public final class MainActivity extends AppCompatActivity {
             });
         });
         recovery.addView(label("Optional companion guard: install its test ZIP using your root manager. Its Action button stops the guard probe independently of this app. Each reboot invalidates the probe. This is a transport test, not cosmetic permission or verified boot-loop recovery.", 14, false));
-        recovery.addView(label("This build cannot arm customizations. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
+        recovery.addView(label("Permanent customizations remain blocked. The explicit temporary clock preview uses its own permit. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
         systemUiCheck = new SystemUiGuardClient(this);
         TextView systemUiStatus = label("System UI broker access has not been checked.", 14, false);
         recovery.addView(systemUiStatus);
@@ -142,7 +142,7 @@ public final class MainActivity extends AppCompatActivity {
         });
         LinearLayout preview = card("Clock capture rehearsal", "Capture the stock status-bar clock color and release it through stop/expiry. Your clock stays unchanged. Requires a fresh lifecycle-only permit.");
         previewCheck = new SystemUiGuardClient(this);
-        previewStatus = label("No lifecycle test checked. Cosmetics remain disabled.", 14, false);
+        previewStatus = label("No rehearsal checked. This card never changes clock color.", 14, false);
         preview.addView(previewStatus);
         previewStart = button("Start clock capture"); preview.addView(previewStart);
         previewRefresh = button("Check clock capture"); preview.addView(previewRefresh);
@@ -170,8 +170,37 @@ public final class MainActivity extends AppCompatActivity {
                 });
             });
         });
+        LinearLayout color = card("Temporary clock color", "Preview lavender for up to 30 seconds. End, guard Action and expiry restore the latest stock clock color. Requires the updated guard and a separate clock permit.");
+        colorStatus = label("No visual preview checked. Permanent customizations remain blocked.", 14, false); color.addView(colorStatus);
+        startColor = button("Preview lavender clock"); color.addView(startColor);
+        statusColor = button("Check clock preview"); color.addView(statusColor);
+        endColor = button("Restore clock color"); color.addView(endColor);
+        startColor.setOnClickListener(v -> {
+            setPreviewButtons(false);
+            worker.execute(() -> {
+                boolean allowed = RecoveryStore.allowClock(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (closed || isFinishing() || isDestroyed()) return;
+                    setPreviewButtons(true);
+                    if (!allowed) { colorStatus.setText("Start blocked: enable Vector and publish a fresh clock-color permit."); return; }
+                    requestColor("clock_start");
+                });
+            });
+        });
+        statusColor.setOnClickListener(v -> requestColor("status"));
+        endColor.setOnClickListener(v -> {
+            setPreviewButtons(false);
+            worker.execute(() -> {
+                boolean saved = RecoveryStore.stop(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (closed || isFinishing() || isDestroyed()) return;
+                    requestColor("stop");
+                    if (!saved) colorStatus.setText("Persistent disarm failed; restore requested. Check clock preview.");
+                });
+            });
+        });
         refreshSafetyStatus();
-        content.addView(label("0.1.8 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.9 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {
@@ -184,13 +213,20 @@ public final class MainActivity extends AppCompatActivity {
             ? "Vector activation confirmed in nubia-ly."
             : "Vector activation not detected in nubia-ly. Enable the module and reboot.");
         recoveryStatus.setText(RecoveryStore.isStopped(this)
-            ? "Emergency stop active. Customizations blocked."
+            ? "Permanent customizations stopped. Temporary previews require a separate permit."
             : "Customizations blocked: recovery backend has not been verified.");
     }
 
     private void setPreviewButtons(boolean enabled) {
         if (previewStart == null) return;
         previewStart.setEnabled(enabled); previewRefresh.setEnabled(enabled); previewStop.setEnabled(enabled);
+        if (startColor != null) { startColor.setEnabled(enabled); statusColor.setEnabled(enabled); endColor.setEnabled(enabled); }
+    }
+    private void requestColor(String operation) {
+        setPreviewButtons(false);
+        previewCheck.preview(operation, result -> {
+            if (!closed && !isFinishing() && !isDestroyed()) { setPreviewButtons(true); colorStatus.setText(result); }
+        });
     }
     private void requestPreview(String operation) {
         setPreviewButtons(false);

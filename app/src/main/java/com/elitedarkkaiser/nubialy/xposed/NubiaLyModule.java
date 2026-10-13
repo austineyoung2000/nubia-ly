@@ -12,7 +12,7 @@ import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-/** Vector-compatible legacy entry point. App activation and a read-only System UI lifecycle diagnostic; no cosmetics. */
+/** Vector-compatible legacy entry point. App activation, clock discovery and explicit transient previews. */
 public final class NubiaLyModule implements IXposedHookLoadPackage {
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam param) {
         if ("com.elitedarkkaiser.nubialy".equals(param.packageName)
@@ -45,6 +45,6 @@ public final class NubiaLyModule implements IXposedHookLoadPackage {
         } catch (Throwable unavailable) {
             XposedBridge.log("nubia-ly: System UI lifecycle diagnostic unavailable; cosmetics blocked.");
         }
-        XposedBridge.log("nubia-ly: Vector module entry loaded on NX809J; clock observer deferred until application attach; no visual overrides.");
+        XposedBridge.log("nubia-ly: Vector module entry loaded on NX809J; clock observer deferred until application attach; no automatic visual overrides.");
     }
 }

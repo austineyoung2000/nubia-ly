@@ -18,8 +18,18 @@ public final class RecoveryStore {
         return context.getSharedPreferences("recovery", Context.MODE_PRIVATE).edit()
             .putBoolean("lifecycle_test_allowed", true).commit();
     }
+    public static boolean allowClock(Context context) {
+        PreviewPolicy.Permit permit = GuardReader.inspectClock();
+        if (permit == null || !ModuleStatus.isActive()) return false;
+        return context.getSharedPreferences("recovery", Context.MODE_PRIVATE).edit()
+            .putString("clock_permit_id", permit.id()).commit();
+    }
+    public static boolean clockAllowed(Context context, PreviewPolicy.Permit permit) {
+        return permit != null && permit.id().equals(context.getSharedPreferences("recovery", Context.MODE_PRIVATE)
+            .getString("clock_permit_id", ""));
+    }
     public static boolean stop(Context context) {
         return context.getSharedPreferences("recovery", Context.MODE_PRIVATE).edit()
-            .putBoolean("emergency_stopped", true).putBoolean("lifecycle_test_allowed", false).commit();
+            .remove("clock_permit_id").putBoolean("emergency_stopped", true).putBoolean("lifecycle_test_allowed", false).commit();
     }
 }

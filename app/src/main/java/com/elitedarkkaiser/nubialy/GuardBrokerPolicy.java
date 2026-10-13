@@ -3,6 +3,7 @@ package com.elitedarkkaiser.nubialy;
 /** Binder UID plus framework-verified package attribution; no caller-supplied identity. */
 public final class GuardBrokerPolicy {
     public static final String AUTHORITY = "com.elitedarkkaiser.nubialy.guard";
+    public static final String CLOCK_METHOD = "inspect_clock";
     public static final String PREVIEW_METHOD = "inspect_preview";
     public static final String METHOD = "inspect_probe";
     public static final int UNAVAILABLE = 0, BLOCKED = 1, READABLE = 2, BUSY = 3;

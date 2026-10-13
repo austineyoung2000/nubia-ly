@@ -52,7 +52,7 @@ public final class SystemUiGuardClient {
                         String phase = extras.getString("phase", "UNKNOWN");
                         long deadline = extras.getLong("deadline_ms", 0);
                         if ("ACTIVE".equals(phase) && deadline <= SystemClock.elapsedRealtime()) phase = "EXPIRED";
-                        finish(request, "System UI lifecycle: " + phase + ". No appearance changes.\n"
+                        finish(request, "System UI lifecycle: " + phase + (extras.getBoolean("visual", false) ? ". Temporary clock color preview.\n" : ". No appearance changes.\n")
                             + ("ACTIVE".equals(phase) ? "Expires within " + Math.max(0, (deadline - SystemClock.elapsedRealtime()) / 1000)
                                 + " seconds; check status for a fresh result." : extras.getString("reason", "No valid session."))
                             + "\n" + extras.getString("clock_capture", "Clock capture unverified."));

@@ -1,6 +1,6 @@
 id=nubia_ly_guard
-name=nubia-ly Recovery Guard (lifecycle test)
-version=0.1.5
-versionCode=6
+name=nubia-ly Recovery Guard (clock preview test)
+version=0.1.9
+versionCode=10
 author=EliteDarkKaiser
-description=NX809J-only independent stop and boot-scoped transport probe and separate lifecycle-only permit. Does not enable cosmetics or promise boot-loop recovery.
+description=NX809J-only independent stop and boot-scoped transport probe, lifecycle rehearsal and explicit 30-second clock-color permit. No automatic preview or boot-loop recovery promise.

@@ -25,7 +25,9 @@ jobs:
       - name: Install SDK
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Policy tests
-        run: sh tests/run-policy-tests.sh
+        run: |
+          sh tests/run-policy-tests.sh
+          python3 tests/test_clock_backend.py
       - name: Recovery guard tests and ZIP
         run: |
           sudo python3 tests/test_guard_shell.py

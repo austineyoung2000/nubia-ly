@@ -5,13 +5,19 @@ import android.os.Bundle;
 import com.elitedarkkaiser.nubialy.*;
 import de.robv.android.xposed.XposedBridge;
 
-/** Signature-protected session controls; no visual hooks or settings writes. */
+/** Signature-protected rehearsal and temporary clock controls; no settings writes. */
 final class PreviewReceiver extends BroadcastReceiver {
     private final PreviewRuntime runtime;
     private PreviewReceiver(Context context) { runtime = new PreviewRuntime(context); }
     static void install(Context context) {
         try {
-            context.registerReceiver(new PreviewReceiver(context), new IntentFilter(SystemUiGuardProtocol.PREVIEW_ACTION),
+            PreviewReceiver receiver = new PreviewReceiver(context);
+            context.registerReceiver(new BroadcastReceiver() {
+                @Override public void onReceive(Context ignored, Intent intent) {
+                    if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) receiver.runtime.request("stop", 0, result -> {});
+                }
+            }, new IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED);
+            context.registerReceiver(receiver, new IntentFilter(SystemUiGuardProtocol.PREVIEW_ACTION),
                 SystemUiGuardProtocol.PERMISSION, null, Context.RECEIVER_EXPORTED);
         } catch (Throwable unavailable) { XposedBridge.log("nubia-ly: lifecycle receiver unavailable; cosmetics blocked."); }
     }
@@ -19,7 +25,7 @@ final class PreviewReceiver extends BroadcastReceiver {
         String operation = intent.getStringExtra("operation");
         String nonce = intent.getStringExtra("nonce");
         if (!SystemUiGuardProtocol.PREVIEW_ACTION.equals(intent.getAction()) || !PreviewPolicy.uuid(nonce)
-                || !("start".equals(operation) || "status".equals(operation) || "stop".equals(operation))) return;
+                || !("start".equals(operation) || "clock_start".equals(operation) || "status".equals(operation) || "stop".equals(operation))) return;
         PendingResult pending = goAsync();
         try {
             runtime.request(operation, intent.getLongExtra("request_deadline_ms", 0), result -> {
