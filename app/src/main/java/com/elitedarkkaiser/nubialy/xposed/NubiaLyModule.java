@@ -5,7 +5,6 @@ import android.app.Application;
 import android.content.Context;
 import de.robv.android.xposed.XC_MethodHook;
 import com.elitedarkkaiser.nubialy.ModuleStatus;
-import com.elitedarkkaiser.nubialy.GuardReader;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XC_MethodReplacement;
 import com.elitedarkkaiser.nubialy.CompatibilityPolicy;

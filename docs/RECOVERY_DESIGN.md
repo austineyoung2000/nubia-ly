@@ -23,3 +23,7 @@ The latch cannot recover a boot loop, remove Vector scope, unhook a running proc
 ## Independent guard transport in 0.1.2
 
 The optional root-manager module provides independent stop and boot invalidation for a harmless, expiring probe. The app does not install it. No ongoing watchdog runs and no cosmetic feature is armed. Rootless readability, manager execution and reboot behavior must pass the [guard phone test](GUARD_TEST.md). Future cosmetic hooks need a separate apply permit protocol and validated skip-on-boot behavior; probe-only receipts can never authorize them.
+
+## Broker transport after the direct-read phone test
+
+The 0.1.3 direct System UI reader is superseded by a protected app-side guard broker after the phone reported an access denial. System UI makes no guard filesystem read. The provider checks real Binder UID and verified calling package, accepts one fixed nonce/version-matched read and returns only status. No positive caching; unavailable/busy/late replies remain unverified. This avoids changing SELinux and keeps the independent module stop/reboot semantics. Broker phone validation is required; complete future cosmetic recovery is still a separate gate.

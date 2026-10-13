@@ -26,7 +26,8 @@ public final class SystemUiGuardClient {
         String nonce = UUID.randomUUID().toString();
         timeout = () -> finish(request, "System UI did not reply within 8 seconds. Guard access unverified.");
         handler.postDelayed(timeout, SystemUiGuardProtocol.DEADLINE_MS);
-        Intent intent = new Intent(SystemUiGuardProtocol.ACTION).setPackage("com.android.systemui");
+        Intent intent = new Intent(SystemUiGuardProtocol.ACTION).setPackage("com.android.systemui")
+            .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
         intent.putExtra("nonce", nonce);
         try {
             context.sendOrderedBroadcast(intent, null, new BroadcastReceiver() {
@@ -43,9 +44,13 @@ public final class SystemUiGuardClient {
                         finish(request, "System UI reply is stale or from another app version. Access unverified.");
                         return;
                     }
-                    finish(request, extras.getBoolean("readable", false)
-                        ? "System UI read a valid current-boot probe. Cosmetics remain blocked."
-                        : "System UI replied, but its guard probe is blocked or unreadable. Publish a fresh probe and retry.");
+                    int status = extras.getInt("broker_status", GuardBrokerPolicy.UNAVAILABLE);
+                    finish(request, switch (status) {
+                        case GuardBrokerPolicy.READABLE -> "System UI received a fresh valid probe through the protected broker. Cosmetics remain blocked.";
+                        case GuardBrokerPolicy.BLOCKED -> "System UI reached the broker; probe is blocked, expired or unreadable.";
+                        case GuardBrokerPolicy.BUSY -> "System UI reached the broker; a read is already pending. Access unverified.";
+                        default -> "System UI replied, but the protected broker is unavailable. Guard access unverified.";
+                    });
                 }
             }, handler, 0, null, null);
         } catch (RuntimeException unavailable) {

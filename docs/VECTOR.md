@@ -6,6 +6,6 @@ The System UI entry checks package, main process, NX809J and Android 16, then lo
 
 An app-only hook replaces ModuleStatus.isActive to report Vector activation inside nubia-ly. This does not certify System UI loading or health. No root grant or manager switch is used as activation evidence.
 
-The emergency-stop latch defaults to stopped and cannot be armed. A remote preference bridge and independently tested boot recovery remain pending.
+The emergency-stop latch defaults to stopped and cannot be armed. The read-only guard broker returns fresh validation from the app domain to System UI. A cosmetic preference bridge and independently tested boot recovery remain pending.
 
-Phone check: enable nubia-ly, select System UI in Vector, reboot and check app activation. Verify the separate System UI module-load log. Save emergency stop, reopen and verify it remains stopped. No visual changes are expected.
+Phone check: enable nubia-ly, select System UI in Vector, reboot and check app activation. Use Check System UI guard to test the protected broker separately from app activation. Save emergency stop, reopen and verify it remains stopped. No visual changes are expected.

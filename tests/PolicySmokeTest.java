@@ -35,6 +35,13 @@ public final class PolicySmokeTest {
         require(!SystemUiGuardProtocol.accepts(boot, null, 4, 4, 100));
         require(!SystemUiGuardProtocol.accepts(boot, "87654321-1234-1234-1234-123456789abc", 4, 4, 100));
         require(!SystemUiGuardProtocol.accepts(boot, boot, 4, 4, -1));
+        require(GuardBrokerPolicy.permits(10042, 10042, "com.android.systemui"));
+        require(!GuardBrokerPolicy.permits(10043, 10042, "com.android.systemui"));
+        require(!GuardBrokerPolicy.permits(10042, 10042, "other.package"));
+        require(!GuardBrokerPolicy.permits(10042, 10042, null));
+        require(!GuardBrokerPolicy.permits(0, -1, "com.android.systemui"));
+        require(!GuardBrokerPolicy.validStatus(GuardBrokerPolicy.UNAVAILABLE));
+        require(!GuardBrokerPolicy.validStatus(999));
         System.out.println("Policy smoke tests passed: device, firmware, SDK, hash and no-apply gates.");
     }
     private static void require(boolean value) { if (!value) throw new AssertionError(); }

@@ -10,5 +10,6 @@ java com.sun.tools.javac.Main -d "$work" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ModuleStatus.java" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/GuardPolicy.java" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/SystemUiGuardProtocol.java" \
+ "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/GuardBrokerPolicy.java" \
  "$repo/tests/PolicySmokeTest.java"
 java -cp "$work" com.elitedarkkaiser.nubialy.PolicySmokeTest

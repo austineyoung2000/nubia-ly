@@ -117,7 +117,7 @@ public final class MainActivity extends AppCompatActivity {
         recovery.addView(label("Optional companion guard: install its test ZIP using your root manager. Its Action button stops the guard probe independently of this app. Each reboot invalidates the probe. This is a transport test, not cosmetic permission or verified boot-loop recovery.", 14, false));
         recovery.addView(label("This build cannot arm customizations. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
         systemUiCheck = new SystemUiGuardClient(this);
-        TextView systemUiStatus = label("System UI guard access has not been checked.", 14, false);
+        TextView systemUiStatus = label("System UI broker access has not been checked.", 14, false);
         recovery.addView(systemUiStatus);
         MaterialButton checkSystemUi = button("Check System UI guard");
         recovery.addView(checkSystemUi);
@@ -131,7 +131,7 @@ public final class MainActivity extends AppCompatActivity {
             });
         });
         refreshSafetyStatus();
-        content.addView(label("0.1.3 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.4 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {

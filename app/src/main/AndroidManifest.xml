@@ -10,6 +10,9 @@
         <meta-data android:name="xposeddescription" android:value="nubia-ly · NX809J stock customization foundation" />
         <meta-data android:name="xposedminversion" android:value="82" />
         <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+        <provider android:name=".GuardBrokerProvider"
+            android:authorities="com.elitedarkkaiser.nubialy.guard"
+            android:exported="true" android:grantUriPermissions="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

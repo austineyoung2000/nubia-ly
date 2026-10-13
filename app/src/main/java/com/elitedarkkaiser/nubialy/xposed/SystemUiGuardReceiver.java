@@ -5,8 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.net.Uri;
+import android.os.SystemClock;
 import com.elitedarkkaiser.nubialy.BuildConfig;
-import com.elitedarkkaiser.nubialy.GuardReader;
+import com.elitedarkkaiser.nubialy.GuardBrokerPolicy;
 import com.elitedarkkaiser.nubialy.SystemUiGuardProtocol;
 import de.robv.android.xposed.XposedBridge;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,11 +40,28 @@ public final class SystemUiGuardReceiver extends BroadcastReceiver {
         try {
             new Thread(() -> {
                 try {
-                    GuardReader.Snapshot snapshot = GuardReader.inspectSnapshot();
+                    int status = GuardBrokerPolicy.UNAVAILABLE;
+                    long started = SystemClock.elapsedRealtime();
+                    Bundle request = new Bundle();
+                    request.putString("nonce", nonce);
+                    request.putInt("version", BuildConfig.VERSION_CODE);
+                    try {
+                        Bundle brokerReply = context.getContentResolver().call(
+                            Uri.parse("content://" + GuardBrokerPolicy.AUTHORITY),
+                            GuardBrokerPolicy.METHOD, null, request);
+                        if (brokerReply != null && SystemUiGuardProtocol.accepts(nonce,
+                                brokerReply.getString("nonce"), BuildConfig.VERSION_CODE,
+                                brokerReply.getInt("version", -1), SystemClock.elapsedRealtime() - started)
+                                && GuardBrokerPolicy.validStatus(brokerReply.getInt("status", -1))) {
+                            status = brokerReply.getInt("status");
+                        }
+                    } catch (Exception unavailable) {
+                        // Provider absent, force-stopped, denied or version-mismatched: no authority.
+                    }
                     Bundle reply = new Bundle();
                     reply.putString("nonce", nonce);
                     reply.putInt("version", BuildConfig.VERSION_CODE);
-                    reply.putBoolean("readable", snapshot.readable());
+                    reply.putInt("broker_status", status);
                     pending.setResultExtras(reply);
                     pending.setResultCode(SystemUiGuardProtocol.RESPONSE);
                 } catch (Throwable unavailable) {
