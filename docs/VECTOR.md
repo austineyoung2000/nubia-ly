@@ -1,9 +1,11 @@
 # Vector integration
 
-Framework: https://github.com/JingMatrix/Vector. Vector supports legacy Xposed and modern libxposed APIs. This first module uses the supported legacy API 82, fetched compile-only from the official Xposed Maven endpoint. The framework supplies it at runtime; its implementation is not bundled.
+Framework: https://github.com/JingMatrix/Vector. This module uses legacy Xposed API 82, compile-only from the official Xposed Maven endpoint; Vector supplies it at runtime. No framework implementation is bundled.
 
-`assets/xposed_init` names `NubiaLyModule`; manifest metadata advertises the module and recommends only `com.android.systemui`. It checks package, main process, NX809J, Android 16 then logs module loading. System UI registers zero customization hooks and performs zero resource/settings writes. An app-only hook replaces ModuleStatus.isActive to report Vector activation. It does not certify System UI loading. No startup APK hashing is performed inside System UI; inspection occurs explicitly in the app.
+The System UI entry checks package, main process, NX809J and Android 16, then logs loading. It registers zero customization hooks and writes no resources or settings.
 
-For a future app/framework preference bridge, verify the selected Vector release interface before implementation. Do not claim framework activation from a root grant or an installed manager alone. No activation detector or remote settings bridge is implemented yet.
+An app-only hook replaces ModuleStatus.isActive to report Vector activation inside nubia-ly. This does not certify System UI loading or health. No root grant or manager switch is used as activation evidence.
 
-Phone tests after CI: install the app, verify the dashboard, run firmware/root inspection; optionally enable the module in Vector for System UI only and check the inert module-load message. Enabling requires the user's existing Vector/Zygisk setup; the app does not install or configure Vector.
+The emergency-stop latch defaults to stopped and cannot be armed. A remote preference bridge and independently tested boot recovery remain pending.
+
+Phone check: enable nubia-ly, select System UI in Vector, reboot and check app activation. Verify the separate System UI module-load log. Save emergency stop, reopen and verify it remains stopped. No visual changes are expected.
