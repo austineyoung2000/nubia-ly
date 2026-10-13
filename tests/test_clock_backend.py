@@ -3,25 +3,38 @@ from pathlib import Path
 import tempfile, subprocess
 root = Path(__file__).resolve().parents[1]
 sources = {
+'android/graphics/Typeface.java': 'package android.graphics; public record Typeface(int style) {public static final int BOLD=1;public int getStyle(){return style;}public static Typeface create(Typeface t,int s){return new Typeface(s);}}',
+'android/graphics/Paint.java': 'package android.graphics; public class Paint {boolean bold;float skew;public boolean isFakeBoldText(){return bold;}public void setFakeBoldText(boolean b){bold=b;}public float getTextSkewX(){return skew;}public void setTextSkewX(float s){skew=s;}}',
+'android/util/TypedValue.java': 'package android.util;public class TypedValue {public static final int COMPLEX_UNIT_PX=0;}',
+
 'android/content/res/ColorStateList.java': '''package android.content.res; public record ColorStateList(int color) { public static ColorStateList valueOf(int c){return new ColorStateList(c);} }''',
 'android/os/Looper.java': '''package android.os; public class Looper { static final Looper MAIN=new Looper(); public static Looper getMainLooper(){return MAIN;} public static Looper myLooper(){return MAIN;} }''',
 'android/os/Handler.java': '''package android.os; public class Handler {public Handler(Looper l){} public boolean post(Runnable r){r.run();return true;} }''',
 'android/os/SystemClock.java': '''package android.os; public class SystemClock {public static long time=100000; public static long elapsedRealtime(){return time;} }''',
 'de/robv/android/xposed/XC_MethodHook.java': '''package de.robv.android.xposed; public class XC_MethodHook {
- public static class MethodHookParam {public Object thisObject;public Object[] args;public boolean hasThrowable(){return false;}}
+ public static class MethodHookParam {public Object thisObject;public Object[] args;public java.lang.reflect.Member method;private java.util.Map<String,Object> extra=new java.util.HashMap<>();public void setObjectExtra(String k,Object v){extra.put(k,v);}public Object getObjectExtra(String k){return extra.get(k);}public boolean hasThrowable(){return false;}}
  protected void beforeHookedMethod(MethodHookParam p) throws Throwable {} protected void afterHookedMethod(MethodHookParam p) throws Throwable {}
  public void before(MethodHookParam p) throws Throwable {beforeHookedMethod(p);} public void after(MethodHookParam p) throws Throwable {afterHookedMethod(p);}
  public class Unhook {private Runnable r;public Unhook(Runnable r){this.r=r;}public void unhook(){r.run();}}
 }''',
 'de/robv/android/xposed/XposedHelpers.java': '''package de.robv.android.xposed; import java.util.*;
-public class XposedHelpers {public static Map<Class<?>,XC_MethodHook> hooks=new HashMap<>();
- public static XC_MethodHook.Unhook findAndHookMethod(Class<?> c,String n,Object... args){Class<?> type=(Class<?>)args[0]; XC_MethodHook cb=(XC_MethodHook)args[1];hooks.put(type,cb);return cb.new Unhook(()->hooks.remove(type));}
+public class XposedHelpers {public static Map<String,XC_MethodHook> hooks=new HashMap<>(); public static String key(String n,Class<?>... types){return n+java.util.Arrays.toString(types);}
+ public static XC_MethodHook.Unhook findAndHookMethod(Class<?> c,String n,Object... args){Class<?>[] types=new Class<?>[args.length-1];for(int i=0;i<types.length;i++)types[i]=(Class<?>)args[i];String key=key(n,types); XC_MethodHook cb=(XC_MethodHook)args[args.length-1];hooks.put(key,cb);return cb.new Unhook(()->hooks.remove(key));}
 }''',
 'android/widget/TextView.java': '''package android.widget; import android.content.res.*;import de.robv.android.xposed.*;
 public class TextView {private ColorStateList colors; public boolean failPaint;
+ private float size=20;private android.graphics.Typeface face=new android.graphics.Typeface(0);private android.graphics.Paint paint=new android.graphics.Paint();
+ public float getTextSize(){return size;}public android.graphics.Typeface getTypeface(){return face;}public android.graphics.Paint getPaint(){return paint;}
+ public void setTextSize(float s){style("setTextSize",new Class<?>[]{float.class},new Object[]{s},()->setTextSize(0,s));}
+ public void setTextSize(int unit,float s){style("setTextSize",new Class<?>[]{int.class,float.class},new Object[]{unit,s},()->size=s);}
+ public void setTypeface(android.graphics.Typeface t){style("setTypeface",new Class<?>[]{android.graphics.Typeface.class},new Object[]{t},()->face=t);}
+ public void setTypeface(android.graphics.Typeface t,int weight){style("setTypeface",new Class<?>[]{android.graphics.Typeface.class,int.class},new Object[]{t,weight},()->{setTypeface(android.graphics.Typeface.create(t,weight));paint.setFakeBoldText(true);paint.setTextSkewX(-0.2f);});}
+ public void sizeBypass(float s){size=s;}
+ private void style(String name,Class<?>[] types,Object[] args,Runnable original){XC_MethodHook cb=XposedHelpers.hooks.get(XposedHelpers.key(name,types));XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=args;try{p.method=TextView.class.getMethod(name,types);if(cb!=null)cb.before(p);original.run();if(cb!=null)cb.after(p);}catch(Throwable e){throw new RuntimeException(e);}}
+
  public TextView(int color){colors=ColorStateList.valueOf(color);}public boolean isAttachedToWindow(){return true;}public ColorStateList getTextColors(){return colors;}public int getCurrentTextColor(){return colors.color();}public void stockBypass(ColorStateList c){colors=c;}
  public void setTextColor(int c){write(int.class,c);}public void setTextColor(ColorStateList c){write(ColorStateList.class,c);}
- private void write(Class<?> type,Object value){XC_MethodHook cb=XposedHelpers.hooks.get(type); XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=new Object[]{value};
+ private void write(Class<?> type,Object value){XC_MethodHook cb=XposedHelpers.hooks.get(XposedHelpers.key("setTextColor",type)); XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=new Object[]{value};
  try {if(cb!=null)cb.before(p);if(failPaint && value instanceof Integer i && i==0xffc0a8ff){failPaint=false;throw new RuntimeException("paint failure");} colors=p.args[0] instanceof ColorStateList c?c:ColorStateList.valueOf((Integer)p.args[0]);if(cb!=null)cb.after(p);}catch(RuntimeException e){throw e;}catch(Throwable e){throw new RuntimeException(e);}}
 }''',
 'com/android/systemui/statusbar/policy/Clock.java': '''package com.android.systemui.statusbar.policy; public class Clock extends android.widget.TextView {public Clock(int c){super(c);}}''',
@@ -41,6 +54,12 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  check(!ClockColorBackend.begin(170000,0x00112233));check(ClockColorBackend.healthy());ClockColorBackend.end();check(a.getTextColors().color()==9);
  check(ClockColorBackend.begin(155000,0xff112233));SystemClock.time=150000;check(ClockColorBackend.refreshHealth(165000));SystemClock.time=160000;a.setTextColor(10);check(a.getTextColors().color()==0xff112233);
  ClockColorBackend.end();check(a.getTextColors().color()==10);check(!ClockColorBackend.refreshHealth(175000));
+ check(ClockColorBackend.begin(175000,0xff112233,120,true));check(a.getTextSize()==24);check(a.getTypeface().getStyle()==1);
+ unrelated.setTextSize(30);check(unrelated.getTextSize()==30);
+ a.setTextSize(25);check(a.getTextSize()==30);a.setTypeface(new android.graphics.Typeface(2),2);check(a.getTypeface().getStyle()==3);
+ ClockColorBackend.end();check(a.getTextSize()==25);check(a.getTypeface().getStyle()==2);check(a.getPaint().isFakeBoldText());check(a.getPaint().getTextSkewX()==-0.2f);check(XposedHelpers.hooks.isEmpty());
+ check(ClockColorBackend.begin(175000,0xff112233,80,false));a.sizeBypass(30);ClockColorBackend.track(a);check(a.getTextSize()==24);ClockColorBackend.detach(a);check(a.getTextSize()==30);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
+ check(!ClockColorBackend.begin(175000,0xff112233,125,true));
  a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, hooked/bypassed dark updates, tracked-view reassertion, latest-stock restore, stale dark frames, detach, health and failure fences");}}
 '''
@@ -50,6 +69,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-clock-backend-') as work:
     for name, source in sources.items():
         path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source)
     files=[str(p) for p in work.rglob('*.java')]
-    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
+    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockStylePolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockStyleBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
     subprocess.run(['java','com.sun.tools.javac.Main','-d',str(work/'classes'),*files],check=True)
     subprocess.run(['java','-cp',str(work/'classes'),'com.elitedarkkaiser.nubialy.xposed.BackendTest'],check=True)

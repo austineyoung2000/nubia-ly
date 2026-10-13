@@ -161,3 +161,7 @@ The 0.1.10 test adds named color presets and a custom Material RGB/hex picker un
 ## Normal clock color enable
 
 The 0.1.12 test replaces the Clock editor's timer-driven preview with Enable clock color / Restore stock color. Enabled color has no duration limit and resumes after wake/reboot while independently authorized by the updated root guard. Root permission is requested only on explicit Enable/Restore. See [install, persistence and recovery tests](docs/CLOCK_ENABLE.md).
+
+### Clock typography test
+
+The next NX809J test adds saved relative clock size (80–120% in 5% steps, plus stock size) and bold weight to the persistent Clock editor. Enable applies the saved style alongside color; Restore stock, guard Action and Emergency stop revoke the entire clock style. See [clock typography](docs/CLOCK_STYLE.md). Phone validation is pending.

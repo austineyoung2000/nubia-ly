@@ -46,6 +46,8 @@ public final class GuardBrokerProvider extends ContentProvider {
                     reply.putString("permit_id", id);
                     reply.putLong("deadline_ms", android.os.SystemClock.elapsedRealtime() + ClockEnabledPolicy.HEALTH_MS);
                     reply.putInt("clock_color", ClockColorPreferences.read(getContext()));
+                    reply.putInt("clock_size", ClockColorPreferences.size(getContext()));
+                    reply.putBoolean("clock_bold", ClockColorPreferences.bold(getContext()));
                 }
             } else if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method) || GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
                 PreviewPolicy.Permit permit;

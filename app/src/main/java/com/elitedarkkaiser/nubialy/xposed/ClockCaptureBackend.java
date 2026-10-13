@@ -38,7 +38,7 @@ final class ClockCaptureBackend {
                     || viewType.getMethod("isTopStatusBar").getReturnType() != boolean.class) throw new IllegalStateException();
             stage = "Dark callback signature";
             clock.getDeclaredMethod("onDarkChanged", java.util.ArrayList.class, float.class, int.class);
-            for (String name : new String[]{"onAttachedToWindow", "onDetachedFromWindow", "updateClock", "onDarkChanged"}) {
+            for (String name : new String[]{"onAttachedToWindow", "onDetachedFromWindow", "updateClock", "reloadDimens", "onDarkChanged"}) {
                 stage = "Hook registration: " + name;
                 Method method = name.equals("onDarkChanged")
                     ? clock.getDeclaredMethod(name, java.util.ArrayList.class, float.class, int.class)
