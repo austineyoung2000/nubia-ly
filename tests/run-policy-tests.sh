@@ -14,7 +14,11 @@ java com.sun.tools.javac.Main -d "$work" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/PreviewLifecycle.java" \
  "$repo/tests/PolicySmokeTest.java" \
- "$repo/tests/PreviewSmokeTest.java"
+ "$repo/tests/PreviewSmokeTest.java" \
+ "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ClockCapture.java" \
+ "$repo/tests/ClockCaptureSmokeTest.java"
 java -cp "$work" com.elitedarkkaiser.nubialy.PolicySmokeTest
 
 java -cp "$work" com.elitedarkkaiser.nubialy.PreviewSmokeTest
+
+java -cp "$work" com.elitedarkkaiser.nubialy.ClockCaptureSmokeTest

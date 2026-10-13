@@ -70,7 +70,7 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout vector = card("Vector framework", "Enable nubia-ly for System UI in Vector, then reboot.");
         activationStatus = label("", 14, false);
         vector.addView(activationStatus);
-        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. No System UI customization hooks are registered.", 14, false));
+        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. A read-only clock observer is installed; no visual overrides are enabled.", 14, false));
         spacer(20);
         content.addView(label("Your canvas", 24, true));
         content.addView(label("Customization features are being developed. This foundation build only inspects your device.", 14, false));
@@ -140,13 +140,13 @@ public final class MainActivity extends AppCompatActivity {
                 systemUiStatus.setText(result);
             });
         });
-        LinearLayout preview = card("Preview lifecycle test", "Test expiry and stop handling without changing your appearance. Requires a separate fresh lifecycle-only permit.");
+        LinearLayout preview = card("Clock capture rehearsal", "Capture the stock status-bar clock color and release it through stop/expiry. Your clock stays unchanged. Requires a fresh lifecycle-only permit.");
         previewCheck = new SystemUiGuardClient(this);
         previewStatus = label("No lifecycle test checked. Cosmetics remain disabled.", 14, false);
         preview.addView(previewStatus);
-        previewStart = button("Start lifecycle test"); preview.addView(previewStart);
-        previewRefresh = button("Check lifecycle status"); preview.addView(previewRefresh);
-        previewStop = button("End lifecycle test"); preview.addView(previewStop);
+        previewStart = button("Start clock capture"); preview.addView(previewStart);
+        previewRefresh = button("Check clock capture"); preview.addView(previewRefresh);
+        previewStop = button("End clock capture"); preview.addView(previewStop);
         previewStart.setOnClickListener(v -> {
             setPreviewButtons(false); previewStatus.setText("Checking lifecycle-only permit…");
             worker.execute(() -> {
@@ -171,7 +171,7 @@ public final class MainActivity extends AppCompatActivity {
             });
         });
         refreshSafetyStatus();
-        content.addView(label("0.1.5 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.6 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {

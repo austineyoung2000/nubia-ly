@@ -145,3 +145,7 @@ A separate probe-only root-manager ZIP provides an independent Action/Termux sto
 An explicit lifecycle-only test uses a separate current-boot permit lasting at most 60 seconds. System UI checks it through the protected broker, expires the session automatically and stops when the permit is revoked/replaced or the broker is unavailable. Late workers cannot restart a stopped attempt. Bounded two-second validation runs only during this simulation, with no permanent polling or root commands. Root module Action and app Emergency stop revoke the test through independent state checks. Restart/reboot never auto-starts it.
 
 This milestone changes no appearance and provides no cosmetic permission. Original visual capture/rollback and crash-loop recovery remain future backend work. Update both the signed APK and guard ZIP, then follow the [phone lifecycle checklist](docs/PREVIEW_LIFECYCLE.md).
+
+## Clock-color preview preparation
+
+The 0.1.6 test build adds a read-only NX809J status-bar clock capture rehearsal. It identifies the vendor-classified top clock and tracks stock color changes through the bounded lifecycle before a future visual override. No clock color changes are enabled. See [phone test and limitations](docs/CLOCK_CAPTURE.md).

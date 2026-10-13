@@ -45,6 +45,7 @@ final class PreviewRuntime {
             reply.accept(rejected); return;
         }
         cancelTimers();
+        ClockCaptureBackend.end();
         long ticket = session.begin();
         reason = "Checking fresh lifecycle-only permit.";
         read(ticket, permit -> {
@@ -54,7 +55,10 @@ final class PreviewRuntime {
             } else if (!session.activate(ticket, permit, now())) {
                 reason = "Start blocked: lifecycle permit or broker unavailable.";
             } else {
-                reason = "Lifecycle simulation started; no appearance changes.";
+                if (!ClockCaptureBackend.begin()) {
+                    stop("Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
+                }
+                reason = "Clock capture rehearsal started; no appearance changes.";
                 expiry = () -> { session.state(now()); cancelTimers(); };
                 actor.postDelayed(expiry, session.deadline() - now());
                 schedule(ticket);
@@ -111,13 +115,15 @@ final class PreviewRuntime {
     }
     private Bundle snapshot() {
         PreviewLifecycle.Phase phase = session.state(now());
+        if (phase != PreviewLifecycle.Phase.ACTIVE) ClockCaptureBackend.end();
         if (phase == PreviewLifecycle.Phase.EXPIRED) reason = "Lifecycle permit expired; no appearance changes were made.";
         Bundle result = new Bundle(); result.putString("phase", phase.name());
-        result.putString("reason", reason); result.putLong("deadline_ms", session.deadline());
+        result.putString("reason", reason); result.putString("clock_capture", ClockCaptureBackend.status()); result.putLong("deadline_ms", session.deadline());
         return result;
     }
     private void stop(String why) { session.stop(); reason = why; cancelTimers(); }
     private void cancelTimers() {
+        ClockCaptureBackend.end();
         if (tick != null) actor.removeCallbacks(tick);
         if (expiry != null) actor.removeCallbacks(expiry);
         tick = null; expiry = null;

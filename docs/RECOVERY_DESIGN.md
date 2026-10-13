@@ -31,3 +31,7 @@ The 0.1.3 direct System UI reader is superseded by a protected app-side guard br
 ## Lifecycle simulation gate in 0.1.5
 
 A separate lifecycle-only permit, explicit start, absolute expiry, independent stop, generation fencing and bounded active-session broker validation are implemented for a no-visual-change simulation. The original permit ID/deadline cannot be extended by replacement. See [session semantics and phone checklist](PREVIEW_LIFECYCLE.md). This does not implement or validate original-appearance rollback; no cosmetic backend is enabled.
+
+## Clock capture prerequisite in 0.1.6
+
+A read-only Clock observer captures full stock ColorStateList and releases/compares it through lifecycle stop, expiry and revocation. Stock updates supersede the initial color. All visual apply gates remain closed; this rehearsal does not validate actual color writes, rollback or crash-loop recovery. See [clock capture test](CLOCK_CAPTURE.md).

@@ -54,7 +54,8 @@ public final class SystemUiGuardClient {
                         if ("ACTIVE".equals(phase) && deadline <= SystemClock.elapsedRealtime()) phase = "EXPIRED";
                         finish(request, "System UI lifecycle: " + phase + ". No appearance changes.\n"
                             + ("ACTIVE".equals(phase) ? "Expires within " + Math.max(0, (deadline - SystemClock.elapsedRealtime()) / 1000)
-                                + " seconds; check status for a fresh result." : extras.getString("reason", "No valid session.")));
+                                + " seconds; check status for a fresh result." : extras.getString("reason", "No valid session."))
+                            + "\n" + extras.getString("clock_capture", "Clock capture unverified."));
                         return;
                     }
                     int status = extras.getInt("broker_status", GuardBrokerPolicy.UNAVAILABLE);
