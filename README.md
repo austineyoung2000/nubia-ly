@@ -4,7 +4,7 @@
 
 The goal is an Iconify-style customization experience built around Nubia's own System UI: status-bar appearance, Quick Settings styling, lock-screen clocks and notification visuals. nubia-ly is independent of Redmagic 11 Toolbox, with its own Android package, repository and release lifecycle.
 
-> **Current state: foundation prototype.** The app can inspect device compatibility and request a read-only root check. Its Vector module entry point registers **zero hooks**. There are no working cosmetic modifications, apply controls, recovery watchdogs or companion-module installers yet.
+> **Current state: foundation prototype.** The app can inspect device compatibility and request a read-only root check. Its Vector module registers one app-only activation probe and **zero System UI customization hooks**. There are no working cosmetic modifications, apply controls, recovery watchdogs or companion-module installers yet.
 
 Prototype source is developed on the [`test/foundation`](https://github.com/austineyoung2000/nubia-ly/tree/test/foundation) branch and reviewed through a draft PR before merging. `main` initially carries this project overview.
 

@@ -2,7 +2,7 @@
 
 Framework: https://github.com/JingMatrix/Vector. Vector supports legacy Xposed and modern libxposed APIs. This first module uses the supported legacy API 82, fetched compile-only from the official Xposed Maven endpoint. The framework supplies it at runtime; its implementation is not bundled.
 
-`assets/xposed_init` names `NubiaLyModule`; manifest metadata advertises the module and recommends only `com.android.systemui`. It checks package, main process, NX809J, Android 16 and the observed fingerprint, then logs module loading. It registers zero hooks and performs zero resource/settings writes. No startup APK hashing is performed inside System UI; inspection occurs explicitly in the app.
+`assets/xposed_init` names `NubiaLyModule`; manifest metadata advertises the module and recommends only `com.android.systemui`. It checks package, main process, NX809J, Android 16 then logs module loading. System UI registers zero customization hooks and performs zero resource/settings writes. An app-only hook replaces ModuleStatus.isActive to report Vector activation. It does not certify System UI loading. No startup APK hashing is performed inside System UI; inspection occurs explicitly in the app.
 
 For a future app/framework preference bridge, verify the selected Vector release interface before implementation. Do not claim framework activation from a root grant or an installed manager alone. No activation detector or remote settings bridge is implemented yet.
 
