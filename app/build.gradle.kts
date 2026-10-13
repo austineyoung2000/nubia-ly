@@ -20,8 +20,8 @@ android {
         targetSdk = 35
         buildConfigField("String", "BASELINE_FINGERPRINT", baselineLiteral("fingerprint"))
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
-        versionCode = 13
-        versionName = "0.1.12-clock-enable-test"
+        versionCode = 14
+        versionName = "0.1.13-clock-app-switch-fix"
     }
     signingConfigs {
         if (releaseSigning) create("persistent") {

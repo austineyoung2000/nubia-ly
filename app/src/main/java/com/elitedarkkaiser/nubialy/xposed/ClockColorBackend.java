@@ -22,7 +22,7 @@ final class ClockColorBackend {
         deadline = until; return true;
     }
     private static volatile long generation;
-    private static int applied, restored;
+    private static int applied, restored, darkReapplications;
     private static String message = "No clock color preview started.";
     private static int selectedColor = ClockColorPolicy.DEFAULT;
     static int color() { return selectedColor; }
@@ -31,7 +31,7 @@ final class ClockColorBackend {
         end();
         if (failed || !states.isEmpty() || until <= SystemClock.elapsedRealtime()
                 || until - SystemClock.elapsedRealtime() > 30000) return false;
-        applied = restored = 0; deadline = until; selectedColor = color;
+        applied = restored = darkReapplications = 0; deadline = until; selectedColor = color;
         try {
             XC_MethodHook callback = new XC_MethodHook() {
                 @Override protected void beforeHookedMethod(MethodHookParam p) {
@@ -74,10 +74,34 @@ final class ClockColorBackend {
     static void track(TextView view) {
         if (!active || failed || Looper.myLooper() != Looper.getMainLooper()) return;
         if (SystemClock.elapsedRealtime() >= deadline) { end(); return; }
-        if (states.containsKey(view)) return;
+        if (states.containsKey(view)) {
+            // Reassert after the inspected clock callbacks if an inherited setter was bypassed.
+            if (view.getCurrentTextColor() != selectedColor) {
+                states.get(view).stockWrite(view.getTextColors());
+                try { paint(view); } catch (Throwable unavailable) { abort("Clock reapplication failed."); }
+            }
+            return;
+        }
         ColorRestore<ColorStateList> state = new ColorRestore<>(); state.capture(view.getTextColors());
         states.put(view, state); applied++;
         try { paint(view); } catch (Throwable unavailable) { abort("Clock preview apply failed."); }
+    }
+    record DarkFrame(long generation, ColorRestore<ColorStateList> state, long revision) {}
+    static DarkFrame beforeDark(TextView view) {
+        if (!active || failed || Looper.myLooper() != Looper.getMainLooper()) return null;
+        ColorRestore<ColorStateList> state = states.get(view);
+        return state == null ? null : new DarkFrame(generation, state, state.revision());
+    }
+    static void afterDark(TextView view, DarkFrame frame) {
+        if (frame == null || !active || failed || Looper.myLooper() != Looper.getMainLooper()
+                || frame.generation() != generation || states.get(view) != frame.state()) return;
+        if (SystemClock.elapsedRealtime() >= deadline) { end(); return; }
+        try {
+            // The inspected onDarkChanged always writes stock tint. If the inherited setter hook
+            // was bypassed, capture its actual output; otherwise keep the setter's stock target.
+            if (frame.state().revision() == frame.revision()) frame.state().stockWrite(view.getTextColors());
+            paint(view); darkReapplications++;
+        } catch (Throwable unavailable) { abort("Vendor clock dark update failed."); }
     }
     private static void paint(TextView view) {
         writing = true;
@@ -107,5 +131,5 @@ final class ClockColorBackend {
         end(); failed = true; message = reason + " Preview blocked; check restored count. Disable nubia-ly in Vector and reboot if incomplete.";
     }
     static boolean healthy() { return active && !failed && ClockCaptureBackend.available(); }
-    static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "."; }
+    static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "; dark updates kept: " + darkReapplications + "."; }
 }

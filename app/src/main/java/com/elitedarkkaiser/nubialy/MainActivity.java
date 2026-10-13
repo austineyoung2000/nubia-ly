@@ -176,7 +176,7 @@ public final class MainActivity extends AppCompatActivity {
             });
         });
         refreshSafetyStatus();
-        content.addView(label("0.1.12 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.13 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {

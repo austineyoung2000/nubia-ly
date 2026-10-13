@@ -19,7 +19,7 @@ public class XposedHelpers {public static Map<Class<?>,XC_MethodHook> hooks=new 
 }''',
 'android/widget/TextView.java': '''package android.widget; import android.content.res.*;import de.robv.android.xposed.*;
 public class TextView {private ColorStateList colors; public boolean failPaint;
- public TextView(int color){colors=ColorStateList.valueOf(color);}public boolean isAttachedToWindow(){return true;}public ColorStateList getTextColors(){return colors;}
+ public TextView(int color){colors=ColorStateList.valueOf(color);}public boolean isAttachedToWindow(){return true;}public ColorStateList getTextColors(){return colors;}public int getCurrentTextColor(){return colors.color();}public void stockBypass(ColorStateList c){colors=c;}
  public void setTextColor(int c){write(int.class,c);}public void setTextColor(ColorStateList c){write(ColorStateList.class,c);}
  private void write(Class<?> type,Object value){XC_MethodHook cb=XposedHelpers.hooks.get(type); XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=new Object[]{value};
  try {if(cb!=null)cb.before(p);if(failPaint && value instanceof Integer i && i==0xffc0a8ff){failPaint=false;throw new RuntimeException("paint failure");} colors=p.args[0] instanceof ColorStateList c?c:ColorStateList.valueOf((Integer)p.args[0]);if(cb!=null)cb.after(p);}catch(RuntimeException e){throw e;}catch(Throwable e){throw new RuntimeException(e);}}
@@ -32,16 +32,17 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  public static void main(String[] args){Clock a=new Clock(1),b=new Clock(2); ClockCaptureBackend.views.add(a);ClockCaptureBackend.views.add(b);
  check(ClockColorBackend.begin(130000,0xffc0a8ff));check(a.getTextColors().color()==0xffc0a8ff);
  TextView unrelated=new TextView(3);unrelated.setTextColor(4);check(unrelated.getTextColors().color()==4);
- ColorStateList dark=new ColorStateList(5);a.setTextColor(dark);check(a.getTextColors().color()==0xffc0a8ff);
+ ColorStateList dark=new ColorStateList(5);var hookedFrame=ClockColorBackend.beforeDark(a);a.setTextColor(dark);ClockColorBackend.afterDark(a,hookedFrame);check(a.getTextColors().color()==0xffc0a8ff);
  ClockColorBackend.end();check(a.getTextColors().equals(dark));check(b.getTextColors().color()==2);check(XposedHelpers.hooks.isEmpty());check(ClockColorBackend.status().contains("remaining: 0"));
- check(ClockColorBackend.begin(130000,0xffc0a8ff));ClockColorBackend.detach(a);check(a.getTextColors().equals(dark));ClockColorBackend.end();check(b.getTextColors().color()==2);
+ check(ClockColorBackend.begin(130000,0xffc0a8ff));var bypassFrame=ClockColorBackend.beforeDark(a);ColorStateList bypassStock=new ColorStateList(7);a.stockBypass(bypassStock);ClockColorBackend.afterDark(a,bypassFrame);check(a.getCurrentTextColor()==0xffc0a8ff);ClockColorBackend.end();check(a.getTextColors().equals(bypassStock));ClockColorBackend.afterDark(a,bypassFrame);check(a.getTextColors().equals(bypassStock));
+ check(ClockColorBackend.begin(130000,0xffc0a8ff));a.stockBypass(new ColorStateList(5));ClockColorBackend.track(a);check(a.getCurrentTextColor()==0xffc0a8ff);ClockColorBackend.detach(a);check(a.getTextColors().equals(dark));ClockColorBackend.end();check(b.getTextColors().color()==2);
  check(ClockColorBackend.begin(130000,0xffc0a8ff));SystemClock.time=130000;a.setTextColor(9);check(a.getTextColors().color()==9);check(b.getTextColors().color()==2);check(XposedHelpers.hooks.isEmpty());
  SystemClock.time=140000;check(ClockColorBackend.begin(170000,0xff112233));check(a.getTextColors().color()==0xff112233);
  check(!ClockColorBackend.begin(170000,0x00112233));check(ClockColorBackend.healthy());ClockColorBackend.end();check(a.getTextColors().color()==9);
  check(ClockColorBackend.begin(155000,0xff112233));SystemClock.time=150000;check(ClockColorBackend.refreshHealth(165000));SystemClock.time=160000;a.setTextColor(10);check(a.getTextColors().color()==0xff112233);
  ClockColorBackend.end();check(a.getTextColors().color()==10);check(!ClockColorBackend.refreshHealth(175000));
  a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
- System.out.println("Production clock backend checks passed: apply, unrelated views, stock updates, restore, detach, expiry, partial apply failure and failed-session fence");}}
+ System.out.println("Production clock backend checks passed: apply, hooked/bypassed dark updates, tracked-view reassertion, latest-stock restore, stale dark frames, detach, health and failure fences");}}
 '''
 }
 with tempfile.TemporaryDirectory(prefix='nubialy-clock-backend-') as work:

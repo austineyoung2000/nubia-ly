@@ -31,3 +31,9 @@ No stock APK/resources/overlays, Vector internals, SELinux policy, Toolbox or un
 7. Confirm saved colors and custom RGB/hex selection still work. If root times out, confirm no automatic color application; grant access, wait for the pending command to finish and explicitly Enable again.
 
 Do not deliberately crash System UI to test the startup cutoff. It is covered with local state tests and requires more device recovery evidence before claiming crash-loop recovery. If restoration is incomplete, disable only nubia-ly in Vector and reboot. Phone testing and explicit authorization are required before merge.
+
+## App-switch correction — 0.1.13
+
+The initial 0.1.12 phone report says Enable and lock/unlock apply the color, but opening apps returns it to stock. The update reasserts the selected color after the inspected Clock.onDarkChanged callback and on a tracked clock callback whose stock tint changed. A per-view stock-write revision distinguishes an inherited setter hook that ran from a stock write that bypassed it. The latter captures the callback's actual stock ColorStateList before repainting; it never saves our own override as the restoration target. Generation and ledger identity checks reject stale frames after stop or detach. This covers the identified missing update path; phone confirmation is still required.
+
+Update only the APK to 0.1.13 and reboot; keep the 0.1.12 guard. Enable a color, open several apps with different status-bar backgrounds and confirm it stays selected. Restore stock while inside/after those apps and confirm the current stock tint and remaining zero. If color still disappears, immediately use Check clock color and send the exact status so an authority stop can be distinguished from a rendering update.
