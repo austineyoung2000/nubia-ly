@@ -28,8 +28,30 @@ public final class RecoveryStore {
         return permit != null && permit.id().equals(context.getSharedPreferences("recovery", Context.MODE_PRIVATE)
             .getString("clock_permit_id", ""));
     }
+    public static boolean allowEnabled(Context context) {
+        String id = GuardReader.inspectEnabled();
+        if (id == null || !ModuleStatus.isActive()) return false;
+        return context.getSharedPreferences("recovery", Context.MODE_PRIVATE).edit()
+            .putBoolean("emergency_stopped", false).putBoolean("restart_recovery_stopped", false).putString("enabled_clock_id", id).remove("startup_boot").remove("startup_pid").remove("startup_attempts").commit();
+    }
+    public static boolean enabledAllowed(Context context, String id) {
+        return !isStopped(context) && id != null && id.equals(context.getSharedPreferences("recovery", Context.MODE_PRIVATE).getString("enabled_clock_id", ""));
+    }
+    public static synchronized boolean claimStartup(Context context, int pid) {
+        if (pid <= 0) return false;
+        var prefs = context.getSharedPreferences("recovery", Context.MODE_PRIVATE);
+        String boot = GuardReader.bootId(); if (!PreviewPolicy.uuid(boot)) return false;
+        boolean sameBoot = boot.equals(prefs.getString("startup_boot", ""));
+        int attempts = sameBoot ? prefs.getInt("startup_attempts", 0) : 0;
+        if (sameBoot && prefs.getInt("startup_pid", -1) == pid) return true;
+        if (!ClockEnabledPolicy.allowStartup(attempts)) {
+            prefs.edit().remove("enabled_clock_id").putBoolean("emergency_stopped", true).putBoolean("restart_recovery_stopped", true).commit(); return false;
+        }
+        return prefs.edit().putString("startup_boot", boot).putInt("startup_pid", pid)
+            .putInt("startup_attempts", attempts + 1).putBoolean("restart_recovery_stopped", false).commit();
+    }
     public static boolean stop(Context context) {
         return context.getSharedPreferences("recovery", Context.MODE_PRIVATE).edit()
-            .remove("clock_permit_id").putBoolean("emergency_stopped", true).putBoolean("lifecycle_test_allowed", false).commit();
+            .remove("enabled_clock_id").remove("clock_permit_id").putBoolean("emergency_stopped", true).putBoolean("lifecycle_test_allowed", false).commit();
     }
 }

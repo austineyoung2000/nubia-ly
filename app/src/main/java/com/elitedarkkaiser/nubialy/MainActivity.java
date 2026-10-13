@@ -130,7 +130,7 @@ public final class MainActivity extends AppCompatActivity {
             });
         });
         recovery.addView(label("Optional companion guard: install its test ZIP using your root manager. Its Action button stops the guard probe independently of this app. Each reboot invalidates the probe. This is a transport test, not cosmetic permission or verified boot-loop recovery.", 14, false));
-        recovery.addView(label("Permanent customizations remain blocked. The explicit temporary clock preview uses its own permit. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
+        recovery.addView(label("Clock styling uses explicit Enable and an independent root guard. Other customization areas remain unavailable. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
         systemUiCheck = new SystemUiGuardClient(this);
         TextView systemUiStatus = label("System UI broker access has not been checked.", 14, false);
         recovery.addView(systemUiStatus);
@@ -176,7 +176,7 @@ public final class MainActivity extends AppCompatActivity {
             });
         });
         refreshSafetyStatus();
-        content.addView(label("0.1.10 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.12 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {
@@ -189,8 +189,8 @@ public final class MainActivity extends AppCompatActivity {
             ? "Vector activation confirmed in nubia-ly."
             : "Vector activation not detected in nubia-ly. Enable the module and reboot.");
         recoveryStatus.setText(RecoveryStore.isStopped(this)
-            ? "Permanent customizations stopped. Temporary previews require a separate permit."
-            : "Customizations blocked: recovery backend has not been verified.");
+            ? "Emergency stop active. Use Enable clock color to explicitly turn clock styling on."
+            : "Emergency stop inactive. Open Status bar → Clock for current clock controls.");
     }
 
     private void setPreviewButtons(boolean enabled) {

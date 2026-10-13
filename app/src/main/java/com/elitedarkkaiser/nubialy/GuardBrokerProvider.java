@@ -19,7 +19,7 @@ public final class GuardBrokerProvider extends ContentProvider {
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
         enforceSystemUi();
-        if ((!GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method))
+        if ((!GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method) && !GuardBrokerPolicy.ENABLED_METHOD.equals(method) && !GuardBrokerPolicy.STARTUP_METHOD.equals(method))
                 || arg != null || extras == null)
             throw new IllegalArgumentException("Unsupported guard request");
         String nonce = extras.getString("nonce");
@@ -34,9 +34,20 @@ public final class GuardBrokerProvider extends ContentProvider {
             return reply;
         }
         // Keep authentication before any identity change. File access uses this app's domain.
+        int callerPid = Binder.getCallingPid();
         long identity = Binder.clearCallingIdentity();
         try {
-            if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method) || GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
+            if (GuardBrokerPolicy.ENABLED_METHOD.equals(method) || GuardBrokerPolicy.STARTUP_METHOD.equals(method)) {
+                String id = GuardReader.inspectEnabled();
+                boolean allowed = RecoveryStore.enabledAllowed(getContext(), id);
+                if (allowed && GuardBrokerPolicy.STARTUP_METHOD.equals(method)) allowed = RecoveryStore.claimStartup(getContext(), callerPid);
+                reply.putInt("status", allowed ? GuardBrokerPolicy.READABLE : GuardBrokerPolicy.BLOCKED);
+                if (allowed) {
+                    reply.putString("permit_id", id);
+                    reply.putLong("deadline_ms", android.os.SystemClock.elapsedRealtime() + ClockEnabledPolicy.HEALTH_MS);
+                    reply.putInt("clock_color", ClockColorPreferences.read(getContext()));
+                }
+            } else if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method) || GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
                 PreviewPolicy.Permit permit;
                 if (GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
                     permit = GuardReader.inspectClock();

@@ -24,6 +24,10 @@ public final class SystemUiGuardClient {
         if (!ClockColorPolicy.valid(color)) { result.accept("Preview blocked: choose an opaque RGB color."); return; }
         request(true, "clock_start", color, result);
     }
+    public void enableColor(int color, Consumer<String> result) {
+        if (!ClockColorPolicy.valid(color)) { result.accept("Enable blocked: choose an opaque color."); return; }
+        request(true, "clock_enable", color, result);
+    }
     private void request(boolean preview, String operation, Integer color, Consumer<String> result) {
         cancel();
         callback = result;
@@ -61,9 +65,14 @@ public final class SystemUiGuardClient {
                                 && extras.getInt("clock_color", 0) != color.intValue()) {
                             finish(request, "System UI color reply did not match the requested selection. Preview unverified; restore clock color."); return;
                         }
-                        finish(request, "System UI lifecycle: " + phase + (extras.getBoolean("visual", false) ? ". Temporary clock color preview.\n" : ". No appearance changes.\n")
-                            + ("ACTIVE".equals(phase) ? "Expires within " + Math.max(0, (deadline - SystemClock.elapsedRealtime()) / 1000)
-                                + " seconds; check status for a fresh result." : extras.getString("reason", "No valid session."))
+                        if (extras.getBoolean("enabled_mode", false)) {
+                            finish(request, "Clock color: " + ("ACTIVE".equals(phase) ? "Enabled" : "Stopped") + ".\n"
+                                + ("ACTIVE".equals(phase) ? "Stays enabled until you restore stock or stop the guard." : extras.getString("reason", "Not enabled."))
+                                + "\n" + extras.getString("clock_capture", "Restoration unverified.")); return;
+                        }
+                        finish(request, "System UI lifecycle: " + phase + (extras.getBoolean("visual", false) ? (extras.getBoolean("enabled_mode", false) ? ". Clock color enabled.\n" : ". Temporary clock color preview.\n") : ". No appearance changes.\n")
+                            + ("ACTIVE".equals(phase) ? (extras.getBoolean("enabled_mode", false) ? "Stays enabled until restored or independently stopped."
+                                : "Expires within " + Math.max(0, (deadline - SystemClock.elapsedRealtime()) / 1000) + " seconds; check status for a fresh result.") : extras.getString("reason", "No valid session."))
                             + "\n" + extras.getString("clock_capture", "Clock capture unverified."));
                         return;
                     }

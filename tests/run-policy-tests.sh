@@ -21,7 +21,9 @@ java com.sun.tools.javac.Main -d "$work" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java" \
  "$repo/tests/ClockColorSmokeTest.java" \
  "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java" \
- "$repo/tests/ClockEditorSmokeTest.java"
+ "$repo/tests/ClockEditorSmokeTest.java" \
+ "$repo/app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java" \
+ "$repo/tests/ClockEnabledSmokeTest.java"
 java -cp "$work" com.elitedarkkaiser.nubialy.PolicySmokeTest
 
 java -cp "$work" com.elitedarkkaiser.nubialy.PreviewSmokeTest
@@ -31,3 +33,5 @@ java -cp "$work" com.elitedarkkaiser.nubialy.ClockCaptureSmokeTest
 java -cp "$work" com.elitedarkkaiser.nubialy.ClockColorSmokeTest
 
 java -cp "$work" com.elitedarkkaiser.nubialy.ClockEditorSmokeTest
+
+java -cp "$work" com.elitedarkkaiser.nubialy.ClockEnabledSmokeTest

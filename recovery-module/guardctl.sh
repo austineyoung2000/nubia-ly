@@ -5,8 +5,14 @@ set -eu
 [ "$(getprop ro.product.model)" = NX809J ] || { echo "STOP: NX809J only"; exit 1; }
 [ "$(getprop ro.build.version.sdk)" = 36 ] || { echo "STOP: Android 16 only"; exit 1; }
 guard_dir=/data/local/tmp/nubia-ly-guard
+state_dir=/data/adb/nubia_ly_guard
+# Private durable enable identity; Action and uninstall remove only this fixed entry.
+[ ! -L "$state_dir" ] || { echo "STOP: unsafe state directory"; exit 1; }
+if [ -e "$state_dir" ]; then
+    [ -d "$state_dir" ] && [ "$(stat -c %u:%a "$state_dir")" = 0:700 ] || exit 1
+fi
 command=${1:-status}
-case "$command" in status|stop|probe|preview|clock) ;; *) echo "STOP: use status, stop, probe, preview or clock"; exit 1 ;; esac
+case "$command" in status|stop|probe|preview|clock|enable_clock|resume) ;; *) echo "STOP: use status, stop, probe, preview or clock"; exit 1 ;; esac
 # Refuse pre-existing symlinks and non-root/writable directories.
 [ ! -L "$guard_dir" ] || { echo "STOP: unsafe guard directory"; exit 1; }
 if [ ! -e "$guard_dir" ]; then
@@ -22,10 +28,16 @@ case "$command" in
         [ ! -d "$guard_dir/probe" ] || { echo "STOP: unsafe probe entry"; exit 1; }
         [ ! -d "$guard_dir/preview" ] || { echo "STOP: unsafe preview entry"; exit 1; }
         [ ! -d "$guard_dir/clock" ] || { echo "STOP: unsafe clock entry"; exit 1; }
-        rm -f "$guard_dir/probe" "$guard_dir/preview" "$guard_dir/clock" || exit 1
+        [ ! -d "$guard_dir/enabled" ] || exit 1
+        if [ -d "$state_dir" ]; then
+            [ ! -d "$state_dir/clock_id" ] || exit 1
+            rm -f "$state_dir/clock_id" || exit 1
+        fi
+        rm -f "$guard_dir/enabled" "$guard_dir/probe" "$guard_dir/preview" "$guard_dir/clock" || exit 1
         echo "All nubia-ly permits stopped. Active preview restores on the next guard validation. Reboot discards in-memory overrides."
         ;;
     status)
+        if [ -f "$guard_dir/enabled" ] && [ ! -L "$guard_dir/enabled" ]; then echo "Enabled clock authority present"; else echo "Clock authority disabled"; fi
         if [ -f "$guard_dir/probe" ] && [ ! -L "$guard_dir/probe" ]; then
             echo "Probe receipt present; app validates boot, expiry and permissions."
         else
@@ -40,6 +52,45 @@ case "$command" in
             echo "Clock-color permit present; app validates boot, expiry and permissions."
         else
             echo "No clock-color permit; blocked"
+        fi
+        ;;
+    enable_clock|resume)
+        [ ! -e "${0%/*}/disable" ] && [ ! -e "${0%/*}/remove" ] || { echo "STOP: guard module disabled or pending removal"; exit 1; }
+        if [ "$command" = enable_clock ]; then
+            if [ ! -d "$state_dir" ]; then (umask 077; mkdir "$state_dir") || exit 1; fi
+            [ ! -d "$state_dir/clock_id" ] || exit 1
+            permit_id=$(cat /proc/sys/kernel/random/uuid) || exit 1
+            temp=$(mktemp "$state_dir/.clock.XXXXXX") || exit 1
+            trap 'rm -f "$temp"' EXIT HUP INT TERM
+            printf '%s\n' "$permit_id" > "$temp" || exit 1
+            chmod 600 "$temp"; mv -f "$temp" "$state_dir/clock_id" || exit 1
+        else
+            # Only previews are cleared on boot; durable enabled identity is explicit user state.
+            for entry in probe preview clock; do [ ! -d "$guard_dir/$entry" ] || exit 1; done
+            rm -f "$guard_dir/probe" "$guard_dir/preview" "$guard_dir/clock" || exit 1
+            # A revoked durable identity must not be recreated on boot.
+            rm -f "$guard_dir/enabled" || exit 1
+            [ -f "$state_dir/clock_id" ] && [ ! -L "$state_dir/clock_id" ] || exit 0
+            [ "$(stat -c %u:%a "$state_dir/clock_id")" = 0:600 ] || exit 1
+            permit_id=$(cat "$state_dir/clock_id") || exit 1
+        fi
+        case "$permit_id" in ""|*[!0-9a-f-]*) exit 1 ;; esac
+        [ "${#permit_id}" = 36 ] || exit 1
+        boot_id=$(cat /proc/sys/kernel/random/boot_id) || exit 1
+        case "$boot_id" in ""|*[!0-9a-f-]*) exit 1 ;; esac
+        [ "${#boot_id}" = 36 ] || exit 1
+        [ ! -d "$guard_dir/enabled" ] || exit 1
+        temp=$(mktemp "$guard_dir/.enabled.XXXXXX") || exit 1
+        trap 'rm -f "$temp"' EXIT HUP INT TERM
+        printf 'nubia-ly-clock-enabled-v1\n%s\nclock-enabled\n%s\n' "$boot_id" "$permit_id" > "$temp" || exit 1
+        chmod 644 "$temp"; mv -f "$temp" "$guard_dir/enabled" || exit 1
+        echo "Clock enable authority ready. No expiry; app authorization required."
+        if [ "$command" = resume ]; then
+            nonce=$(cat /proc/sys/kernel/random/uuid) || exit 1
+            read -r uptime ignored < /proc/uptime || exit 1
+            deadline=$(( (${uptime%%.*} + 8) * 1000 ))
+            am broadcast -a com.elitedarkkaiser.nubialy.PREVIEW_LIFECYCLE -p com.android.systemui \
+                --es operation clock_resume --es nonce "$nonce" --el request_deadline_ms "$deadline" >/dev/null 2>&1 || true
         fi
         ;;
     probe|preview|clock)

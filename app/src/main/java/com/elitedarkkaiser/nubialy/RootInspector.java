@@ -2,7 +2,7 @@ package com.elitedarkkaiser.nubialy;
 
 import java.util.concurrent.TimeUnit;
 
-/** The only root payload in this build is an explicit id -u request. */
+/** Explicit read-only id -u probe; separate guard commands own clock authorization. */
 final class RootInspector {
     static String inspect() {
         Process process = null;

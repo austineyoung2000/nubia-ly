@@ -5,6 +5,7 @@ import android.os.*;
 import android.widget.TextView;
 import com.elitedarkkaiser.nubialy.ColorRestore;
 import com.elitedarkkaiser.nubialy.ClockColorPolicy;
+import com.elitedarkkaiser.nubialy.ClockEnabledPolicy;
 import de.robv.android.xposed.*;
 import java.util.*;
 
@@ -15,6 +16,11 @@ final class ClockColorBackend {
     private static final Handler main = new Handler(Looper.getMainLooper());
     private static boolean active, writing, failed;
     private static long deadline;
+    static boolean refreshHealth(long until) {
+        long now = SystemClock.elapsedRealtime();
+        if (!active || failed || now >= deadline || until <= now || until - now > ClockEnabledPolicy.HEALTH_MS) return false;
+        deadline = until; return true;
+    }
     private static volatile long generation;
     private static int applied, restored;
     private static String message = "No clock color preview started.";

@@ -9,11 +9,12 @@ with tempfile.TemporaryDirectory(prefix='nubialy-guard-test-') as work:
     module.mkdir()
     guard = work / 'guard'
     for source in (root / 'recovery-module').glob('*.sh'):
-        text = source.read_text().replace('guard_dir=/data/local/tmp/nubia-ly-guard', f'guard_dir={guard}')
+        text = source.read_text().replace('guard_dir=/data/local/tmp/nubia-ly-guard', f'guard_dir={guard}').replace('state_dir=/data/adb/nubia_ly_guard', f'state_dir={work / "state"}')
         (module / source.name).write_text(text)
     binaries = work / 'bin'
     binaries.mkdir()
     (binaries / 'getprop').write_text('#!/bin/sh\ncase "$1" in ro.product.model) echo "${TEST_MODEL:-NX809J}" ;; ro.build.version.sdk) echo 36 ;; esac\n')
+    (binaries / 'am').write_text('#!/bin/sh\nexit 0\n')
     (binaries / 'id').write_text('#!/bin/sh\necho "${TEST_UID:-0}"\n')
     for executable in binaries.iterdir(): executable.chmod(0o755)
     environment = dict(os.environ, PATH=f'{binaries}:{os.environ["PATH"]}')
@@ -68,6 +69,20 @@ with tempfile.TemporaryDirectory(prefix='nubialy-guard-test-') as work:
     assert not (guard / 'clock').exists()
     assert not (guard / 'preview').exists()
     assert not (guard / 'probe').exists()
+    run('enable_clock')
+    identity = (work / 'state' / 'clock_id').read_text().strip()
+    assert (work / 'state').stat().st_mode & 0o777 == 0o700
+    assert (work / 'state' / 'clock_id').stat().st_mode & 0o777 == 0o600
+    enabled = (guard / 'enabled').read_text().splitlines()
+    assert enabled[0] == 'nubia-ly-clock-enabled-v1' and enabled[2] == 'clock-enabled' and enabled[3] == identity
+    run('probe'); run('clock')
+    run('resume', script='service.sh')
+    assert (guard / 'enabled').read_text().splitlines()[3] == identity
+    assert not (guard / 'probe').exists() and not (guard / 'clock').exists()
+    run('stop', script='action.sh')
+    assert not (guard / 'enabled').exists() and not (work / 'state' / 'clock_id').exists()
+    run('resume', script='service.sh')
+    assert not (guard / 'enabled').exists()
     protected = work / 'unrelated.txt'
     protected.write_text('preserve me')
     (guard / 'probe').symlink_to(protected)

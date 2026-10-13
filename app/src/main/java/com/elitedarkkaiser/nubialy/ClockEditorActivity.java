@@ -25,7 +25,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private SystemUiGuardClient client;
     private LinearLayout content;
     private TextView swatch, selection, saveStatus, previewStatus;
-    private MaterialButton preview, restore, check;
+    private MaterialButton enable, restore, check;
     private ChipGroup presets;
     private int selected;
     private long saveGeneration;
@@ -45,7 +45,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         });
         MaterialButton back = button("Back"); back.setOnClickListener(v -> finish()); content.addView(back);
         content.addView(text("Status bar · Clock", 28, true));
-        content.addView(text("Choose your clock color. Saving a selection does not change your status bar.", 15, false));
+        content.addView(text("Choose your clock color. Choose a color, then Enable to keep it on your status bar.", 15, false));
         LinearLayout colors = card("Clock color");
         swatch = text("12:34", 44, true); colors.addView(swatch);
         selection = text("", 16, true); colors.addView(selection);
@@ -59,23 +59,27 @@ public final class ClockEditorActivity extends AppCompatActivity {
         }
         MaterialButton custom = button("Custom color"); colors.addView(custom); custom.setOnClickListener(v -> customColor());
         saveStatus = text("Saved selection loaded.", 14, false); colors.addView(saveStatus);
-        LinearLayout controls = card("Preview & restore");
-        controls.addView(text("Preview the selected color for up to 30 seconds. Changing the selection does not change an active preview.", 15, false));
-        controls.addView(text("Requires your clock guard permit. Preview also ends when the screen turns off. Nothing applies automatically when you reopen or reboot.", 14, false));
-        previewStatus = text("No preview checked. Saved colors never apply automatically.", 14, false); controls.addView(previewStatus);
-        preview = button("Preview selected color"); controls.addView(preview);
-        check = button("Check preview"); controls.addView(check);
+        LinearLayout controls = card("Clock customization");
+        controls.addView(text("Enable your selected color until you restore stock. Press Enable again to apply a different selection.", 15, false));
+        controls.addView(text("Requires root and the updated recovery guard. Your enabled color resumes after wake or reboot. The guard Action independently turns it off.", 14, false));
+        previewStatus = text(getSharedPreferences("recovery", MODE_PRIVATE).getBoolean("restart_recovery_stopped", false)
+            ? "Clock color was stopped after repeated System UI restarts. Enable again only after checking recovery."
+            : "Check clock color to read the current state. Restore stock turns off enabled customization.", 14, false); controls.addView(previewStatus);
+        enable = button("Enable clock color"); controls.addView(enable);
+        check = button("Check clock color"); controls.addView(check);
         restore = button("Restore stock color"); controls.addView(restore);
-        preview.setOnClickListener(v -> start());
+        enable.setOnClickListener(v -> enableColor());
         check.setOnClickListener(v -> request("status"));
         restore.setOnClickListener(v -> {
+            long stopDeadline = android.os.SystemClock.elapsedRealtime() + 8000;
             enabled(false);
             worker.execute(() -> {
                 boolean saved = RecoveryStore.stop(getApplicationContext());
+                boolean rootStopped = RootGuardCommand.stopClock(stopDeadline);
                 runOnUiThread(() -> {
                     if (!alive()) return;
                     request("stop");
-                    if (!saved) previewStatus.setText("Persistent disarm could not be saved. Restoration requested; check preview.");
+                    if (!saved || !rootStopped) previewStatus.setText("Persistent disarm could not be saved. Restoration requested; check preview.");
                 });
             });
         });
@@ -89,8 +93,8 @@ public final class ClockEditorActivity extends AppCompatActivity {
             boolean saved = ClockColorPreferences.save(getApplicationContext(), color);
             runOnUiThread(() -> {
                 if (alive() && ticket == saveGeneration) saveStatus.setText(saved
-                    ? "Selection saved. Status bar unchanged until you preview."
-                    : "Selected color could not be saved. You can still preview it.");
+                    ? "Selection saved. Press Enable to apply it."
+                    : "Selected color could not be saved. You can still enable it.");
             });
         });
     }
@@ -100,15 +104,16 @@ public final class ClockEditorActivity extends AppCompatActivity {
             Chip chip = (Chip)presets.getChildAt(i); chip.setChecked(((Integer)chip.getTag()) == selected);
         }
     }
-    private void start() {
+    private void enableColor() {
         enabled(false); final int requested = selected;
-        previewStatus.setText("Checking clock permit…");
+        long deadline = android.os.SystemClock.elapsedRealtime() + 8000;
+        previewStatus.setText("Enabling clock color… Grant root access if asked.");
         worker.execute(() -> {
-            boolean allowed = RecoveryStore.allowClock(getApplicationContext());
+            boolean allowed = RootGuardCommand.enableClock(deadline) && RecoveryStore.allowEnabled(getApplicationContext());
             runOnUiThread(() -> {
                 if (!alive()) return;
-                if (!allowed) { enabled(true); previewStatus.setText("Preview blocked. Publish a fresh clock permit and verify Vector activation."); return; }
-                client.previewColor(requested, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
+                if (!allowed) { enabled(true); previewStatus.setText("Could not enable. Check root access, updated guard module and Vector activation."); return; }
+                client.enableColor(requested, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
             });
         });
     }
@@ -116,7 +121,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         enabled(false);
         client.preview(operation, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
     }
-    private void enabled(boolean value) { preview.setEnabled(value); check.setEnabled(value); restore.setEnabled(value); }
+    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); }
     private boolean alive() { return !closed && !isFinishing() && !isDestroyed(); }
     private void customColor() {
         LinearLayout picker = new LinearLayout(this); picker.setOrientation(LinearLayout.VERTICAL); picker.setPadding(dp(24), dp(8), dp(24), dp(8));

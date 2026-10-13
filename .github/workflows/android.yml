@@ -28,6 +28,8 @@ jobs:
         run: |
           sh tests/run-policy-tests.sh
           python3 tests/test_clock_backend.py
+          python3 tests/test_recovery_store.py
+          python3 tests/test_root_guard.py
       - name: Recovery guard tests and ZIP
         run: |
           sudo python3 tests/test_guard_shell.py

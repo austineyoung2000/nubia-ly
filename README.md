@@ -157,3 +157,7 @@ The 0.1.9 draft adds an explicit fixed lavender status-bar clock preview, bounde
 ## Status bar clock editor
 
 The 0.1.10 test adds named color presets and a custom Material RGB/hex picker under Status bar. Only your color selection is saved. Explicit previews use the existing 30-second clock permit and stock restoration; saving and reopening never apply automatically. See [editor phone test](docs/CLOCK_EDITOR.md). Keep the 0.1.9 guard module installed.
+
+## Normal clock color enable
+
+The 0.1.12 test replaces the Clock editor's timer-driven preview with Enable clock color / Restore stock color. Enabled color has no duration limit and resumes after wake/reboot while independently authorized by the updated root guard. Root permission is requested only on explicit Enable/Restore. See [install, persistence and recovery tests](docs/CLOCK_ENABLE.md).

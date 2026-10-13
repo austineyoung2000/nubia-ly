@@ -41,6 +41,16 @@ public final class GuardReader {
                 boundedRead("/proc/sys/kernel/random/boot_id", 64).trim(), SystemClock.elapsedRealtime());
         } catch (Exception unavailable) { return null; }
     }
+    public static String bootId() {
+        try { return boundedRead("/proc/sys/kernel/random/boot_id", 64).trim(); }
+        catch (Exception unavailable) { return ""; }
+    }
+    public static String inspectEnabled() {
+        try {
+            if (!safeRootPath(DIRECTORY, true) || !safeRootPath(DIRECTORY + "/enabled", false)) return null;
+            return ClockEnabledPolicy.parse(boundedRead(DIRECTORY + "/enabled", 240), bootId());
+        } catch (Exception unavailable) { return null; }
+    }
     private static boolean safeRootPath(String path, boolean directory) throws Exception {
         StructStat stat = Os.lstat(path);
         return stat.st_uid == 0 && (stat.st_mode & 0022) == 0

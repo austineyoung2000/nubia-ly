@@ -39,3 +39,7 @@ A read-only Clock observer captures full stock ColorStateList and releases/compa
 ## Scoped transient clock recovery in 0.1.9
 
 The first visual test implements latest-stock ColorStateList capture/restore with readback, original expiry, independent root permit revocation, screen-off restoration and no process/boot replay. A distinct visual permit is required. Permanent customizations remain unavailable and complete boot-loop recovery remains unverified. See [contract and phone tests](CLOCK_COLOR_PREVIEW.md).
+
+## Normal clock enable in 0.1.12
+
+An explicit durable root identity plus private app authorization supports saved clock styling across wake/reboot. Awake freshness checks and a stuck-read watchdog revoke uncertain authority without imposing a user-visible duration. Stock is restored while sleeping. A per-boot process-start cutoff disarms repeated automatic activations. Root Action independently removes durable authority. The local scoped recovery tests do not establish universal device boot-loop recovery. See [contract and phone checklist](CLOCK_ENABLE.md).

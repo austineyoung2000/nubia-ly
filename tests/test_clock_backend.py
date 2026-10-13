@@ -38,7 +38,9 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  check(ClockColorBackend.begin(130000,0xffc0a8ff));SystemClock.time=130000;a.setTextColor(9);check(a.getTextColors().color()==9);check(b.getTextColors().color()==2);check(XposedHelpers.hooks.isEmpty());
  SystemClock.time=140000;check(ClockColorBackend.begin(170000,0xff112233));check(a.getTextColors().color()==0xff112233);
  check(!ClockColorBackend.begin(170000,0x00112233));check(ClockColorBackend.healthy());ClockColorBackend.end();check(a.getTextColors().color()==9);
- a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==9);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
+ check(ClockColorBackend.begin(155000,0xff112233));SystemClock.time=150000;check(ClockColorBackend.refreshHealth(165000));SystemClock.time=160000;a.setTextColor(10);check(a.getTextColors().color()==0xff112233);
+ ClockColorBackend.end();check(a.getTextColors().color()==10);check(!ClockColorBackend.refreshHealth(175000));
+ a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, unrelated views, stock updates, restore, detach, expiry, partial apply failure and failed-session fence");}}
 '''
 }
@@ -47,6 +49,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-clock-backend-') as work:
     for name, source in sources.items():
         path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source)
     files=[str(p) for p in work.rglob('*.java')]
-    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
+    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
     subprocess.run(['java','com.sun.tools.javac.Main','-d',str(work/'classes'),*files],check=True)
     subprocess.run(['java','-cp',str(work/'classes'),'com.elitedarkkaiser.nubialy.xposed.BackendTest'],check=True)
