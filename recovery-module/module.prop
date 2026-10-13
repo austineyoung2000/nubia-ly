@@ -1,6 +1,6 @@
 id=nubia_ly_guard
-name=nubia-ly Recovery Guard (probe test)
-version=0.1.2
-versionCode=3
+name=nubia-ly Recovery Guard (lifecycle test)
+version=0.1.5
+versionCode=6
 author=EliteDarkKaiser
-description=NX809J-only independent stop and boot-scoped transport probe. Does not enable cosmetics or promise boot-loop recovery.
+description=NX809J-only independent stop and boot-scoped transport probe and separate lifecycle-only permit. Does not enable cosmetics or promise boot-loop recovery.

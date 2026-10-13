@@ -57,3 +57,5 @@ The app-side broker validates the existing bounded root-owned probe anew on ever
 4. If broker-unavailable, provide the exact result; no SELinux change or System UI restart should be used as a workaround. Relaunching the app is not required for ordinary checks; the provider can be started on demand, while force-stop/unavailability fails closed.
 
 The original 0.1.3 direct-reader diagnostic was blocked on the tested phone. The broker avoids that read entirely and adds no SELinux rule, relabeling or chmod change. Guard receipt validity remains evidence for this transport test, never cosmetic authorization or verified recovery from future hooks.
+
+The 0.1.5 guard module adds a distinct `preview` permit for the [no-visual-change lifecycle test](PREVIEW_LIFECYCLE.md). Probe diagnostics remain unchanged. Action/boot/uninstall clear both fixed entries; install the updated module before using the new preview command.

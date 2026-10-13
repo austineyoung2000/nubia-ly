@@ -18,7 +18,9 @@ public final class SystemUiGuardClient {
     private Runnable timeout;
     private long generation;
     public SystemUiGuardClient(Context context) { this.context = context.getApplicationContext(); }
-    public void check(Consumer<String> result) {
+    public void check(Consumer<String> result) { request(false, null, result); }
+    public void preview(String operation, Consumer<String> result) { request(true, operation, result); }
+    private void request(boolean preview, String operation, Consumer<String> result) {
         cancel();
         callback = result;
         long request = generation;
@@ -26,9 +28,10 @@ public final class SystemUiGuardClient {
         String nonce = UUID.randomUUID().toString();
         timeout = () -> finish(request, "System UI did not reply within 8 seconds. Guard access unverified.");
         handler.postDelayed(timeout, SystemUiGuardProtocol.DEADLINE_MS);
-        Intent intent = new Intent(SystemUiGuardProtocol.ACTION).setPackage("com.android.systemui")
+        Intent intent = new Intent(preview ? SystemUiGuardProtocol.PREVIEW_ACTION : SystemUiGuardProtocol.ACTION).setPackage("com.android.systemui")
             .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
         intent.putExtra("nonce", nonce);
+        if (preview) intent.putExtra("operation", operation);
         try {
             context.sendOrderedBroadcast(intent, null, new BroadcastReceiver() {
                 @Override public void onReceive(Context ignored, Intent response) {
@@ -42,6 +45,15 @@ public final class SystemUiGuardClient {
                             BuildConfig.VERSION_CODE, extras.getInt("version", -1),
                             SystemClock.elapsedRealtime() - started)) {
                         finish(request, "System UI reply is stale or from another app version. Access unverified.");
+                        return;
+                    }
+                    if (preview) {
+                        String phase = extras.getString("phase", "UNKNOWN");
+                        long deadline = extras.getLong("deadline_ms", 0);
+                        if ("ACTIVE".equals(phase) && deadline <= SystemClock.elapsedRealtime()) phase = "EXPIRED";
+                        finish(request, "System UI lifecycle: " + phase + ". No appearance changes.\n"
+                            + ("ACTIVE".equals(phase) ? "Expires within " + Math.max(0, (deadline - SystemClock.elapsedRealtime()) / 1000)
+                                + " seconds; check status for a fresh result." : extras.getString("reason", "No valid session.")));
                         return;
                     }
                     int status = extras.getInt("broker_status", GuardBrokerPolicy.UNAVAILABLE);

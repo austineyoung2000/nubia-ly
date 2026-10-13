@@ -23,6 +23,7 @@ public final class SystemUiGuardReceiver extends BroadcastReceiver {
             context.registerReceiver(new SystemUiGuardReceiver(),
                 new IntentFilter(SystemUiGuardProtocol.ACTION), SystemUiGuardProtocol.PERMISSION,
                 null, Context.RECEIVER_EXPORTED);
+            PreviewReceiver.install(context);
             installed = true;
             XposedBridge.log("nubia-ly: System UI guard diagnostic registered; no cosmetic hooks.");
         } catch (Throwable unavailable) {

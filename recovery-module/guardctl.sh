@@ -6,7 +6,7 @@ set -eu
 [ "$(getprop ro.build.version.sdk)" = 36 ] || { echo "STOP: Android 16 only"; exit 1; }
 guard_dir=/data/local/tmp/nubia-ly-guard
 command=${1:-status}
-case "$command" in status|stop|probe) ;; *) echo "STOP: use status, stop or probe"; exit 1 ;; esac
+case "$command" in status|stop|probe|preview) ;; *) echo "STOP: use status, stop, probe or preview"; exit 1 ;; esac
 # Refuse pre-existing symlinks and non-root/writable directories.
 [ ! -L "$guard_dir" ] || { echo "STOP: unsafe guard directory"; exit 1; }
 if [ ! -e "$guard_dir" ]; then
@@ -20,8 +20,9 @@ case "$command" in
     stop)
         # unlink just our own fixed entry; never follow a permit symlink.
         [ ! -d "$guard_dir/probe" ] || { echo "STOP: unsafe probe entry"; exit 1; }
-        rm -f "$guard_dir/probe" || exit 1
-        echo "Probe stopped. No customization enabled. Reboot to discard any future in-memory hooks."
+        [ ! -d "$guard_dir/preview" ] || { echo "STOP: unsafe preview entry"; exit 1; }
+        rm -f "$guard_dir/probe" "$guard_dir/preview" || exit 1
+        echo "Probe and lifecycle permit stopped. No customization enabled. Reboot to discard any future in-memory hooks."
         ;;
     status)
         if [ -f "$guard_dir/probe" ] && [ ! -L "$guard_dir/probe" ]; then
@@ -29,11 +30,17 @@ case "$command" in
         else
             echo "No probe receipt; blocked"
         fi
+        if [ -f "$guard_dir/preview" ] && [ ! -L "$guard_dir/preview" ]; then
+            echo "Lifecycle permit present; app validates boot, expiry and permissions."
+        else
+            echo "No lifecycle permit; blocked"
+        fi
         ;;
-    probe)
+    probe|preview)
+        entry=$command
         # Remove previous receipt before trying anything; failures must leave no permit.
-        [ ! -d "$guard_dir/probe" ] || { echo "STOP: unsafe probe entry"; exit 1; }
-        rm -f "$guard_dir/probe" || exit 1
+        [ ! -d "$guard_dir/$entry" ] || { echo "STOP: unsafe permit entry"; exit 1; }
+        rm -f "$guard_dir/$entry" || exit 1
         boot_id=$(cat /proc/sys/kernel/random/boot_id) || exit 1
         case "$boot_id" in ""|*[!0-9a-f-]*) echo "STOP: invalid boot ID"; exit 1 ;; esac
         [ "${#boot_id}" = 36 ] || exit 1
@@ -43,9 +50,16 @@ case "$command" in
         expires=$((seconds + 60))
         temp=$(mktemp "$guard_dir/.probe.XXXXXX") || exit 1
         trap 'rm -f "$temp"' EXIT HUP INT TERM
-        printf 'nubia-ly-probe-v1\n%s\n%s\nprobe-only\n' "$boot_id" "$expires" > "$temp" || exit 1
+        if [ "$entry" = preview ]; then
+            permit_id=$(cat /proc/sys/kernel/random/uuid) || exit 1
+            case "$permit_id" in ""|*[!0-9a-f-]*) exit 1 ;; esac
+            [ "${#permit_id}" = 36 ] || exit 1
+            printf 'nubia-ly-preview-v1\n%s\n%s\nlifecycle-only\n%s\n' "$boot_id" "$expires" "$permit_id" > "$temp" || exit 1
+        else
+            printf 'nubia-ly-probe-v1\n%s\n%s\nprobe-only\n' "$boot_id" "$expires" > "$temp" || exit 1
+        fi
         chmod 0644 "$temp" || exit 1
-        mv -f "$temp" "$guard_dir/probe" || exit 1
-        echo "60-second probe published. Check it in nubia-ly now; cosmetics remain blocked."
+        mv -f "$temp" "$guard_dir/$entry" || exit 1
+        echo "60-second $entry permit published. No cosmetic permission granted."
         ;;
 esac

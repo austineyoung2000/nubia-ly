@@ -1,0 +1,35 @@
+package com.elitedarkkaiser.nubialy.xposed;
+
+import android.content.*;
+import android.os.Bundle;
+import com.elitedarkkaiser.nubialy.*;
+import de.robv.android.xposed.XposedBridge;
+
+/** Signature-protected session controls; no visual hooks or settings writes. */
+final class PreviewReceiver extends BroadcastReceiver {
+    private final PreviewRuntime runtime;
+    private PreviewReceiver(Context context) { runtime = new PreviewRuntime(context); }
+    static void install(Context context) {
+        try {
+            context.registerReceiver(new PreviewReceiver(context), new IntentFilter(SystemUiGuardProtocol.PREVIEW_ACTION),
+                SystemUiGuardProtocol.PERMISSION, null, Context.RECEIVER_EXPORTED);
+        } catch (Throwable unavailable) { XposedBridge.log("nubia-ly: lifecycle receiver unavailable; cosmetics blocked."); }
+    }
+    @Override public void onReceive(Context context, Intent intent) {
+        String operation = intent.getStringExtra("operation");
+        String nonce = intent.getStringExtra("nonce");
+        if (!SystemUiGuardProtocol.PREVIEW_ACTION.equals(intent.getAction()) || !PreviewPolicy.uuid(nonce)
+                || !("start".equals(operation) || "status".equals(operation) || "stop".equals(operation))) return;
+        PendingResult pending = goAsync();
+        try {
+            runtime.request(operation, result -> {
+                try {
+                    result.putString("nonce", nonce); result.putInt("version", BuildConfig.VERSION_CODE);
+                    pending.setResultExtras(result); pending.setResultCode(SystemUiGuardProtocol.RESPONSE);
+                } catch (Throwable ignored) { /* Host must survive diagnostics. */ }
+                finally { finish(pending); }
+            });
+        } catch (Throwable unavailable) { finish(pending); }
+    }
+    private static void finish(PendingResult pending) { try { pending.finish(); } catch (Throwable ignored) {} }
+}

@@ -27,3 +27,7 @@ The optional root-manager module provides independent stop and boot invalidation
 ## Broker transport after the direct-read phone test
 
 The 0.1.3 direct System UI reader is superseded by a protected app-side guard broker after the phone reported an access denial. System UI makes no guard filesystem read. The provider checks real Binder UID and verified calling package, accepts one fixed nonce/version-matched read and returns only status. No positive caching; unavailable/busy/late replies remain unverified. This avoids changing SELinux and keeps the independent module stop/reboot semantics. Broker phone validation is required; complete future cosmetic recovery is still a separate gate.
+
+## Lifecycle simulation gate in 0.1.5
+
+A separate lifecycle-only permit, explicit start, absolute expiry, independent stop, generation fencing and bounded active-session broker validation are implemented for a no-visual-change simulation. The original permit ID/deadline cannot be extended by replacement. See [session semantics and phone checklist](PREVIEW_LIFECYCLE.md). This does not implement or validate original-appearance rollback; no cosmetic backend is enabled.

@@ -33,17 +33,28 @@ with tempfile.TemporaryDirectory(prefix='nubialy-guard-test-') as work:
     lines = (guard / 'probe').read_text().splitlines()
     assert lines[0] == 'nubia-ly-probe-v1' and lines[3] == 'probe-only'
     assert 0 < int(lines[2]) - int(float(Path('/proc/uptime').read_text().split()[0])) <= 60
+    run('preview')
+    preview_lines = (guard / 'preview').read_text().splitlines()
+    assert preview_lines[0] == 'nubia-ly-preview-v1' and preview_lines[3] == 'lifecycle-only'
+    assert len(preview_lines[4]) == 36 and (guard / 'probe').exists()
     run('stop')
+    assert not (guard / 'preview').exists()
     run('stop')
     assert not (guard / 'probe').exists()
     run('probe')
+    run('preview')
     run('stop', script='service.sh')
+    assert not (guard / 'preview').exists()
     assert not (guard / 'probe').exists()
     run('probe')
+    run('preview')
     run('stop', script='action.sh')
+    assert not (guard / 'preview').exists()
     assert not (guard / 'probe').exists()
     run('probe')
+    run('preview')
     run('stop', script='uninstall.sh')
+    assert not (guard / 'preview').exists()
     assert not (guard / 'probe').exists()
     protected = work / 'unrelated.txt'
     protected.write_text('preserve me')

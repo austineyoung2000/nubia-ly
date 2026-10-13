@@ -19,6 +19,9 @@ public final class MainActivity extends AppCompatActivity {
     private TextView compatibility;
     private TextView rootStatus;
     private SystemUiGuardClient systemUiCheck;
+    private SystemUiGuardClient previewCheck;
+    private TextView previewStatus;
+    private MaterialButton previewStart, previewRefresh, previewStop;
     private TextView activationStatus;
     private TextView recoveryStatus;
     private MaterialButton inspectButton;
@@ -94,6 +97,13 @@ public final class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (closed || isFinishing() || isDestroyed()) return;
                     stop.setEnabled(true);
+                    if (saved && previewCheck != null) {
+                        previewCheck.cancel(); setPreviewButtons(true);
+                        previewStatus.setText("Emergency stop saved. Lifecycle stop requested; check status to verify.");
+                        previewCheck.preview("stop", result -> {
+                            if (!closed && !isFinishing() && !isDestroyed()) previewStatus.setText(result);
+                        });
+                    }
                     recoveryStatus.setText(saved ? "Emergency stop saved. Customizations remain blocked."
                         : "Could not save emergency stop. Customizations remain blocked in this build.");
                 });
@@ -130,8 +140,38 @@ public final class MainActivity extends AppCompatActivity {
                 systemUiStatus.setText(result);
             });
         });
+        LinearLayout preview = card("Preview lifecycle test", "Test expiry and stop handling without changing your appearance. Requires a separate fresh lifecycle-only permit.");
+        previewCheck = new SystemUiGuardClient(this);
+        previewStatus = label("No lifecycle test checked. Cosmetics remain disabled.", 14, false);
+        preview.addView(previewStatus);
+        previewStart = button("Start lifecycle test"); preview.addView(previewStart);
+        previewRefresh = button("Check lifecycle status"); preview.addView(previewRefresh);
+        previewStop = button("End lifecycle test"); preview.addView(previewStop);
+        previewStart.setOnClickListener(v -> {
+            setPreviewButtons(false); previewStatus.setText("Checking lifecycle-only permit…");
+            worker.execute(() -> {
+                boolean allowed = RecoveryStore.allowLifecycle(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (closed || isFinishing() || isDestroyed()) return;
+                    if (!allowed) { setPreviewButtons(true); previewStatus.setText("Start blocked: publish a fresh lifecycle-only permit first."); return; }
+                    requestPreview("start");
+                });
+            });
+        });
+        previewRefresh.setOnClickListener(v -> requestPreview("status"));
+        previewStop.setOnClickListener(v -> {
+            setPreviewButtons(false);
+            worker.execute(() -> {
+                boolean saved = RecoveryStore.stop(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (closed || isFinishing() || isDestroyed()) return;
+                    requestPreview("stop");
+                    if (!saved) previewStatus.setText("Persistent stop could not be saved; System UI stop requested. Check status.");
+                });
+            });
+        });
         refreshSafetyStatus();
-        content.addView(label("0.1.4 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.5 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {
@@ -148,6 +188,17 @@ public final class MainActivity extends AppCompatActivity {
             : "Customizations blocked: recovery backend has not been verified.");
     }
 
+    private void setPreviewButtons(boolean enabled) {
+        if (previewStart == null) return;
+        previewStart.setEnabled(enabled); previewRefresh.setEnabled(enabled); previewStop.setEnabled(enabled);
+    }
+    private void requestPreview(String operation) {
+        setPreviewButtons(false);
+        previewCheck.preview(operation, result -> {
+            if (closed || isFinishing() || isDestroyed()) return;
+            setPreviewButtons(true); previewStatus.setText(result);
+        });
+    }
     private void inspect() {
         inspectButton.setEnabled(false);
         compatibility.setText("Checking your installed System UI…");
@@ -217,5 +268,5 @@ public final class MainActivity extends AppCompatActivity {
     }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private void spacer(int height) { View space = new View(this); content.addView(space, new LinearLayout.LayoutParams(1, dp(height))); }
-    @Override protected void onDestroy() { closed = true; generation++; if (systemUiCheck != null) systemUiCheck.cancel(); worker.shutdownNow(); super.onDestroy(); }
+    @Override protected void onDestroy() { closed = true; generation++; if (systemUiCheck != null) systemUiCheck.cancel(); if (previewCheck != null) previewCheck.cancel(); worker.shutdownNow(); super.onDestroy(); }
 }

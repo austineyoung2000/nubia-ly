@@ -139,3 +139,9 @@ A separate probe-only root-manager ZIP provides an independent Action/Termux sto
 ## System UI guard verification (0.1.4, draft)
 
 **Check System UI guard** sends one signature-protected read-only request to running System UI. System UI asks the app-side protected provider for a fresh guard validation, because direct access may be blocked by the firmware SELinux policy. The provider checks the resolved System UI UID and framework-verified package attribution before reading the one fixed root-owned probe. Fresh version/nonce-matched replies distinguish broker-valid, broker-blocked, broker-busy and broker-unavailable; absent/stale replies stay unverified. No raw file or boot identifier is returned. One diagnostic lifecycle hook registers the receiver, with no cosmetic hooks or root commands. No continuous polling. Update using the existing permanent key and reboot to load the new receiver. The guard module itself is unchanged. See the [live diagnostic phone test](docs/GUARD_TEST.md).
+
+## Preview lifecycle simulation (0.1.5, draft)
+
+An explicit lifecycle-only test uses a separate current-boot permit lasting at most 60 seconds. System UI checks it through the protected broker, expires the session automatically and stops when the permit is revoked/replaced or the broker is unavailable. Late workers cannot restart a stopped attempt. Bounded two-second validation runs only during this simulation, with no permanent polling or root commands. Root module Action and app Emergency stop revoke the test through independent state checks. Restart/reboot never auto-starts it.
+
+This milestone changes no appearance and provides no cosmetic permission. Original visual capture/rollback and crash-loop recovery remain future backend work. Update both the signed APK and guard ZIP, then follow the [phone lifecycle checklist](docs/PREVIEW_LIFECYCLE.md).

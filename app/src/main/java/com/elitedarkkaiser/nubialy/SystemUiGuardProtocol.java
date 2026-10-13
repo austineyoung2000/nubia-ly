@@ -1,6 +1,7 @@
 package com.elitedarkkaiser.nubialy;
 
 public final class SystemUiGuardProtocol {
+    public static final String PREVIEW_ACTION = "com.elitedarkkaiser.nubialy.PREVIEW_LIFECYCLE";
     public static final String ACTION = "com.elitedarkkaiser.nubialy.CHECK_SYSTEM_UI_GUARD";
     public static final String PERMISSION = "com.elitedarkkaiser.nubialy.permission.GUARD_DIAGNOSTIC";
     public static final int RESPONSE = 1201;

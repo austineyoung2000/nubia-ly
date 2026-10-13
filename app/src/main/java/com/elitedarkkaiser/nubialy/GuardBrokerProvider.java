@@ -11,7 +11,7 @@ import android.os.ParcelFileDescriptor;
 import java.io.FileNotFoundException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Only a fresh fixed probe read is exposed. No paths, root commands or writes accepted. */
+/** Only fresh fixed probe/lifecycle reads are exposed. No paths, root commands or writes accepted. */
 public final class GuardBrokerProvider extends ContentProvider {
     private final AtomicBoolean busy = new AtomicBoolean();
     @Override public boolean onCreate() {
@@ -19,7 +19,8 @@ public final class GuardBrokerProvider extends ContentProvider {
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
         enforceSystemUi();
-        if (!GuardBrokerPolicy.METHOD.equals(method) || arg != null || extras == null)
+        if ((!GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method))
+                || arg != null || extras == null)
             throw new IllegalArgumentException("Unsupported guard request");
         String nonce = extras.getString("nonce");
         int version = extras.getInt("version", -1);
@@ -35,8 +36,18 @@ public final class GuardBrokerProvider extends ContentProvider {
         // Keep authentication before any identity change. File access uses this app's domain.
         long identity = Binder.clearCallingIdentity();
         try {
-            reply.putInt("status", GuardReader.inspectSnapshot().readable()
-                ? GuardBrokerPolicy.READABLE : GuardBrokerPolicy.BLOCKED);
+            if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method)) {
+                PreviewPolicy.Permit permit = RecoveryStore.lifecycleAllowed(getContext())
+                    ? GuardReader.inspectPreview() : null;
+                reply.putInt("status", permit != null ? GuardBrokerPolicy.READABLE : GuardBrokerPolicy.BLOCKED);
+                if (permit != null) {
+                    reply.putString("permit_id", permit.id());
+                    reply.putLong("deadline_ms", permit.deadlineMs());
+                }
+            } else {
+                reply.putInt("status", GuardReader.inspectSnapshot().readable()
+                    ? GuardBrokerPolicy.READABLE : GuardBrokerPolicy.BLOCKED);
+            }
             return reply;
         } finally {
             Binder.restoreCallingIdentity(identity);
