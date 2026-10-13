@@ -98,9 +98,25 @@ public final class MainActivity extends AppCompatActivity {
                 });
             });
         });
-        recovery.addView(label("This build cannot arm customizations. This latch does not disable Vector injection or restore stock resources. No companion module or boot recovery is installed. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
+        TextView guardStatus = label("Independent guard has not been checked.", 14, false);
+        recovery.addView(guardStatus);
+        MaterialButton guardCheck = button("Check recovery guard");
+        recovery.addView(guardCheck);
+        guardCheck.setOnClickListener(v -> {
+            guardCheck.setEnabled(false);
+            worker.execute(() -> {
+                String result = GuardReader.inspect();
+                runOnUiThread(() -> {
+                    if (closed || isFinishing() || isDestroyed()) return;
+                    guardCheck.setEnabled(true);
+                    guardStatus.setText(result);
+                });
+            });
+        });
+        recovery.addView(label("Optional companion guard: install its test ZIP using your root manager. Its Action button stops the guard probe independently of this app. Each reboot invalidates the probe. This is a transport test, not cosmetic permission or verified boot-loop recovery.", 14, false));
+        recovery.addView(label("This build cannot arm customizations. This latch does not disable Vector injection or restore stock resources. The app does not install the companion module. Full boot recovery remains unverified. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
         refreshSafetyStatus();
-        content.addView(label("0.1.1 · Independent from Redmagic 11 Toolbox", 12, false));
+        content.addView(label("0.1.2 · Independent from Redmagic 11 Toolbox", 12, false));
     }
 
     @Override protected void onResume() {

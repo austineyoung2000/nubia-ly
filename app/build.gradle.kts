@@ -20,11 +20,11 @@ android {
         targetSdk = 35
         buildConfigField("String", "BASELINE_FINGERPRINT", baselineLiteral("fingerprint"))
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
-        versionCode = 2
-        versionName = "0.1.1-recovery-foundation"
+        versionCode = 3
+        versionName = "0.1.2-guard-test"
     }
     signingConfigs {
-        if (releaseSigning) create("release") {
+        if (releaseSigning) create("persistent") {
             storeFile = file(System.getenv("SIGNING_STORE_FILE"))
             storePassword = System.getenv("SIGNING_STORE_PASSWORD")
             keyAlias = System.getenv("SIGNING_KEY_ALIAS")
@@ -32,9 +32,12 @@ android {
         }
     }
     buildTypes {
+        debug {
+            if (releaseSigning) signingConfig = signingConfigs.getByName("persistent")
+        }
         release {
             isMinifyEnabled = false
-            if (releaseSigning) signingConfig = signingConfigs.getByName("release")
+            if (releaseSigning) signingConfig = signingConfigs.getByName("persistent")
         }
     }
     buildFeatures { buildConfig = true }

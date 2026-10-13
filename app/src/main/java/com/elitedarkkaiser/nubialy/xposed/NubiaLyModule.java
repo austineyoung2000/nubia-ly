@@ -2,6 +2,7 @@ package com.elitedarkkaiser.nubialy.xposed;
 
 import android.os.Build;
 import com.elitedarkkaiser.nubialy.ModuleStatus;
+import com.elitedarkkaiser.nubialy.GuardReader;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XC_MethodReplacement;
 import com.elitedarkkaiser.nubialy.CompatibilityPolicy;
@@ -26,6 +27,7 @@ public final class NubiaLyModule implements IXposedHookLoadPackage {
         if (!"com.android.systemui".equals(param.packageName) || !"com.android.systemui".equals(param.processName)) return;
         if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE)) return;
         if (Build.VERSION.SDK_INT != 36) return;
+        XposedBridge.log("nubia-ly: " + GuardReader.inspect());
         XposedBridge.log("nubia-ly: Vector module entry loaded on NX809J; no hooks registered.");
     }
 }

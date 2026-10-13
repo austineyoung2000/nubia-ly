@@ -20,6 +20,15 @@ public final class PolicySmokeTest {
             require(RecoveryPolicy.canApply(stopped, active, baseline, recovery, feature) == (mask == 30));
         }
         require(!ModuleStatus.isActive());
+        String boot = "12345678-1234-1234-1234-123456789abc";
+        String probe = "nubia-ly-probe-v1\n" + boot + "\n160\nprobe-only\n";
+        require(GuardPolicy.probeValid(probe, boot, 100));
+        require(!GuardPolicy.probeValid(probe, boot, 160));
+        require(!GuardPolicy.probeValid(probe, boot, 99));
+        require(!GuardPolicy.probeValid(probe, "87654321-1234-1234-1234-123456789abc", 100));
+        require(!GuardPolicy.probeValid(probe.replace("probe-only", "apply"), boot, 100));
+        require(!GuardPolicy.probeValid(null, boot, 100));
+        require(!GuardPolicy.probeValid(probe + "unexpected", boot, 100));
         System.out.println("Policy smoke tests passed: device, firmware, SDK, hash and no-apply gates.");
     }
     private static void require(boolean value) { if (!value) throw new AssertionError(); }

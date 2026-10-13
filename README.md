@@ -39,7 +39,7 @@ A firmware/hash match identifies an explicitly configured baseline. **It does no
 - Vector/Xposed module metadata and `assets/xposed_init` registration.
 - An inert module entry point that checks package, main process, model and Android version, then logs loading without installing any hooks.
 - Pure compatibility-policy tests and Android unit-test sources.
-- GitHub Actions workflow for unit tests, a debug APK, and an optional signed release APK when signing secrets are configured.
+- GitHub Actions workflow for unit tests, a debug APK, a permanent-key test APK and a signed release APK when signing secrets are configured.
 
 There is no settings write, overlay fabrication, System UI restart, boot receiver, automatic enforcement, framework installer or module installation in the current app. It does not change Toolbox's cooling, lighting, triggers or recovery services.
 
@@ -104,16 +104,16 @@ To run compatibility-policy checks without Android SDK:
 sh tests/run-policy-tests.sh
 ```
 
-GitHub Actions produces `nubia-ly-debug-apk`. A release build is conditional on these repository secrets:
+GitHub Actions produces `nubia-ly-signed-test-apk` and `nubia-ly-signed-release-apk` using the dedicated persistent key. These repository secrets are configured:
 
 - `RELEASE_KEYSTORE_BASE64`
 - `SIGNING_STORE_PASSWORD`
 - `SIGNING_KEY_ALIAS`
 - `SIGNING_KEY_PASSWORD`
 
-Use a dedicated app signing key. Without signing secrets, CI produces only the debug APK; incomplete release secrets cause the signing step to fail rather than label an unsigned APK as signed.
+The public certificate digest is pinned in `docs/SIGNING_CERT_SHA256.txt`; CI verifies both APKs before publishing. Secretless fork CI produces an explicitly ephemeral debug artifact. Incomplete signing configuration fails. See [signing notes](docs/SIGNING.md).
 
-**Validation at scaffold creation:** pure Java policy smoke tests passed; manifest/resource XML, workflow structure, module registration and source archive were checked. Android compilation, policy checks and unit tests subsequently passed in [GitHub Actions](https://github.com/austineyoung2000/nubia-ly/actions/runs/38456648254) at `6d892d4376fa6420eb50addac79c52996bba5751`; a [debug test APK](https://github.com/austineyoung2000/nubia-ly/actions/runs/38456648254/artifacts/11842337147) is available. Release signing is not configured. Vector loading and phone testing remain pending. App source remains in [draft PR1](https://github.com/austineyoung2000/nubia-ly/pull/1), not merged.
+**Validation at scaffold creation:** pure Java policy smoke tests passed; manifest/resource XML, workflow structure, module registration and source archive were checked. Android compilation, policy checks and unit tests subsequently passed in [GitHub Actions](https://github.com/austineyoung2000/nubia-ly/actions/runs/38456648254) at `6d892d4376fa6420eb50addac79c52996bba5751`; a [debug test APK](https://github.com/austineyoung2000/nubia-ly/actions/runs/38456648254/artifacts/11842337147) is available. [PR1](https://github.com/austineyoung2000/nubia-ly/pull/1) was merged after user phone checks for app activation and emergency stop. Independent System UI loading and boot recovery remain unverified. Permanent signing is configured for the 0.1.2 test branch.
 
 ## Phone testing and contribution workflow
 
@@ -126,8 +126,12 @@ Use a dedicated app signing key. Without signing secrets, CI produces only the d
 
 For the first APK, test app launch, firmware/root inspection and optional inert Vector module loading. There are no cosmetic toggles to test yet. See [Vector integration](docs/VECTOR.md).
 
-## Recovery foundation update (0.1.1, draft)
+## Recovery foundation update (0.1.1, merged)
 
 The app now shows Vector activation detected by an app-only probe. This does not prove System UI injection; check the separate module log after selecting System UI and rebooting. System UI continues to register zero customization hooks.
 
 A persistent emergency-stop latch defaults to stopped. The app can save the stop, but cannot arm or apply any feature. The prerequisite policy fails closed unless activation, baseline, recovery and feature validation all pass. Full independent boot recovery remains pending; this milestone does not claim boot-loop protection. Disable nubia-ly in Vector and reboot for the manual fallback.
+
+## Independent guard test (0.1.2, draft)
+
+A separate probe-only root-manager ZIP provides an independent Action/Termux stop and boot invalidation. A root-owned atomic probe is bound to the current boot and expires within 60 seconds. Rootless app/System UI readers fail closed on missing, malformed, unsafe or unreadable state. No SELinux policy is changed, and no customization can be activated. See the [phone checklist and limits](docs/GUARD_TEST.md). This is a prerequisite transport test; complete recovery from future cosmetic hooks still requires validation before those features ship.

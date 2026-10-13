@@ -5,3 +5,7 @@ local.properties
 *.jks
 *.keystore
 local-baseline.properties
+
+*.jks
+*.keystore
+/signing-private/

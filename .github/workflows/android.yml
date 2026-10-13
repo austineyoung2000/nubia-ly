@@ -26,39 +26,79 @@ jobs:
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Policy tests
         run: sh tests/run-policy-tests.sh
-      - name: Unit tests and debug APK
-        run: gradle testDebugUnitTest assembleDebug
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: nubia-ly-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-      - name: Prepare release signing
+      - name: Recovery guard tests and ZIP
+        run: |
+          sudo python3 tests/test_guard_shell.py
+          python3 scripts/package-guard.py
+      - name: Prepare persistent signing
         env:
           KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          set -eu
           if [ -n "$KEYSTORE" ]; then
-            if [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-              echo "Release signing secrets are incomplete."
-              exit 1
-            fi
+            [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ] || {
+              echo "Signing secrets incomplete; refusing ephemeral fallback."; exit 1;
+            }
+            umask 077
             printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/nubia-ly.jks"
             echo "HAS_SIGNING=true" >> "$GITHUB_ENV"
+          elif [ -n "$STORE_PASSWORD$KEY_ALIAS$KEY_PASSWORD" ]; then
+            echo "Signing secrets incomplete; refusing ephemeral fallback."
+            exit 1
+          else
+            echo "::warning::No signing secrets. This build uses an ephemeral debug key and cannot be relied on for updates."
           fi
-      - name: Build signed release
-        if: env.HAS_SIGNING == 'true'
+      - name: Unit tests and test APK
         env:
-          SIGNING_STORE_FILE: ${{ runner.temp }}/nubia-ly.jks
+          SIGNING_STORE_FILE: ${{ env.HAS_SIGNING == 'true' && format('{0}/nubia-ly.jks', runner.temp) || '' }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: gradle assembleRelease
-      - name: Upload signed release
+        run: |
+          if [ "${HAS_SIGNING:-false}" = true ]; then
+            gradle testDebugUnitTest assembleDebug assembleRelease
+          else
+            gradle testDebugUnitTest assembleDebug
+          fi
+      - name: Verify persistent signature
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          set -eu
+          EXPECTED_CERT=$(cat docs/SIGNING_CERT_SHA256.txt)
+          [ -n "$EXPECTED_CERT" ] || { echo "Expected public signing certificate is not configured."; exit 1; }
+          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          for apk in app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk; do
+          result=$($apksigner verify --print-certs "$apk")
+          actual=$(printf '%s\n' "$result" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          [ "$actual" = "$EXPECTED_CERT" ] || { echo "APK certificate mismatch."; exit 1; }
+          done
+          echo "Persistent test and release APK certificates verified."
+      - name: Upload signed test APK
+        if: env.HAS_SIGNING == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubia-ly-signed-test-apk
+          path: app/build/outputs/apk/debug/*.apk
+      - name: Upload signed release APK
         if: env.HAS_SIGNING == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: nubia-ly-signed-release-apk
           path: app/build/outputs/apk/release/*.apk
+      - name: Upload ephemeral test APK
+        if: env.HAS_SIGNING != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubia-ly-ephemeral-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+      - name: Upload guard module
+        uses: actions/upload-artifact@v4
+        with:
+          name: nubia-ly-guard-test-module
+          path: build/nubia-ly-guard-test.zip
+      - name: Remove signing file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/nubia-ly.jks"

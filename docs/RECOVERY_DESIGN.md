@@ -19,3 +19,7 @@ A private durable emergency-stop latch defaults to stopped and can only be stopp
 The activation probe hooks only nubia-ly's own status method. It does not confirm System UI loading or health. The existing System UI log entry remains the separate loading check.
 
 The latch cannot recover a boot loop, remove Vector scope, unhook a running process, or undo overlays. Manual fallback while the manager is accessible: disable only nubia-ly in Vector, then reboot. Root-manager-specific recovery without a working UI still needs implementation and device testing before live cosmetic work.
+
+## Independent guard transport in 0.1.2
+
+The optional root-manager module provides independent stop and boot invalidation for a harmless, expiring probe. The app does not install it. No ongoing watchdog runs and no cosmetic feature is armed. Rootless readability, manager execution and reboot behavior must pass the [guard phone test](GUARD_TEST.md). Future cosmetic hooks need a separate apply permit protocol and validated skip-on-boot behavior; probe-only receipts can never authorize them.
