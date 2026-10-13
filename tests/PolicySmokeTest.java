@@ -11,6 +11,15 @@ public final class PolicySmokeTest {
         require(CompatibilityPolicy.classify("NX809J", "NX809J", 36, "example/research:16/test", "synthetic-test-hash", "", "") == CompatibilityPolicy.Status.UNRECOGNIZED_FIRMWARE);
         for (var feature : FeatureCatalog.FEATURES) require(!FeatureCatalog.canApply(feature.id(), good));
         require(!FeatureCatalog.canApply("unknown", good));
+        for (int mask = 0; mask < 32; mask++) {
+            boolean stopped = (mask & 1) != 0;
+            boolean active = (mask & 2) != 0;
+            boolean baseline = (mask & 4) != 0;
+            boolean recovery = (mask & 8) != 0;
+            boolean feature = (mask & 16) != 0;
+            require(RecoveryPolicy.canApply(stopped, active, baseline, recovery, feature) == (mask == 30));
+        }
+        require(!ModuleStatus.isActive());
         System.out.println("Policy smoke tests passed: device, firmware, SDK, hash and no-apply gates.");
     }
     private static void require(boolean value) { if (!value) throw new AssertionError(); }

@@ -125,3 +125,9 @@ Use a dedicated app signing key. Without signing secrets, CI produces only the d
 - Do not claim successful phone verification without supplied results.
 
 For the first APK, test app launch, firmware/root inspection and optional inert Vector module loading. There are no cosmetic toggles to test yet. See [Vector integration](docs/VECTOR.md).
+
+## Recovery foundation update (0.1.1, draft)
+
+The app now shows Vector activation detected by an app-only probe. This does not prove System UI injection; check the separate module log after selecting System UI and rebooting. System UI continues to register zero customization hooks.
+
+A persistent emergency-stop latch defaults to stopped. The app can save the stop, but cannot arm or apply any feature. The prerequisite policy fails closed unless activation, baseline, recovery and feature validation all pass. Full independent boot recovery remains pending; this milestone does not claim boot-loop protection. Disable nubia-ly in Vector and reboot for the manual fallback.

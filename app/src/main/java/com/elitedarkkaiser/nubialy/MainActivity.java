@@ -18,6 +18,8 @@ public final class MainActivity extends AppCompatActivity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private TextView compatibility;
     private TextView rootStatus;
+    private TextView activationStatus;
+    private TextView recoveryStatus;
     private MaterialButton inspectButton;
     private MaterialButton rootButton;
     private boolean closed;
@@ -61,7 +63,10 @@ public final class MainActivity extends AppCompatActivity {
         rootButton.setOnClickListener(v -> checkRoot());
         device.addView(rootButton);
         spacer(12);
-        card("Vector framework", "Module entry is included. Enable nubia-ly for System UI in Vector when testing module loading. This release registers no customization hooks.");
+        LinearLayout vector = card("Vector framework", "Enable nubia-ly for System UI in Vector, then reboot.");
+        activationStatus = label("", 14, false);
+        vector.addView(activationStatus);
+        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. No System UI customization hooks are registered.", 14, false));
         spacer(20);
         content.addView(label("Your canvas", 24, true));
         content.addView(label("Customization features are being developed. This foundation build only inspects your device.", 14, false));
@@ -77,8 +82,39 @@ public final class MainActivity extends AppCompatActivity {
         }
         spacer(12);
         LinearLayout recovery = card("Restore & recovery", "Recovery must be ready before the first customization is enabled.");
-        recovery.addView(label("No companion module or boot script is installed by this build.", 14, false));
-        content.addView(label("0.1.0 · Independent from Redmagic 11 Toolbox", 12, false));
+        recoveryStatus = label("", 14, false);
+        recovery.addView(recoveryStatus);
+        MaterialButton stop = button("Emergency stop customizations");
+        recovery.addView(stop);
+        stop.setOnClickListener(v -> {
+            stop.setEnabled(false);
+            worker.execute(() -> {
+                boolean saved = RecoveryStore.stop(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (closed || isFinishing() || isDestroyed()) return;
+                    stop.setEnabled(true);
+                    recoveryStatus.setText(saved ? "Emergency stop saved. Customizations remain blocked."
+                        : "Could not save emergency stop. Customizations remain blocked in this build.");
+                });
+            });
+        });
+        recovery.addView(label("This build cannot arm customizations. This latch does not disable Vector injection or restore stock resources. No companion module or boot recovery is installed. If the app cannot open, disable nubia-ly in Vector and reboot.", 14, false));
+        refreshSafetyStatus();
+        content.addView(label("0.1.1 · Independent from Redmagic 11 Toolbox", 12, false));
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        refreshSafetyStatus();
+    }
+    private void refreshSafetyStatus() {
+        if (activationStatus == null || recoveryStatus == null) return;
+        activationStatus.setText(ModuleStatus.isActive()
+            ? "Vector activation confirmed in nubia-ly."
+            : "Vector activation not detected in nubia-ly. Enable the module and reboot.");
+        recoveryStatus.setText(RecoveryStore.isStopped(this)
+            ? "Emergency stop active. Customizations blocked."
+            : "Customizations blocked: recovery backend has not been verified.");
     }
 
     private void inspect() {
