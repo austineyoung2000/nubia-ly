@@ -45,7 +45,11 @@ final class ClockCaptureBackend {
                     : clock.getDeclaredMethod(name);
                 hooks.add(XposedBridge.hookMethod(method, new XC_MethodHook() {
                     @Override protected void beforeHookedMethod(MethodHookParam hook) {
-                        if (!ready || !name.equals("onDarkChanged")) return;
+                        if (!ready) return;
+                        if (name.equals("reloadDimens")) {
+                            hook.setObjectExtra("nubia-ly:dimension-frame", ClockStyleBackend.beforeDimensions((TextView)hook.thisObject)); return;
+                        }
+                        if (!name.equals("onDarkChanged")) return;
                         try { hook.setObjectExtra("nubia-ly:dark-frame", ClockColorBackend.beforeDark((TextView)hook.thisObject)); }
                         catch (Throwable unavailable) { fail("Clock dark entry", unavailable); }
                     }
@@ -63,6 +67,8 @@ final class ClockCaptureBackend {
                             clocks.computeIfAbsent(view, ignored -> new ClockCapture<>());
                             if (name.equals("onDarkChanged")) ClockColorBackend.afterDark(view,
                                 (ClockColorBackend.DarkFrame)hook.getObjectExtra("nubia-ly:dark-frame"));
+                            if (name.equals("reloadDimens")) ClockStyleBackend.afterDimensions(view,
+                                (ClockStyleBackend.DimensionFrame)hook.getObjectExtra("nubia-ly:dimension-frame"));
                             ClockColorBackend.track(view);
                             observe(view);
                         } catch (Throwable unavailable) { fail("Clock callback: " + name, unavailable); }

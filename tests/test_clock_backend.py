@@ -58,7 +58,8 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  unrelated.setTextSize(30);check(unrelated.getTextSize()==30);
  a.setTextSize(25);check(a.getTextSize()==30);a.setTypeface(new android.graphics.Typeface(2),2);check(a.getTypeface().getStyle()==3);
  ClockColorBackend.end();check(a.getTextSize()==25);check(a.getTypeface().getStyle()==2);check(a.getPaint().isFakeBoldText());check(a.getPaint().getTextSkewX()==-0.2f);check(XposedHelpers.hooks.isEmpty());
- check(ClockColorBackend.begin(175000,0xff112233,80,false));a.sizeBypass(30);ClockColorBackend.track(a);check(a.getTextSize()==24);ClockColorBackend.detach(a);check(a.getTextSize()==30);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
+ check(ClockColorBackend.begin(175000,0xff112233,80,false));var dim=ClockStyleBackend.beforeDimensions(a);a.sizeBypass(30);ClockStyleBackend.afterDimensions(a,dim);ClockColorBackend.track(a);check(a.getTextSize()==24);ClockColorBackend.detach(a);check(a.getTextSize()==30);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
+ check(ClockColorBackend.begin(175000,0xff112233,120,true));var dims=ClockStyleBackend.beforeDimensions(a);float styled=a.getTextSize();a.sizeBypass(styled);ClockStyleBackend.afterDimensions(a,dims);check(a.getTextSize()==styled*1.2f);ClockColorBackend.end();check(a.getTextSize()==styled);ClockStyleBackend.afterDimensions(a,dims);check(a.getTextSize()==styled);
  check(!ClockColorBackend.begin(175000,0xff112233,125,true));
  a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, hooked/bypassed dark updates, tracked-view reassertion, latest-stock restore, stale dark frames, detach, health and failure fences");}}

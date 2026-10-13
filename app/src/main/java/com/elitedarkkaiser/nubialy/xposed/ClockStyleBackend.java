@@ -11,6 +11,8 @@ import java.util.*;
 final class ClockStyleBackend {
     private record Stock(float pixels, Typeface face, boolean fakeBold, float skew) {}
     private static final Map<TextView, Stock> states = new WeakHashMap<>();
+    private static final Map<TextView, Long> revisions = new WeakHashMap<>();
+    private static long generation;
     private static final List<XC_MethodHook.Unhook> hooks = new ArrayList<>();
     private static int percent, depth;
     private static boolean bold, active, writing;
@@ -33,6 +35,7 @@ final class ClockStyleBackend {
                 TextView view = (TextView)p.thisObject;
                 Stock old = states.get(view); if (old == null) return;
                 Stock current = capture(view);
+                revisions.put(view, revisions.getOrDefault(view, 0L) + 1);
                 boolean sizeWrite = ((java.lang.reflect.Method)p.method).getName().equals("setTextSize");
                 states.put(view, sizeWrite ? new Stock(current.pixels, old.face, old.fakeBold, old.skew)
                     : new Stock(old.pixels, current.face, current.fakeBold, current.skew));
@@ -45,6 +48,21 @@ final class ClockStyleBackend {
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTypeface", Typeface.class, callback));
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTypeface", Typeface.class, int.class, callback));
         } catch (Throwable unavailable) { failed = true; end(); throw new IllegalStateException("Typography hook unavailable", unavailable); }
+    }
+    record DimensionFrame(long generation, Stock stock, long revision) {}
+    static DimensionFrame beforeDimensions(TextView view) {
+        Stock stock = states.get(view);
+        return !active || failed || stock == null || Looper.myLooper() != Looper.getMainLooper() ? null
+            : new DimensionFrame(generation, stock, revisions.getOrDefault(view, 0L));
+    }
+    static void afterDimensions(TextView view, DimensionFrame frame) {
+        if (frame == null || !active || failed || generation != frame.generation || !states.containsKey(view)
+            || Looper.myLooper() != Looper.getMainLooper()) return;
+        if (percent != 0 && revisions.getOrDefault(view, 0L) == frame.revision) {
+            Stock old = states.get(view);
+            states.put(view, new Stock(view.getTextSize(), old.face, old.fakeBold, old.skew));
+        }
+        try { paint(view); } catch (Throwable unavailable) { failed = true; }
     }
     private static boolean eligible(Object object) {
         return active && object instanceof TextView view && states.containsKey(view)
@@ -91,12 +109,12 @@ final class ClockStyleBackend {
                 || (bold && (!Objects.equals(actual.face, stock.face) || actual.fakeBold != stock.fakeBold || actual.skew != stock.skew))) {
                 failed = true; return false;
             }
-            states.remove(view); return true;
+            states.remove(view); revisions.remove(view); return true;
         } catch (Throwable unavailable) { failed = true; return false; }
         finally { writing = false; }
     }
     static boolean end() {
-        active = false;
+        generation++; active = false;
         for (TextView view : new ArrayList<>(states.keySet())) restore(view);
         for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
         hooks.clear(); depth = 0;
