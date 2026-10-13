@@ -1,8 +1,10 @@
+import java.util.Properties
+
 plugins { id("com.android.application") }
 val releaseSigning = listOf("SIGNING_STORE_FILE", "SIGNING_STORE_PASSWORD", "SIGNING_KEY_ALIAS", "SIGNING_KEY_PASSWORD")
     .all { !System.getenv(it).isNullOrBlank() }
 // Owner-specific baselines are optional and never checked into the public repository.
-val baseline = java.util.Properties()
+val baseline = Properties()
 val baselineFile = rootProject.file("local-baseline.properties")
 if (baselineFile.exists()) baselineFile.inputStream().use { baseline.load(it) }
 fun baselineLiteral(key: String): String {
