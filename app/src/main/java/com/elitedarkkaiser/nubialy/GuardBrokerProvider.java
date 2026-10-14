@@ -53,6 +53,10 @@ public final class GuardBrokerProvider extends ContentProvider {
                     reply.putInt("clock_spacing", ClockColorPreferences.spacing(getContext()));
                     reply.putInt("clock_family", ClockColorPreferences.family(getContext()));
                     reply.putBoolean("clock_hidden", ClockColorPreferences.hidden(getContext()));
+                    StatusBarStyle bar = StatusBarPreferences.active(getContext(), id);
+                    reply.putInt("statusbar_color",StatusBarPreferences.activeColor(getContext(), id));
+                    reply.putInt("statusbar_mask",bar.mask()); reply.putInt("statusbar_system_scale",bar.systemScale());
+                    reply.putInt("statusbar_notification_scale",bar.notificationScale()); reply.putInt("statusbar_battery_scale",bar.batteryScale());
                 }
             } else if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method) || GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
                 PreviewPolicy.Permit permit;

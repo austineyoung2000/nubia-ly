@@ -37,6 +37,7 @@ public final class NubiaLyModule implements IXposedHookLoadPackage {
                         Application application = (Application) hook.thisObject;
                         if (!"com.android.systemui".equals(application.getPackageName())) return;
                         ClockCaptureBackend.install(application.getClassLoader());
+                        StatusBarBackend.install(application.getClassLoader());
                         SystemUiGuardReceiver.install(application);
                     }
                     catch (Throwable unavailable) { XposedBridge.log("nubia-ly: guard diagnostic unavailable."); }

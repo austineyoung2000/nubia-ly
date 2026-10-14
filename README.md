@@ -4,9 +4,9 @@
 
 The goal is an Iconify-style customization experience built around Nubia's own System UI: status-bar appearance, Quick Settings styling, lock-screen clocks and notification visuals. nubia-ly is independent of Redmagic 11 Toolbox, with its own Android package, repository and release lifecycle.
 
-> **Current state: foundation prototype.** The app can inspect device compatibility and request a read-only root check. Its Vector module registers one app-only activation probe and **zero System UI customization hooks**. There are no working cosmetic modifications, apply controls, recovery watchdogs or companion-module installers yet.
+> **Current state: working NX809J clock customization, with a larger status-bar batch in testing.** Merged clock controls include persistent color, size, bold, seconds, italic, spacing, built-in font families and hiding. The user has confirmed these batches on the phone. The next signed test adds compatible status-icon tint/size/hiding, notification-icon size/hiding and battery-view size/hiding. Root and Vector are required for styling; an independent guard supports revocation and bounded health recovery. Full device boot-loop recovery is not claimed.
 
-Prototype source is developed on the [`test/foundation`](https://github.com/austineyoung2000/nubia-ly/tree/test/foundation) branch and reviewed through a draft PR before merging. `main` initially carries this project overview.
+Development uses test branches, draft PRs and GitHub Actions signed APKs. Phone testing and explicit user authorization precede merges into `main`.
 
 ## Inspiration and technical foundation
 
@@ -82,7 +82,7 @@ Quick Settings grid changes are blocked until the active vendor layout, paginati
 - Do not disable Rescue Party, clear System UI data, replace stock APKs or edit package registries as shortcuts.
 - Do not promise that an in-app restore button can recover every crash loop.
 
-The current prototype does not implement this recovery engine; it cannot apply cosmetic changes. See the [planned recovery contract](docs/RECOVERY_DESIGN.md).
+The independently revokeable guard, private authorization, freshness watchdog and scoped restoration are implemented for status-bar styling. The broader recovery roadmap remains incomplete; see [recovery design](docs/RECOVERY_DESIGN.md).
 
 ## Local compatibility baseline
 
@@ -126,7 +126,11 @@ The public certificate digest is pinned in `docs/SIGNING_CERT_SHA256.txt`; CI ve
 
 For the first APK, test app launch, firmware/root inspection and optional inert Vector module loading. There are no cosmetic toggles to test yet. See [Vector integration](docs/VECTOR.md).
 
-## Recovery foundation update (0.1.1, merged)
+## Development history
+
+The following entries describe earlier milestones; the current feature summary is above.
+
+### Recovery foundation update (0.1.1, merged)
 
 The app now shows Vector activation detected by an app-only probe. This does not prove System UI injection; check the separate module log after selecting System UI and rebooting. System UI continues to register zero customization hooks.
 
@@ -169,3 +173,7 @@ The next NX809J test adds saved relative clock size (80–120% in 5% steps, plus
 ### Status-bar clock batch — 0.1.16
 
 A single test APK adds italic, relative letter spacing, built-in font family selection (Stock/Sans serif/Serif/Monospace), and hide clock. Combine them with the merged size, bold, color and seconds controls. Persistent Enable/Restore and independent guard recovery apply to the whole clock style. See [batch checklist](docs/CLOCK_BATCH.md); phone validation is pending.
+
+### Larger status-bar batch — 0.1.17
+
+Seven icon and battery controls share the persistent Enable/Restore flow with the working clock editor. Applied icon/battery settings and tint color are frozen separately from draft edits and bound to the enabled root identity. See [one batch checklist and scope](docs/STATUSBAR_BATCH.md). Phone results are pending for this batch.

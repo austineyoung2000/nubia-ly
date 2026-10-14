@@ -70,10 +70,10 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout vector = card("Vector framework", "Enable nubia-ly for System UI in Vector, then reboot.");
         activationStatus = label("", 14, false);
         vector.addView(activationStatus);
-        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. The clock observer supports an explicitly started temporary color preview.", 14, false));
+        vector.addView(label("App activation does not confirm System UI loading. Verify its entry in Vector logs. Enable persistent status-bar styling in its editor.", 14, false));
         spacer(20);
         content.addView(label("Your canvas", 24, true));
-        content.addView(label("Customization features are being developed. This test build includes a temporary clock-color preview.", 14, false));
+        content.addView(label("Customization features are being developed. This test build includes persistent clock, compatible icon and battery-view styling.", 14, false));
         spacer(10);
         for (FeatureCatalog.Feature feature : FeatureCatalog.FEATURES) {
             LinearLayout featureCard = card(feature.title(), feature.description());
@@ -81,7 +81,7 @@ public final class MainActivity extends AppCompatActivity {
             badge.setTextColor(0xffffbe98);
             featureCard.addView(badge);
             if ("status_bar".equals(feature.id())) {
-                badge.setText("Clock color editor");
+                badge.setText("Status-bar editor");
                 featureCard.setOnClickListener(v -> startActivity(new android.content.Intent(this, ClockEditorActivity.class)));
                 continue;
             }
