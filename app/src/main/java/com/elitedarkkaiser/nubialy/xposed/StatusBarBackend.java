@@ -160,6 +160,9 @@ final class StatusBarBackend {
         try {
             boolean notification=name.equals(ICON)&&Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification"));
             String slot=name.equals(ICON)&&!notification?(String)XposedHelpers.callMethod(v,"getSlot"):"";
+            // Some stock icons have no named slot. Keep bulk styling, but exclude them
+            // from selective hiding and never pass null to immutable-set membership.
+            if(!StatusBarStyle.slot(slot))slot="";
             State s=states.get(v);
             if(s!=null&&(s.root.get()!=root||s.notification!=notification||!Objects.equals(s.slot,slot))){if(!restore(v))return;s=null;}
             if(s==null){
@@ -182,7 +185,7 @@ final class StatusBarBackend {
                 reconcileTint(v,s,Boolean.FALSE.equals(XposedHelpers.callMethod(adapt,"donotSetIconColor")));
             }
             paint(v,s);
-        }catch(Throwable unavailable){failed=true;message="Status-bar callback failed; restoration required.";}
+        }catch(Throwable unavailable){failed=true;message="Status-bar callback failed ("+unavailable.getClass().getSimpleName()+"); restoration required.";}
     }
     private static void reconcileTint(View v,State s,boolean wanted){
         if(s.tint==wanted)return;
