@@ -30,15 +30,16 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private Slider sizeControl;
     private com.google.android.material.materialswitch.MaterialSwitch weightControl;
     private MaterialButton stockSizeControl;
+    private com.google.android.material.materialswitch.MaterialSwitch secondsControl;
     private int selected, sizePercent;
-    private boolean bold;
+    private boolean bold, seconds;
     private long saveGeneration;
     private boolean closed;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE) || Build.VERSION.SDK_INT != 36) { finish(); return; }
         selected = ClockColorPreferences.read(this);
-        sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this);
+        sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this); seconds = ClockColorPreferences.seconds(this);
         if (state != null && ClockColorPolicy.valid(state.getInt("selection", 0))) selected = state.getInt("selection");
         client = new SystemUiGuardClient(this);
         ScrollView scroll = new ScrollView(this);
@@ -64,7 +65,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         }
         MaterialButton custom = button("Custom color"); colors.addView(custom); custom.setOnClickListener(v -> customColor());
         saveStatus = text("Saved selection loaded.", 14, false); colors.addView(saveStatus);
-        LinearLayout typography = card("Clock size & weight");
+        LinearLayout typography = card("Clock style");
         TextView sizeLabel = text("", 15, true); typography.addView(sizeLabel);
         Slider size = new Slider(this); sizeControl = size; size.setValueFrom(80); size.setValueTo(120); size.setStepSize(5);
         size.setValue(sizePercent == 0 ? 100 : sizePercent); typography.addView(size);
@@ -75,6 +76,14 @@ public final class ClockEditorActivity extends AppCompatActivity {
         com.google.android.material.materialswitch.MaterialSwitch weight = new com.google.android.material.materialswitch.MaterialSwitch(this);
         weightControl = weight; weight.setText("Bold clock"); weight.setChecked(bold); typography.addView(weight);
         weight.setOnCheckedChangeListener((v, checked) -> { bold = checked; saveStyle(); });
+        secondsControl = new com.google.android.material.materialswitch.MaterialSwitch(this);
+        secondsControl.setText("Show seconds"); secondsControl.setChecked(seconds); typography.addView(secondsControl);
+        secondsControl.setOnCheckedChangeListener((v, checked) -> {
+            seconds = checked; final boolean requested = checked;
+            worker.execute(() -> { boolean saved = ClockColorPreferences.saveSeconds(getApplicationContext(), requested);
+                runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Seconds selection saved. Press Enable to apply it." : "Seconds selection could not be saved."); }); });
+        });
+        typography.addView(text("Seconds update using the stock clock while awake. They can use more power and status-bar space.", 14, false));
         typography.addView(text("Size follows your stock font scaling. Press Enable to apply your saved size and weight with the selected color.", 14, false));
         LinearLayout controls = card("Clock customization");
         controls.addView(text("Enable your selected color until you restore stock. Press Enable again to apply a different selection.", 15, false));
@@ -105,7 +114,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         swatch.setTypeface(null, bold ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
     }
     private void saveStyle() {
-        final int requestedSize = sizePercent; final boolean requestedBold = bold;
+        final int requestedSize = sizePercent; final boolean requestedBold = bold, requestedSeconds = seconds;
         worker.execute(() -> { boolean saved = ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold);
             runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Enable to apply it." : "Style could not be saved."); }); });
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
@@ -131,11 +140,11 @@ public final class ClockEditorActivity extends AppCompatActivity {
         }
     }
     private void enableColor() {
-        enabled(false); final int requested = selected, requestedSize = sizePercent; final boolean requestedBold = bold;
+        enabled(false); final int requested = selected, requestedSize = sizePercent; final boolean requestedBold = bold, requestedSeconds = seconds;
         long deadline = android.os.SystemClock.elapsedRealtime() + 8000;
         previewStatus.setText("Enabling clock color… Grant root access if asked.");
         worker.execute(() -> {
-            boolean allowed = ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && RecoveryStore.allowEnabled(getApplicationContext());
+            boolean allowed = ClockColorPreferences.saveSeconds(getApplicationContext(), requestedSeconds) && ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && RecoveryStore.allowEnabled(getApplicationContext());
             runOnUiThread(() -> {
                 if (!alive()) return;
                 if (!allowed) { enabled(true); previewStatus.setText("Could not enable. Check root access, updated guard module and Vector activation."); return; }
@@ -147,7 +156,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         enabled(false);
         client.preview(operation, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
     }
-    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); sizeControl.setEnabled(value); weightControl.setEnabled(value); stockSizeControl.setEnabled(value); }
+    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); sizeControl.setEnabled(value); weightControl.setEnabled(value); stockSizeControl.setEnabled(value); secondsControl.setEnabled(value); }
     private boolean alive() { return !closed && !isFinishing() && !isDestroyed(); }
     private void customColor() {
         LinearLayout picker = new LinearLayout(this); picker.setOrientation(LinearLayout.VERTICAL); picker.setPadding(dp(24), dp(8), dp(24), dp(8));

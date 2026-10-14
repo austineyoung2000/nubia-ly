@@ -22,7 +22,7 @@ final class PreviewRuntime {
     private final Context context;
     private boolean visual, enabledMode, startup, resumeSuppressed;
     private int brokerColor, brokerSize;
-    private boolean brokerBold;
+    private boolean brokerBold, brokerSeconds;
     private String reason = "No lifecycle test started.";
     private Runnable tick, expiry;
     PreviewRuntime(Context context) { this.context = context; }
@@ -71,7 +71,7 @@ final class PreviewRuntime {
             } else if (!session.activate(ticket, permit, now())) {
                 reason = "Start blocked: lifecycle permit or broker unavailable.";
             } else {
-                if (!(visual ? ClockColorBackend.begin(session.deadline(), startup ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold) : ClockCaptureBackend.begin())) {
+                if (!(visual ? ClockColorBackend.begin(session.deadline(), startup ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds) : ClockCaptureBackend.begin())) {
                     stop(visual ? "Clock preview unavailable; check restoration result." : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
                 }
                 reason = visual ? "Temporary selected-color clock preview started." : "Clock capture rehearsal started; no appearance changes.";
@@ -120,7 +120,7 @@ final class PreviewRuntime {
         String nonce = UUID.randomUUID().toString();
         try {
             worker.execute(() -> {
-                PreviewPolicy.Permit permit = null; int receivedColor = ClockColorPolicy.DEFAULT; int receivedSize = 0; boolean receivedBold = false;
+                PreviewPolicy.Permit permit = null; int receivedColor = ClockColorPolicy.DEFAULT; int receivedSize = 0; boolean receivedBold = false, receivedSeconds = false;
                 try {
                     Bundle request = new Bundle(); request.putString("nonce", nonce);
                     request.putInt("version", BuildConfig.VERSION_CODE);
@@ -131,14 +131,14 @@ final class PreviewRuntime {
                             && response.getInt("status", -1) == GuardBrokerPolicy.READABLE) {
                         permit = new PreviewPolicy.Permit(response.getString("permit_id"), response.getLong("deadline_ms", 0));
                         receivedColor = response.getInt("clock_color", ClockColorPolicy.DEFAULT);
-                        receivedSize = response.getInt("clock_size", 0); receivedBold = response.getBoolean("clock_bold", false);
+                        receivedSize = response.getInt("clock_size", 0); receivedBold = response.getBoolean("clock_bold", false); receivedSeconds = response.getBoolean("clock_seconds", false);
                         if (!ClockColorPolicy.valid(receivedColor) || !ClockStylePolicy.valid(receivedSize)) permit = null;
                     }
                 } catch (Throwable unavailable) { /* No permit on any failure. */ }
                 finally { busy.set(false); }
-                PreviewPolicy.Permit captured = permit; int capturedColor = receivedColor; int capturedSize = receivedSize; boolean capturedBold = receivedBold;
+                PreviewPolicy.Permit captured = permit; int capturedColor = receivedColor; int capturedSize = receivedSize; boolean capturedBold = receivedBold, capturedSeconds = receivedSeconds;
                 actor.post(() -> {
-                    try { if (session.current(ticket)) { brokerColor = capturedColor; brokerSize = capturedSize; brokerBold = capturedBold; } result.accept(session.current(ticket) ? captured : null); }
+                    try { if (session.current(ticket)) { brokerColor = capturedColor; brokerSize = capturedSize; brokerBold = capturedBold; brokerSeconds = capturedSeconds; } result.accept(session.current(ticket) ? captured : null); }
                     catch (Throwable unavailable) { stop("Lifecycle callback failed."); }
                 });
             });

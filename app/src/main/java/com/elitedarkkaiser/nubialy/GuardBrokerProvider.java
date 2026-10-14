@@ -48,6 +48,7 @@ public final class GuardBrokerProvider extends ContentProvider {
                     reply.putInt("clock_color", ClockColorPreferences.read(getContext()));
                     reply.putInt("clock_size", ClockColorPreferences.size(getContext()));
                     reply.putBoolean("clock_bold", ClockColorPreferences.bold(getContext()));
+                    reply.putBoolean("clock_seconds", ClockColorPreferences.seconds(getContext()));
                 }
             } else if (GuardBrokerPolicy.PREVIEW_METHOD.equals(method) || GuardBrokerPolicy.CLOCK_METHOD.equals(method)) {
                 PreviewPolicy.Permit permit;

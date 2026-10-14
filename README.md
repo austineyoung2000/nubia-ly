@@ -164,4 +164,4 @@ The 0.1.12 test replaces the Clock editor's timer-driven preview with Enable clo
 
 ### Clock typography test
 
-The next NX809J test adds saved relative clock size (80–120% in 5% steps, plus stock size) and bold weight to the persistent Clock editor. Enable applies the saved style alongside color; Restore stock, guard Action and Emergency stop revoke the entire clock style. See [clock typography](docs/CLOCK_STYLE.md). Phone validation is pending.
+The next NX809J test adds saved relative clock size (80–120% in 5% steps, plus stock size) and bold weight to the persistent Clock editor. Enable applies the saved style alongside color; Restore stock, guard Action and Emergency stop revoke the entire clock style. See [clock typography](docs/CLOCK_STYLE.md). User confirms multiple clock sizes, colors and bold work on NX809J. The next signed test adds a saved Show seconds switch using the stock clock seconds lifecycle; seconds phone validation is pending.

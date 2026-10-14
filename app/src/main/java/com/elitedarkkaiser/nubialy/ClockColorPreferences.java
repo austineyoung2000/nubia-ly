@@ -18,6 +18,13 @@ public final class ClockColorPreferences {
         try { return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).getBoolean("bold", false); }
         catch (ClassCastException invalid) { return false; }
     }
+    public static boolean seconds(Context context) {
+        try { return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).getBoolean("seconds", false); }
+        catch (ClassCastException invalid) { return false; }
+    }
+    public static boolean saveSeconds(Context context, boolean seconds) {
+        return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).edit().putBoolean("seconds", seconds).commit();
+    }
     public static boolean saveStyle(Context context, int percent, boolean bold) {
         return ClockStylePolicy.valid(percent) && context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE)
             .edit().putInt("size_percent", percent).putBoolean("bold", bold).commit();

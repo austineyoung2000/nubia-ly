@@ -17,8 +17,12 @@ sources = {
  public void before(MethodHookParam p) throws Throwable {beforeHookedMethod(p);} public void after(MethodHookParam p) throws Throwable {afterHookedMethod(p);}
  public class Unhook {private Runnable r;public Unhook(Runnable r){this.r=r;}public void unhook(){r.run();}}
 }''',
+'de/robv/android/xposed/XposedBridge.java': '''package de.robv.android.xposed;public class XposedBridge {public static XC_MethodHook.Unhook hookMethod(java.lang.reflect.Member m,XC_MethodHook cb){java.lang.reflect.Method method=(java.lang.reflect.Method)m;String key=XposedHelpers.key(method.getName(),method.getParameterTypes());XposedHelpers.hooks.put(key,cb);return cb.new Unhook(()->XposedHelpers.hooks.remove(key));}}''',
 'de/robv/android/xposed/XposedHelpers.java': '''package de.robv.android.xposed; import java.util.*;
-public class XposedHelpers {public static Map<String,XC_MethodHook> hooks=new HashMap<>(); public static String key(String n,Class<?>... types){return n+java.util.Arrays.toString(types);}
+public class XposedHelpers {
+ public static Object callMethod(Object o,String name,Object... args){try{for(var m:o.getClass().getDeclaredMethods())if(m.getName().equals(name)&&m.getParameterCount()==args.length){m.setAccessible(true);return m.invoke(o,args);}throw new RuntimeException("method");}catch(Exception e){throw new RuntimeException(e);}}
+ public static Object getObjectField(Object o,String name){try{var f=o.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(o);}catch(Exception e){throw new RuntimeException(e);}}
+ public static Map<String,XC_MethodHook> hooks=new HashMap<>(); public static String key(String n,Class<?>... types){return n+java.util.Arrays.toString(types);}
  public static XC_MethodHook.Unhook findAndHookMethod(Class<?> c,String n,Object... args){Class<?>[] types=new Class<?>[args.length-1];for(int i=0;i<types.length;i++)types[i]=(Class<?>)args[i];String key=key(n,types); XC_MethodHook cb=(XC_MethodHook)args[args.length-1];hooks.put(key,cb);return cb.new Unhook(()->hooks.remove(key));}
 }''',
 'android/widget/TextView.java': '''package android.widget; import android.content.res.*;import de.robv.android.xposed.*;
@@ -37,7 +41,17 @@ public class TextView {private ColorStateList colors; public boolean failPaint;
  private void write(Class<?> type,Object value){XC_MethodHook cb=XposedHelpers.hooks.get(XposedHelpers.key("setTextColor",type)); XC_MethodHook.MethodHookParam p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=new Object[]{value};
  try {if(cb!=null)cb.before(p);if(failPaint && value instanceof Integer i && i==0xffc0a8ff){failPaint=false;throw new RuntimeException("paint failure");} colors=p.args[0] instanceof ColorStateList c?c:ColorStateList.valueOf((Integer)p.args[0]);if(cb!=null)cb.after(p);}catch(RuntimeException e){throw e;}catch(Throwable e){throw new RuntimeException(e);}}
 }''',
-'com/android/systemui/statusbar/policy/Clock.java': '''package com.android.systemui.statusbar.policy; public class Clock extends android.widget.TextView {public Clock(int c){super(c);}}''',
+'com/android/systemui/statusbar/policy/Clock.java': '''package com.android.systemui.statusbar.policy;import de.robv.android.xposed.*;public class Clock extends android.widget.TextView {
+ public boolean mShowSeconds;public android.os.Handler mSecondsHandler;public int clockUpdates;public boolean failSeconds;
+ public Clock(int c){super(c);}public boolean isShowSeconds(){return mShowSeconds;}
+ public void setShowSeconds(boolean b){invoke("setShowSeconds",new Class<?>[]{boolean.class},new Object[]{b},()->mShowSeconds=b);}
+ public void updateShowSeconds(){if(failSeconds)throw new RuntimeException("seconds failure");if(mShowSeconds && mSecondsHandler==null)mSecondsHandler=new android.os.Handler(android.os.Looper.getMainLooper());else if(!mShowSeconds)mSecondsHandler=null;}
+ public void updateClock(){clockUpdates++;ClockTestAccess.colorReenter(this);}
+ public void onTuningChanged(String k,String v){invoke("onTuningChanged",new Class<?>[]{String.class,String.class},new Object[]{k,v},()->{if(k.equals("clock_seconds")){mShowSeconds="1".equals(v);updateShowSeconds();updateClock();ClockTestAccess.reenter(this);}});}
+ private void invoke(String n,Class<?>[] t,Object[] a,Runnable original){var cb=XposedHelpers.hooks.get(XposedHelpers.key(n,t));var p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=a;try{p.method=Clock.class.getDeclaredMethod(n,t);if(cb!=null)cb.before(p);original.run();if(cb!=null)cb.after(p);}catch(Throwable e){throw new RuntimeException(e);}}
+}''',
+'com/android/systemui/statusbar/policy/ClockTestAccess.java': '''package com.android.systemui.statusbar.policy;public class ClockTestAccess {public static void reenter(android.widget.TextView v){com.elitedarkkaiser.nubialy.xposed.SecondsTestAccess.track(v);} public static void colorReenter(android.widget.TextView v){com.elitedarkkaiser.nubialy.xposed.SecondsTestAccess.colorTrack(v);}}''',
+'com/elitedarkkaiser/nubialy/xposed/SecondsTestAccess.java': '''package com.elitedarkkaiser.nubialy.xposed;public class SecondsTestAccess {public static void track(android.widget.TextView v){ClockSecondsBackend.track(v);}public static void colorTrack(android.widget.TextView v){ClockColorBackend.track(v);}}''',
 'com/elitedarkkaiser/nubialy/xposed/ClockCaptureBackend.java': '''package com.elitedarkkaiser.nubialy.xposed;import android.widget.TextView;import java.util.*;class ClockCaptureBackend {static List<TextView> views=new ArrayList<>();static List<TextView> attachedClocks(){return views;}static boolean available(){return true;}}''',
 'com/elitedarkkaiser/nubialy/xposed/BackendTest.java': '''package com.elitedarkkaiser.nubialy.xposed;
 import android.os.SystemClock;import android.widget.TextView;import android.content.res.ColorStateList;import com.android.systemui.statusbar.policy.Clock;import de.robv.android.xposed.XposedHelpers;
@@ -61,6 +75,9 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  check(ClockColorBackend.begin(175000,0xff112233,80,false));var dim=ClockStyleBackend.beforeDimensions(a);a.sizeBypass(30);ClockStyleBackend.afterDimensions(a,dim);ClockColorBackend.track(a);check(a.getTextSize()==24);ClockColorBackend.detach(a);check(a.getTextSize()==30);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
  check(ClockColorBackend.begin(175000,0xff112233,120,true));var dims=ClockStyleBackend.beforeDimensions(a);float styled=a.getTextSize();a.sizeBypass(styled);ClockStyleBackend.afterDimensions(a,dims);check(a.getTextSize()==styled*1.2f);ClockColorBackend.end();check(a.getTextSize()==styled);ClockStyleBackend.afterDimensions(a,dims);check(a.getTextSize()==styled);
  check(!ClockColorBackend.begin(175000,0xff112233,125,true));
+ check(ClockColorBackend.begin(175000,0xff112233,0,false,true));check(a.mShowSeconds&&a.mSecondsHandler!=null);a.onTuningChanged("clock_seconds","0");check(a.mShowSeconds&&a.mSecondsHandler!=null);ClockColorBackend.end();check(!a.mShowSeconds&&a.mSecondsHandler==null);check(XposedHelpers.hooks.isEmpty());
+ a.setShowSeconds(true);a.updateShowSeconds();check(ClockColorBackend.begin(175000,0xff112233,100,true,true));a.onTuningChanged("other","0");ClockColorBackend.end();check(a.mShowSeconds&&a.mSecondsHandler!=null);a.setShowSeconds(false);a.updateShowSeconds();
+ check(ClockColorBackend.begin(175000,0xff112233,0,false,true));ClockColorBackend.detach(a);check(!a.mShowSeconds&&a.mSecondsHandler==null);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
  a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, hooked/bypassed dark updates, tracked-view reassertion, latest-stock restore, stale dark frames, detach, health and failure fences");}}
 '''
@@ -70,6 +87,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-clock-backend-') as work:
     for name, source in sources.items():
         path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source)
     files=[str(p) for p in work.rglob('*.java')]
-    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockStylePolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockStyleBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
+    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockStylePolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockStyleBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockSecondsBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
     subprocess.run(['java','com.sun.tools.javac.Main','-d',str(work/'classes'),*files],check=True)
     subprocess.run(['java','-cp',str(work/'classes'),'com.elitedarkkaiser.nubialy.xposed.BackendTest'],check=True)

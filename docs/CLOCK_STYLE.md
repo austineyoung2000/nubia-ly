@@ -17,3 +17,13 @@ Font size can affect available status-bar space. This test deliberately bounds t
 5. If you change stock display/font scale while testing, verify the custom percentage follows the new stock baseline and Restore returns to that new stock size. Return your stock setting afterward if desired.
 
 No timed session or deliberate System UI crash is needed. If restoration is incomplete, disable nubia-ly in Vector and reboot. This draft remains unmerged until you report phone results and authorize it.
+
+## Seconds — 0.1.15 test
+
+User phone report for 0.1.14 confirms multiple sizes, colors and bold work. This does not separately establish every recovery/reboot checklist result. Version 0.1.15 adds a saved Show seconds switch; changing it does not apply until Enable. Off returns the clock to its captured stock seconds preference.
+
+The uploaded NX809J Clock exposes isShowSeconds/setShowSeconds, updateShowSeconds, updateClock, mShowSeconds and mSecondsHandler. getSmallTime selects the stock locale/12-hour/24-hour seconds skeleton. Its own seconds handler and screen receiver perform ticking and screen-off handling. The module creates no separate ticker, wake lock, tuner-setting write or clock-format replacement. Signatures are checked only when seconds are requested. Stock seconds setter/tuner updates are recorded for restoration; nested stock callbacks cannot reassert before that capture. Restore before detach lets stock detach clean up its own handler. Stop verifies the latest stock flag and, when stock seconds are off, a cleared seconds handler. Failure blocks another activation until System UI restarts.
+
+Keep guard 0.1.12; install signed APK 0.1.15 and reboot. Enable Show seconds with your preferred style: the real status-bar clock should show changing seconds. Open apps, lock/unlock and reboot; it should return with your saved style. Turn Show seconds off and Enable again: stock format returns. Restore stock, guard Action and Emergency stop should remove the override and report seconds remaining zero. Check that the wider time does not clip or overlap icons. No artificial duration test is required.
+
+Vendor adapter formatting may vary across firmware; phone display validation remains pending. Seconds introduce stock second-level clock updates while awake, so battery/performance effects are not claimed verified.

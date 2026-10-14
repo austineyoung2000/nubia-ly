@@ -46,6 +46,7 @@ final class ClockCaptureBackend {
                 hooks.add(XposedBridge.hookMethod(method, new XC_MethodHook() {
                     @Override protected void beforeHookedMethod(MethodHookParam hook) {
                         if (!ready) return;
+                        if (name.equals("onDetachedFromWindow")) { ClockSecondsBackend.restore((TextView)hook.thisObject); return; }
                         if (name.equals("reloadDimens")) {
                             hook.setObjectExtra("nubia-ly:dimension-frame", ClockStyleBackend.beforeDimensions((TextView)hook.thisObject)); return;
                         }
