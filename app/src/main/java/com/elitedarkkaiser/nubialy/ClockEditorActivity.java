@@ -80,29 +80,29 @@ public final class ClockEditorActivity extends AppCompatActivity {
         MaterialButton custom = button("Custom color"); colors.addView(custom); custom.setOnClickListener(v -> customColor());
         saveStatus = text("Saved selection loaded.", 14, false); colors.addView(saveStatus);
         LinearLayout icons = card("Icons & battery");
-        icons.addView(text("Choose compatible icon appearance. Status icons use their own saved color. Opacity follows stock animation alpha; 100% uses stock opacity. Battery keeps stock charge and warning colors.",14,false));
+        icons.addView(text("Mobile service icon controls style the compatible calling-service indicator, such as VoLTE. Other compatible system indicators can share these settings. App notification icons are separate. Some Wi-Fi and signal icons keep stock appearance. Battery keeps stock charge and warning colors.",14,false));
         iconSelection=text("",16,true);icons.addView(iconSelection);iconPresets=new ChipGroup(this);iconPresets.setSingleSelection(true);icons.addView(iconPresets);
         for(ClockColorPolicy.Preset preset:ClockColorPolicy.PRESETS){
             Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setText(preset.name());chip.setTag(preset.color());chip.setCheckable(true);
             GradientDrawable dot=new GradientDrawable();dot.setShape(GradientDrawable.OVAL);dot.setColor(preset.color());dot.setSize(dp(20),dp(20));chip.setChipIcon(dot);chip.setChipIconVisible(true);
             chip.setOnClickListener(v->chooseIcon(preset.color()));iconPresets.addView(chip);statusControls.add(chip);
         }
-        MaterialButton iconCustom=button("Custom status icon color");icons.addView(iconCustom);statusControls.add(iconCustom);iconCustom.setOnClickListener(v->customColor(true));redrawIcon();
-        statusSwitch(icons,"Tint compatible status icons",StatusBarStyle.TINT);
-        statusSwitch(icons,"Hide compatible status icons",StatusBarStyle.HIDE_SYSTEM);
+        MaterialButton iconCustom=button("Custom mobile service icon color");icons.addView(iconCustom);statusControls.add(iconCustom);iconCustom.setOnClickListener(v->customColor(true));redrawIcon();
+        statusSwitch(icons,"Tint mobile service icon",StatusBarStyle.TINT);
+        statusSwitch(icons,"Hide mobile service icon",StatusBarStyle.HIDE_SYSTEM);
         statusSwitch(icons,"Hide notification icons",StatusBarStyle.HIDE_NOTIFICATIONS);
         statusSwitch(icons,"Hide battery",StatusBarStyle.HIDE_BATTERY);
         statusSwitch(icons,"Hide cooling pump icon",StatusBarStyle.HIDE_PUMP);
-        statusScale(icons,"Status icon size",systemScale,n->systemScale=n);
+        statusScale(icons,"Mobile service icon size",systemScale,n->systemScale=n);
         statusScale(icons,"Notification icon size",notificationScale,n->notificationScale=n);
         statusScale(icons,"Battery size",batteryScale,n->batteryScale=n);
-        statusOpacity(icons,"Status icon opacity",systemOpacity,n->systemOpacity=n);
+        statusOpacity(icons,"Mobile service icon opacity",systemOpacity,n->systemOpacity=n);
         statusOpacity(icons,"Notification icon opacity",notificationOpacity,n->notificationOpacity=n);
         statusOpacity(icons,"Battery opacity",batteryOpacity,n->batteryOpacity=n);
         icons.addView(text("Icon position & rotation",16,true));
         icons.addView(text("Offsets move compatible icons relative to stock by up to 8 dp. Rotation adds up to 20° around the stock pivot. Zero keeps stock. Large combined values may clip or overlap; these controls do not reserve more layout space.",14,false));
-        transformControls(icons,"Status icons",0);transformControls(icons,"Notification icons",1);transformControls(icons,"Battery",2);
-        inventoryButton=button("Load individual status icons");icons.addView(inventoryButton);inventoryButton.setOnClickListener(v->{enabled(false);client.inventory(slots->{if(alive())showSlots(slots);},result->{if(alive()){enabled(true);saveStatus.setText(result);}});});
+        transformControls(icons,"Mobile service icon",0);transformControls(icons,"Notification icons",1);transformControls(icons,"Battery",2);
+        inventoryButton=button("Load individual system status icons");icons.addView(inventoryButton);inventoryButton.setOnClickListener(v->{enabled(false);client.inventory(slots->{if(alive())showSlots(slots);},result->{if(alive()){enabled(true);saveStatus.setText(result);}});});
         iconSlots=new LinearLayout(this);iconSlots.setOrientation(LinearLayout.VERTICAL);icons.addView(iconSlots);showSlots(java.util.List.of());
         resetIcons=button("Reset icons & battery selections");icons.addView(resetIcons);resetIcons.setOnClickListener(v->{
             enabled(false);worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),StatusBarStyle.STOCK);runOnUiThread(()->{if(alive()){if(saved){finish();startActivity(new android.content.Intent(this,ClockEditorActivity.class));}else {enabled(true);saveStatus.setText("Reset could not be saved.");}}});});
@@ -183,12 +183,12 @@ public final class ClockEditorActivity extends AppCompatActivity {
         swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
     }
     private StatusBarStyle currentStatusBar() { return new StatusBarStyle(statusMask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots,systemTransform,notificationTransform,batteryTransform); }
-    private void redrawIcon(){iconSelection.setText("Status icon color: "+ClockColorPolicy.hex(iconColor));iconSelection.setTextColor(iconColor);for(int n=0;n<iconPresets.getChildCount();n++){Chip c=(Chip)iconPresets.getChildAt(n);c.setChecked((Integer)c.getTag()==iconColor);}}
+    private void redrawIcon(){iconSelection.setText("Mobile service icon color: "+ClockColorPolicy.hex(iconColor));iconSelection.setTextColor(iconColor);for(int n=0;n<iconPresets.getChildCount();n++){Chip c=(Chip)iconPresets.getChildAt(n);c.setChecked((Integer)c.getTag()==iconColor);}}
     private void chooseIcon(int color){if(!ClockColorPolicy.valid(color))return;iconColor=color;redrawIcon();worker.execute(()->{boolean saved=StatusBarPreferences.saveColor(getApplicationContext(),color);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Icon color saved. Press Enable to apply it.":"Icon color could not be saved.");});});}
     private void showSlots(java.util.List<String> live){
         for(int n=0;n<iconSlots.getChildCount();n++)statusControls.remove(iconSlots.getChildAt(n));iconSlots.removeAllViews();java.util.Set<String> values=new java.util.TreeSet<>(live);values.addAll(hiddenSlots);
         if(values.isEmpty()){iconSlots.addView(text("Load the live stock icon list to choose individual icons to hide.",14,false));return;}
-        for(String slot:values){var checkbox=new com.google.android.material.checkbox.MaterialCheckBox(this);checkbox.setText("Hide "+slot.replace('_',' '));checkbox.setChecked(hiddenSlots.contains(slot));iconSlots.addView(checkbox);statusControls.add(checkbox);
+        for(String slot:values){var checkbox=new com.google.android.material.checkbox.MaterialCheckBox(this);checkbox.setText("Hide "+(slot.equals("alarm_clock")?"alarm indicator":slot.replace('_',' ')));checkbox.setChecked(hiddenSlots.contains(slot));iconSlots.addView(checkbox);statusControls.add(checkbox);
             checkbox.setOnCheckedChangeListener((v,checked)->{if(checked){if(hiddenSlots.size()>=32&&!hiddenSlots.contains(slot)){checkbox.setChecked(false);saveStatus.setText("Choose at most 32 icon types.");return;}hiddenSlots.add(slot);}else hiddenSlots.remove(slot);saveStatusBar();});
         }
     }
@@ -300,7 +300,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         });
         update.run();
         ScrollView pickerScroll = new ScrollView(this); pickerScroll.addView(picker);
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(forIcons?"Custom status icon color":"Custom clock color")
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(forIcons?"Custom mobile service icon color":"Custom clock color")
             .setView(pickerScroll).setNegativeButton("Cancel", null).setPositiveButton("Use color", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(-1).setOnClickListener(v -> {
             Integer parsed=ClockColorPolicy.parse(hex.getText()==null ? null : hex.getText().toString());

@@ -1,4 +1,4 @@
-# Status-bar position batch: 0.1.21
+# Status-bar position batch: 0.1.22
 
 NX809J only. Install over the previous signed build and reboot to load the updated Vector hooks. The existing guard needs no update.
 
@@ -6,7 +6,7 @@ NX809J only. Install over the previous signed build and reboot to load the updat
 
 | Category | Horizontal offset | Vertical offset | Rotation |
 |---|---|---|---|
-| Compatible status icons | -8 to +8 dp | -8 to +8 dp | -20 to +20° |
+| Mobile service icon / compatible system indicators | -8 to +8 dp | -8 to +8 dp | -20 to +20° |
 | Notification icons | -8 to +8 dp | -8 to +8 dp | -20 to +20° |
 | Battery | -8 to +8 dp | -8 to +8 dp | -20 to +20° |
 
@@ -25,4 +25,4 @@ Changes save as drafts; press Enable to apply. Wake/reboot uses the enabled snap
 5. Enable Hide cooling pump icon while the pump indicator is visible. Confirm it disappears while cooling and its Quick Settings tile remain unchanged. Toggle cooling through your normal controls: the indicator should stay hidden. Restore stock while cooling is on and confirm it returns; restore while cooling is off and confirm it stays absent.
 6. Reset icons & battery selections, then Enable. Confirm icon/battery appearance returns to stock while clock choices remain.
 
-Report any callback failure, clipping or incomplete restoration. Phone validation is pending.
+Report any callback failure, clipping or incomplete restoration. The user confirms the 0.1.21 batch works and demonstrates offsets/rotation. Version 0.1.22 clarifies labels only; no customization backend changes. Detailed pump-state and reboot results were not supplied.
