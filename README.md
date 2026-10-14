@@ -185,4 +185,9 @@ Independent icon RGB/hex color, separate status/notification/battery opacity, li
 
 ### Clock date formatting batch — 0.1.20
 
-Eight new date formats join the existing four active formats. Separate controls choose date before/after time, dot/space/dash/bar separators, and stock/upper/lower letter case. Stock time spans and formatting remain intact; dates follow the stock clock locale/timezone and tick lifecycle. All choices use the existing applied identity snapshot and persistent Enable/Restore flow. See [one combined phone checklist](docs/CLOCK_FORMAT_BATCH.md). Phone validation is pending.
+Eight new date formats join the existing four active formats. Separate controls choose date before/after time, dot/space/dash/bar separators, and stock/upper/lower letter case. Stock time spans and formatting remain intact; dates follow the stock clock locale/timezone and tick lifecycle. All choices use the existing applied identity snapshot and persistent Enable/Restore flow. See [one combined phone checklist](docs/CLOCK_FORMAT_BATCH.md). User confirms the displayed combination, stock restoration and continued application; PR #13 is merged.
+
+
+### Status-bar position batch — 0.1.21
+
+A dedicated Hide cooling pump icon switch and nine independent controls adjust horizontal offset, vertical offset and rotation for compatible status icons, notification icons and battery. Offsets are bounded to ±8 dp and rotation to ±20°, relative to current stock properties. Applied selections remain identity-bound; existing guards restore the latest stock properties. See [combined phone checklist](docs/STATUSBAR_POSITION_BATCH.md). Phone validation is pending.

@@ -5,7 +5,7 @@ public final class StatusBarPreferences {
     public static StatusBarStyle read(Context context) {
         try {
             var p = context.getSharedPreferences("status_bar_editor", Context.MODE_PRIVATE);
-            var value = new StatusBarStyle(p.getInt("mask",0),p.getInt("system_scale",100),p.getInt("notification_scale",100),p.getInt("battery_scale",100),p.getInt("system_opacity",100),p.getInt("notification_opacity",100),p.getInt("battery_opacity",100),StatusBarStyle.decodeSlots(p.getString("hidden_slots","")));
+            var value = new StatusBarStyle(p.getInt("mask",0),p.getInt("system_scale",100),p.getInt("notification_scale",100),p.getInt("battery_scale",100),p.getInt("system_opacity",100),p.getInt("notification_opacity",100),p.getInt("battery_opacity",100),StatusBarStyle.decodeSlots(p.getString("hidden_slots","")),p.getInt("system_transform",0),p.getInt("notification_transform",0),p.getInt("battery_transform",0));
             return value.valid() ? value : StatusBarStyle.STOCK;
         } catch (ClassCastException invalid) { return StatusBarStyle.STOCK; }
     }
@@ -13,7 +13,7 @@ public final class StatusBarPreferences {
         try {
             var p = context.getSharedPreferences("status_bar_editor", Context.MODE_PRIVATE);
             if (id == null || !id.equals(p.getString("active_id", ""))) return StatusBarStyle.STOCK;
-            var value = new StatusBarStyle(p.getInt("active_mask",0),p.getInt("active_system_scale",100),p.getInt("active_notification_scale",100),p.getInt("active_battery_scale",100),p.getInt("active_system_opacity",100),p.getInt("active_notification_opacity",100),p.getInt("active_battery_opacity",100),StatusBarStyle.decodeSlots(p.getString("active_hidden_slots","")));
+            var value = new StatusBarStyle(p.getInt("active_mask",0),p.getInt("active_system_scale",100),p.getInt("active_notification_scale",100),p.getInt("active_battery_scale",100),p.getInt("active_system_opacity",100),p.getInt("active_notification_opacity",100),p.getInt("active_battery_opacity",100),StatusBarStyle.decodeSlots(p.getString("active_hidden_slots","")),p.getInt("active_system_transform",0),p.getInt("active_notification_transform",0),p.getInt("active_battery_transform",0));
             return value.valid() ? value : StatusBarStyle.STOCK;
         } catch (ClassCastException invalid) { return StatusBarStyle.STOCK; }
     }
@@ -40,11 +40,11 @@ public final class StatusBarPreferences {
         return PreviewPolicy.uuid(id) && value != null && value.valid() && ClockColorPolicy.valid(color)&&ClockDatePolicy.valid(date)
             && context.getSharedPreferences("status_bar_editor", Context.MODE_PRIVATE).edit()
             .putString("active_id",id).putInt("active_mask",value.mask()).putInt("active_system_scale",value.systemScale())
-            .putInt("active_notification_scale",value.notificationScale()).putInt("active_battery_scale",value.batteryScale()).putInt("active_color",color).putInt("active_date",date).putInt("active_system_opacity",value.systemOpacity()).putInt("active_notification_opacity",value.notificationOpacity()).putInt("active_battery_opacity",value.batteryOpacity()).putString("active_hidden_slots",value.slotsText()).commit();
+            .putInt("active_notification_scale",value.notificationScale()).putInt("active_battery_scale",value.batteryScale()).putInt("active_color",color).putInt("active_date",date).putInt("active_system_opacity",value.systemOpacity()).putInt("active_notification_opacity",value.notificationOpacity()).putInt("active_battery_opacity",value.batteryOpacity()).putString("active_hidden_slots",value.slotsText()).putInt("active_system_transform",value.systemTransform()).putInt("active_notification_transform",value.notificationTransform()).putInt("active_battery_transform",value.batteryTransform()).commit();
     }
     public static boolean save(Context context, StatusBarStyle value) {
         return value != null && value.valid() && context.getSharedPreferences("status_bar_editor", Context.MODE_PRIVATE)
             .edit().putInt("mask",value.mask()).putInt("system_scale",value.systemScale())
-            .putInt("notification_scale",value.notificationScale()).putInt("battery_scale",value.batteryScale()).putInt("system_opacity",value.systemOpacity()).putInt("notification_opacity",value.notificationOpacity()).putInt("battery_opacity",value.batteryOpacity()).putString("hidden_slots",value.slotsText()).commit();
+            .putInt("notification_scale",value.notificationScale()).putInt("battery_scale",value.batteryScale()).putInt("system_opacity",value.systemOpacity()).putInt("notification_opacity",value.notificationOpacity()).putInt("battery_opacity",value.batteryOpacity()).putString("hidden_slots",value.slotsText()).putInt("system_transform",value.systemTransform()).putInt("notification_transform",value.notificationTransform()).putInt("battery_transform",value.batteryTransform()).commit();
     }
 }
