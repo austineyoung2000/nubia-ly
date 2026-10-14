@@ -28,6 +28,9 @@ final class ClockSecondsBackend {
             || clock.getDeclaredMethod("updateClock").getReturnType() != void.class) throw new IllegalStateException();
         Method setter = clock.getDeclaredMethod("setShowSeconds", boolean.class);
         Method tuner = clock.getDeclaredMethod("onTuningChanged", String.class, String.class);
+        Method save = clock.getDeclaredMethod("onSaveInstanceState");
+        Method restore = clock.getDeclaredMethod("onRestoreInstanceState", android.os.Parcelable.class);
+        if (save.getReturnType() != android.os.Parcelable.class || restore.getReturnType() != void.class) throw new IllegalStateException();
         XC_MethodHook callback = new XC_MethodHook() {
             @Override protected void beforeHookedMethod(MethodHookParam p) {
                 if (!active || writing || !(p.thisObject instanceof TextView view) || !stock.containsKey(view)) return;
@@ -46,7 +49,17 @@ final class ClockSecondsBackend {
             }
         };
         hooks.add(XposedBridge.hookMethod(setter, callback));
-        hooks.add(XposedBridge.hookMethod(tuner, callback)); installed = clock;
+        hooks.add(XposedBridge.hookMethod(tuner, callback));
+        hooks.add(XposedBridge.hookMethod(restore, callback));
+        hooks.add(XposedBridge.hookMethod(save, new XC_MethodHook() {
+            @Override protected void afterHookedMethod(MethodHookParam p) {
+                if (!active || !(p.thisObject instanceof TextView view) || !stock.containsKey(view)) return;
+                if (Looper.myLooper() != Looper.getMainLooper() || p.hasThrowable() || !(p.getResult() instanceof android.os.Bundle bundle)) { failed = true; return; }
+                // The inspected Clock saves this exact field; never persist our override as stock.
+                android.os.Bundle clean = new android.os.Bundle(bundle);
+                clean.putBoolean("show_seconds", stock.get(view)); p.setResult(clean);
+            }
+        })); installed = clock;
     }
     private static boolean read(TextView view) { return Boolean.TRUE.equals(XposedHelpers.callMethod(view, "isShowSeconds")); }
     static void track(TextView view) {

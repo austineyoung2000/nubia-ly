@@ -3,6 +3,9 @@ from pathlib import Path
 import tempfile, subprocess
 root = Path(__file__).resolve().parents[1]
 sources = {
+'android/os/Parcelable.java': 'package android.os;public interface Parcelable {}',
+'android/os/Bundle.java': 'package android.os;public class Bundle implements Parcelable {private java.util.Map<String,Boolean> fields=new java.util.HashMap<>();public Bundle(){}public Bundle(Bundle b){fields.putAll(b.fields);}public void putBoolean(String k,boolean v){fields.put(k,v);}public boolean getBoolean(String k){return fields.getOrDefault(k,false);}}',
+
 'android/graphics/Typeface.java': 'package android.graphics; public record Typeface(int style) {public static final int BOLD=1;public int getStyle(){return style;}public static Typeface create(Typeface t,int s){return new Typeface(s);}}',
 'android/graphics/Paint.java': 'package android.graphics; public class Paint {boolean bold;float skew;public boolean isFakeBoldText(){return bold;}public void setFakeBoldText(boolean b){bold=b;}public float getTextSkewX(){return skew;}public void setTextSkewX(float s){skew=s;}}',
 'android/util/TypedValue.java': 'package android.util;public class TypedValue {public static final int COMPLEX_UNIT_PX=0;}',
@@ -12,7 +15,7 @@ sources = {
 'android/os/Handler.java': '''package android.os; public class Handler {public Handler(Looper l){} public boolean post(Runnable r){r.run();return true;} }''',
 'android/os/SystemClock.java': '''package android.os; public class SystemClock {public static long time=100000; public static long elapsedRealtime(){return time;} }''',
 'de/robv/android/xposed/XC_MethodHook.java': '''package de.robv.android.xposed; public class XC_MethodHook {
- public static class MethodHookParam {public Object thisObject;public Object[] args;public java.lang.reflect.Member method;private java.util.Map<String,Object> extra=new java.util.HashMap<>();public void setObjectExtra(String k,Object v){extra.put(k,v);}public Object getObjectExtra(String k){return extra.get(k);}public boolean hasThrowable(){return false;}}
+ public static class MethodHookParam {public Object thisObject;private Object result;public Object getResult(){return result;}public void setResult(Object r){result=r;}public Object[] args;public java.lang.reflect.Member method;private java.util.Map<String,Object> extra=new java.util.HashMap<>();public void setObjectExtra(String k,Object v){extra.put(k,v);}public Object getObjectExtra(String k){return extra.get(k);}public boolean hasThrowable(){return false;}}
  protected void beforeHookedMethod(MethodHookParam p) throws Throwable {} protected void afterHookedMethod(MethodHookParam p) throws Throwable {}
  public void before(MethodHookParam p) throws Throwable {beforeHookedMethod(p);} public void after(MethodHookParam p) throws Throwable {afterHookedMethod(p);}
  public class Unhook {private Runnable r;public Unhook(Runnable r){this.r=r;}public void unhook(){r.run();}}
@@ -47,6 +50,9 @@ public class TextView {private ColorStateList colors; public boolean failPaint;
  public void setShowSeconds(boolean b){invoke("setShowSeconds",new Class<?>[]{boolean.class},new Object[]{b},()->mShowSeconds=b);}
  public void updateShowSeconds(){if(failSeconds)throw new RuntimeException("seconds failure");if(mShowSeconds && mSecondsHandler==null)mSecondsHandler=new android.os.Handler(android.os.Looper.getMainLooper());else if(!mShowSeconds)mSecondsHandler=null;}
  public void updateClock(){clockUpdates++;ClockTestAccess.colorReenter(this);}
+ public android.os.Parcelable onSaveInstanceState(){var cb=XposedHelpers.hooks.get(XposedHelpers.key("onSaveInstanceState"));var p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=new Object[]{};try{p.method=Clock.class.getDeclaredMethod("onSaveInstanceState");if(cb!=null)cb.before(p);var result=new android.os.Bundle();result.putBoolean("show_seconds",mShowSeconds);result.putBoolean("other",true);p.setResult(result);if(cb!=null)cb.after(p);return (android.os.Parcelable)p.getResult();}catch(Throwable e){throw new RuntimeException(e);}}
+ public void onRestoreInstanceState(android.os.Parcelable b){invoke("onRestoreInstanceState",new Class<?>[]{android.os.Parcelable.class},new Object[]{b},()->mShowSeconds=((android.os.Bundle)b).getBoolean("show_seconds"));}
+
  public void onTuningChanged(String k,String v){invoke("onTuningChanged",new Class<?>[]{String.class,String.class},new Object[]{k,v},()->{if(k.equals("clock_seconds")){mShowSeconds="1".equals(v);updateShowSeconds();updateClock();ClockTestAccess.reenter(this);}});}
  private void invoke(String n,Class<?>[] t,Object[] a,Runnable original){var cb=XposedHelpers.hooks.get(XposedHelpers.key(n,t));var p=new XC_MethodHook.MethodHookParam();p.thisObject=this;p.args=a;try{p.method=Clock.class.getDeclaredMethod(n,t);if(cb!=null)cb.before(p);original.run();if(cb!=null)cb.after(p);}catch(Throwable e){throw new RuntimeException(e);}}
 }''',
@@ -75,7 +81,7 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  check(ClockColorBackend.begin(175000,0xff112233,80,false));var dim=ClockStyleBackend.beforeDimensions(a);a.sizeBypass(30);ClockStyleBackend.afterDimensions(a,dim);ClockColorBackend.track(a);check(a.getTextSize()==24);ClockColorBackend.detach(a);check(a.getTextSize()==30);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
  check(ClockColorBackend.begin(175000,0xff112233,120,true));var dims=ClockStyleBackend.beforeDimensions(a);float styled=a.getTextSize();a.sizeBypass(styled);ClockStyleBackend.afterDimensions(a,dims);check(a.getTextSize()==styled*1.2f);ClockColorBackend.end();check(a.getTextSize()==styled);ClockStyleBackend.afterDimensions(a,dims);check(a.getTextSize()==styled);
  check(!ClockColorBackend.begin(175000,0xff112233,125,true));
- check(ClockColorBackend.begin(175000,0xff112233,0,false,true));check(a.mShowSeconds&&a.mSecondsHandler!=null);a.onTuningChanged("clock_seconds","0");check(a.mShowSeconds&&a.mSecondsHandler!=null);ClockColorBackend.end();check(!a.mShowSeconds&&a.mSecondsHandler==null);check(XposedHelpers.hooks.isEmpty());
+ check(ClockColorBackend.begin(175000,0xff112233,0,false,true));check(a.mShowSeconds&&a.mSecondsHandler!=null);var saved=(android.os.Bundle)a.onSaveInstanceState();check(!saved.getBoolean("show_seconds")&&saved.getBoolean("other"));a.onRestoreInstanceState(saved);check(a.mShowSeconds&&a.mSecondsHandler!=null);a.onTuningChanged("clock_seconds","0");check(a.mShowSeconds&&a.mSecondsHandler!=null);ClockColorBackend.end();check(!a.mShowSeconds&&a.mSecondsHandler==null);check(XposedHelpers.hooks.isEmpty());
  a.setShowSeconds(true);a.updateShowSeconds();check(ClockColorBackend.begin(175000,0xff112233,100,true,true));a.onTuningChanged("other","0");ClockColorBackend.end();check(a.mShowSeconds&&a.mSecondsHandler!=null);a.setShowSeconds(false);a.updateShowSeconds();
  check(ClockColorBackend.begin(175000,0xff112233,0,false,true));ClockColorBackend.detach(a);check(!a.mShowSeconds&&a.mSecondsHandler==null);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
  a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
