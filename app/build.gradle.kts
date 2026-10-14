@@ -20,8 +20,8 @@ android {
         targetSdk = 35
         buildConfigField("String", "BASELINE_FINGERPRINT", baselineLiteral("fingerprint"))
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
-        versionCode = 18
-        versionName = "0.1.17-statusbar-batch"
+        versionCode = 19
+        versionName = "0.1.18-statusbar-details"
     }
     signingConfigs {
         if (releaseSigning) create("persistent") {

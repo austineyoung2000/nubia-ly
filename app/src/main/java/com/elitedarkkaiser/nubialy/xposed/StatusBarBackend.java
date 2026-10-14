@@ -26,11 +26,11 @@ final class StatusBarBackend {
     private static StatusBarStyle style=StatusBarStyle.STOCK;
     private static final class State {
         final WeakReference<ViewGroup> root;
-        final int scale; final boolean hide, notification; boolean tint;
-        float x,y; int visibility; ColorStateList colors; long tintRevision;
-        State(View v, ViewGroup owner, int scale, boolean hide, boolean tint, boolean notification) {
-            root=new WeakReference<>(owner);this.scale=scale;this.hide=hide;this.tint=tint;this.notification=notification;
-            x=v.getScaleX();y=v.getScaleY();visibility=v.getVisibility();
+        final String slot; final int scale,opacity; final boolean hide, notification; boolean tint;
+        float x,y,a; int visibility; ColorStateList colors; long tintRevision;
+        State(View v, ViewGroup owner, int scale, boolean hide, boolean tint, boolean notification,int opacity,String slot) {
+            root=new WeakReference<>(owner);this.scale=scale;this.hide=hide;this.tint=tint;this.notification=notification;this.opacity=opacity;this.slot=slot;
+            x=v.getScaleX();y=v.getScaleY();a=v.getAlpha();visibility=v.getVisibility();
             if(tint)colors=((ImageView)v).getImageTintList();
         }
     }
@@ -42,7 +42,7 @@ final class StatusBarBackend {
         try {
             Class<?> root=XposedHelpers.findClass(ROOT,loader), icon=XposedHelpers.findClass(ICON,loader), battery=XposedHelpers.findClass(BATTERY,loader);
             if(root.getSuperclass()!=FrameLayout.class || !ImageView.class.isAssignableFrom(icon) || battery.getSuperclass()!=LinearLayout.class
-                || icon.getDeclaredMethod("isNotification").getReturnType()!=boolean.class
+                || icon.getDeclaredMethod("isNotification").getReturnType()!=boolean.class || icon.getDeclaredMethod("getSlot").getReturnType()!=String.class
                 || !icon.getDeclaredMethod("getAdapt").getReturnType().getName().equals("com.zte.adapt.mifavor.statusbar.StatusBarIconViewAdapt")
                 || !root.getDeclaredMethod("getAdapt").getReturnType().getName().equals("com.zte.adapt.mifavor.statusbar.PhoneStatusBarViewAdapt")
                 || !battery.getDeclaredMethod("getAdapt").getReturnType().getName().equals("com.zte.adapt.mifavor.statusbar.BatteryMeterViewAdapt")) throw new IllegalStateException();
@@ -118,6 +118,7 @@ final class StatusBarBackend {
                     switch(((Method)p.method).getName()){
                         case "setScaleX" -> f.state.x=v.getScaleX();
                         case "setScaleY" -> f.state.y=v.getScaleY();
+                        case "setAlpha" -> f.state.a=v.getAlpha();
                         case "setVisibility" -> f.state.visibility=v.getVisibility();
                         case "setImageTintList" -> {if(f.state.tint){f.state.colors=((ImageView)v).getImageTintList();f.state.tintRevision++;}}
                     }
@@ -128,6 +129,7 @@ final class StatusBarBackend {
         try {
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setScaleX",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setScaleY",float.class,callback));
+            activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setAlpha",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setVisibility",int.class,callback));
             if(style.selected(StatusBarStyle.TINT))activeHooks.add(XposedHelpers.findAndHookMethod(ImageView.class,"setImageTintList",ColorStateList.class,callback));
             active=true;refresh();
@@ -157,21 +159,23 @@ final class StatusBarBackend {
         ViewGroup root=owner(v);if(root==null)return;
         try {
             boolean notification=name.equals(ICON)&&Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification"));
+            String slot=name.equals(ICON)&&!notification?(String)XposedHelpers.callMethod(v,"getSlot"):"";
             State s=states.get(v);
-            if(s!=null&&(s.root.get()!=root||s.notification!=notification)){if(!restore(v))return;s=null;}
+            if(s!=null&&(s.root.get()!=root||s.notification!=notification||!Objects.equals(s.slot,slot))){if(!restore(v))return;s=null;}
             if(s==null){
-                int scale;boolean hide,tint=false;
-                if(name.equals(BATTERY)){scale=style.batteryScale();hide=style.selected(StatusBarStyle.HIDE_BATTERY);}
+                int scale,opacity;boolean hide,tint=false;
+                if(name.equals(BATTERY)){scale=style.batteryScale();opacity=style.batteryOpacity();hide=style.selected(StatusBarStyle.HIDE_BATTERY);}
                 else {
-                    scale=notification?style.notificationScale():style.systemScale();
+                    scale=notification?style.notificationScale():style.systemScale();opacity=notification?style.notificationOpacity():style.systemOpacity();
                     hide=style.selected(notification?StatusBarStyle.HIDE_NOTIFICATIONS:StatusBarStyle.HIDE_SYSTEM);
+                    if(!notification)hide|=style.hiddenSlots().contains(slot);
                     if(!notification&&style.selected(StatusBarStyle.TINT)){
                         Object adapt=XposedHelpers.callMethod(v,"getAdapt");
                         tint=Boolean.FALSE.equals(XposedHelpers.callMethod(adapt,"donotSetIconColor"));
                     }
                 }
-                if(scale==100&&!hide&&!tint)return;
-                s=new State(v,root,scale,hide,tint,notification);states.put(v,s);captured++;
+                if(scale==100&&opacity==100&&!hide&&!tint)return;
+                s=new State(v,root,scale,hide,tint,notification,opacity,slot);states.put(v,s);captured++;
             }
             if(name.equals(ICON)&&!notification&&style.selected(StatusBarStyle.TINT)){
                 Object adapt=XposedHelpers.callMethod(v,"getAdapt");
@@ -192,6 +196,7 @@ final class StatusBarBackend {
         writing=true;
         try {
             if(s.scale!=100){float x=s.x*s.scale/100f,y=s.y*s.scale/100f;if(Math.abs(v.getScaleX()-x)>0.00001f)v.setScaleX(x);if(Math.abs(v.getScaleY()-y)>0.00001f)v.setScaleY(y);}
+            if(s.opacity!=100&&Math.abs(v.getAlpha()-s.a*s.opacity/100f)>0.00001f)v.setAlpha(s.a*s.opacity/100f);
             if(s.hide&&v.getVisibility()!=View.GONE)v.setVisibility(View.GONE);
             if(s.tint){ImageView icon=(ImageView)v;if(icon.getImageTintList()==null||icon.getImageTintList().getDefaultColor()!=color)icon.setImageTintList(ColorStateList.valueOf(color));}
         }finally{writing=false;}
@@ -201,6 +206,7 @@ final class StatusBarBackend {
         writing=true;
         try {
             if(s.scale!=100){v.setScaleX(s.x);v.setScaleY(s.y);if(Math.abs(v.getScaleX()-s.x)>0.00001f||Math.abs(v.getScaleY()-s.y)>0.00001f)throw new IllegalStateException();}
+            if(s.opacity!=100){v.setAlpha(s.a);if(Math.abs(v.getAlpha()-s.a)>0.00001f)throw new IllegalStateException();}
             if(s.hide){v.setVisibility(s.visibility);if(v.getVisibility()!=s.visibility)throw new IllegalStateException();}
             if(s.tint){((ImageView)v).setImageTintList(s.colors);if(!Objects.equals(((ImageView)v).getImageTintList(),s.colors))throw new IllegalStateException();}
             states.remove(v);restored++;return true;
@@ -212,6 +218,16 @@ final class StatusBarBackend {
         for(View v:new ArrayList<>(states.keySet()))restore(v);
         for(var h:activeHooks)try{h.unhook();}catch(Throwable unavailable){failed=true;}
         activeHooks.clear();if(!failed&&captured>0)message="Latest stock status-bar properties restored.";return !failed&&states.isEmpty();
+    }
+    static ArrayList<String> inventory(){
+        TreeSet<String> slots=new TreeSet<>();if(!ready||Looper.myLooper()!=Looper.getMainLooper())return new ArrayList<>();
+        for(ViewGroup root:new ArrayList<>(roots.keySet())){
+            if(!root.isAttachedToWindow())continue;ArrayDeque<View> queue=new ArrayDeque<>();queue.add(root);int count=0;
+            while(!queue.isEmpty()&&count++<512){View v=queue.removeFirst();
+                if(v.getClass().getName().equals(ICON))try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification"))){String slot=(String)XposedHelpers.callMethod(v,"getSlot");if(StatusBarStyle.slot(slot)&&slots.size()<32)slots.add(slot);}}catch(Throwable unavailable){/* Unsupported metadata supplies no choice. */}
+                if(v instanceof ViewGroup g)for(int n=0;n<g.getChildCount()&&queue.size()<512;n++)queue.addLast(g.getChildAt(n));
+            }
+        }return new ArrayList<>(slots);
     }
     static boolean healthy(){return !failed;}
     static String status(){return message+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+".";}

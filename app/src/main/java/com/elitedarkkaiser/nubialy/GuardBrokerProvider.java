@@ -55,6 +55,8 @@ public final class GuardBrokerProvider extends ContentProvider {
                     reply.putBoolean("clock_hidden", ClockColorPreferences.hidden(getContext()));
                     StatusBarStyle bar = StatusBarPreferences.active(getContext(), id);
                     reply.putInt("statusbar_color",StatusBarPreferences.activeColor(getContext(), id));
+                    reply.putInt("clock_date",StatusBarPreferences.activeDate(getContext(),id));
+                    reply.putInt("statusbar_system_opacity",bar.systemOpacity());reply.putInt("statusbar_notification_opacity",bar.notificationOpacity());reply.putInt("statusbar_battery_opacity",bar.batteryOpacity());reply.putString("statusbar_hidden_slots",bar.slotsText());
                     reply.putInt("statusbar_mask",bar.mask()); reply.putInt("statusbar_system_scale",bar.systemScale());
                     reply.putInt("statusbar_notification_scale",bar.notificationScale()); reply.putInt("statusbar_battery_scale",bar.batteryScale());
                 }

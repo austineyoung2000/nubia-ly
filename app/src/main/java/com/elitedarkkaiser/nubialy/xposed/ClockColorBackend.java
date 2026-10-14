@@ -34,8 +34,9 @@ final class ClockColorBackend {
     static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing) { return begin(until, color, size, bold, seconds, italic, spacing, 0, false); }
     static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing, int family, boolean hidden) { return begin(until, color, size, bold, seconds, italic, spacing, family, hidden, com.elitedarkkaiser.nubialy.StatusBarStyle.STOCK); }
     static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing, int family, boolean hidden, com.elitedarkkaiser.nubialy.StatusBarStyle bar) { return begin(until,color,size,bold,seconds,italic,spacing,family,hidden,bar,color); }
-    static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing, int family, boolean hidden, com.elitedarkkaiser.nubialy.StatusBarStyle bar, int barColor) {
-        if (!ClockColorPolicy.valid(barColor) || bar == null || !bar.valid() || !ClockColorPolicy.valid(color) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.valid(size) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.validSpacing(spacing) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.validFamily(family)) return false;
+    static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing, int family, boolean hidden, com.elitedarkkaiser.nubialy.StatusBarStyle bar, int barColor) {return begin(until,color,size,bold,seconds,italic,spacing,family,hidden,bar,barColor,0);}
+    static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing, int family, boolean hidden, com.elitedarkkaiser.nubialy.StatusBarStyle bar, int barColor,int date) {
+        if (!com.elitedarkkaiser.nubialy.ClockDatePolicy.valid(date) || !ClockColorPolicy.valid(barColor) || bar == null || !bar.valid() || !ClockColorPolicy.valid(color) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.valid(size) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.validSpacing(spacing) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.validFamily(family)) return false;
         end();
         if (failed || !states.isEmpty() || until <= SystemClock.elapsedRealtime()
                 || until - SystemClock.elapsedRealtime() > 30000) return false;
@@ -73,7 +74,7 @@ final class ClockColorBackend {
             };
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTextColor", int.class, callback));
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTextColor", ColorStateList.class, callback));
-            ClockStyleBackend.begin(size, bold, italic, spacing, family); ClockSecondsBackend.begin(seconds); ClockVisibilityBackend.begin(hidden); StatusBarBackend.begin(bar, barColor);
+            ClockStyleBackend.begin(size, bold, italic, spacing, family); ClockSecondsBackend.begin(seconds); ClockVisibilityBackend.begin(hidden); StatusBarBackend.begin(bar, barColor); ClockDateBackend.begin(date);
             active = true;
             for (TextView view : ClockCaptureBackend.attachedClocks()) if (view.isAttachedToWindow()) track(view);
             if (!active || applied == 0) { end(); message = "No eligible attached clock; preview blocked."; return false; }
@@ -84,7 +85,7 @@ final class ClockColorBackend {
         if (!active || failed || writing || Looper.myLooper() != Looper.getMainLooper()) return;
         if (SystemClock.elapsedRealtime() >= deadline) { end(); return; }
         if (states.containsKey(view)) {
-            try { ClockStyleBackend.track(view); ClockSecondsBackend.track(view); ClockVisibilityBackend.track(view); } catch (Throwable unavailable) { abort("Clock typography reapplication failed."); return; }
+            try { ClockStyleBackend.track(view); ClockSecondsBackend.track(view); ClockVisibilityBackend.track(view); ClockDateBackend.track(view); } catch (Throwable unavailable) { abort("Clock typography reapplication failed."); return; }
             // Reassert after the inspected clock callbacks if an inherited setter was bypassed.
             if (view.getCurrentTextColor() != selectedColor) {
                 states.get(view).stockWrite(view.getTextColors());
@@ -115,7 +116,7 @@ final class ClockColorBackend {
     }
     private static void paint(TextView view) {
         writing = true;
-        try { view.setTextColor(selectedColor); ClockStyleBackend.track(view); ClockSecondsBackend.track(view); ClockVisibilityBackend.track(view); } finally { writing = false; }
+        try { view.setTextColor(selectedColor); ClockStyleBackend.track(view); ClockSecondsBackend.track(view); ClockVisibilityBackend.track(view); ClockDateBackend.track(view); } finally { writing = false; }
     }
     static void detach(TextView view) { if (states.containsKey(view)) restore(view); }
     private static void restore(TextView view) {
@@ -124,7 +125,7 @@ final class ClockColorBackend {
         try {
             writing = true;
             view.setTextColor(state.target());
-            if (!ClockStyleBackend.restore(view) || !ClockSecondsBackend.restore(view) || !ClockVisibilityBackend.restore(view)) throw new IllegalStateException();
+            if (!ClockStyleBackend.restore(view) || !ClockSecondsBackend.restore(view) || !ClockVisibilityBackend.restore(view) || !ClockDateBackend.restore(view)) throw new IllegalStateException();
             if (!view.getTextColors().equals(state.target())) throw new IllegalStateException();
             state.restored(); states.remove(view); restored++;
         } catch (Throwable unavailable) { failed = true; message = "Clock restoration incomplete. Disable nubia-ly in Vector and reboot."; }
@@ -134,13 +135,13 @@ final class ClockColorBackend {
         generation++; active = false;
         for (TextView view : new ArrayList<>(states.keySet())) restore(view);
         for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
-        hooks.clear(); if (!ClockStyleBackend.end()) failed = true; if (!ClockSecondsBackend.end()) failed = true; if (!ClockVisibilityBackend.end()) failed = true; if (!StatusBarBackend.end()) failed = true; deadline = 0;
+        hooks.clear(); if (!ClockStyleBackend.end()) failed = true; if (!ClockSecondsBackend.end()) failed = true; if (!ClockVisibilityBackend.end()) failed = true; if (!StatusBarBackend.end()) failed = true; if (!ClockDateBackend.end()) failed = true; deadline = 0;
         if (!failed && applied > 0) message = "Latest stock clock colors restored and read back.";
     }
     private static void abort(String reason) {
         if (Looper.myLooper() != Looper.getMainLooper()) { main.post(() -> abort(reason)); return; }
         end(); failed = true; message = reason + " Preview blocked; check restored count. Disable nubia-ly in Vector and reboot if incomplete.";
     }
-    static boolean healthy() { return active && !failed && ClockStyleBackend.healthy() && ClockSecondsBackend.healthy() && ClockVisibilityBackend.healthy() && StatusBarBackend.healthy() && ClockCaptureBackend.available(); }
-    static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "; dark updates kept: " + darkReapplications + ". " + ClockStyleBackend.status() + " " + ClockSecondsBackend.status() + " " + ClockVisibilityBackend.status() + " " + StatusBarBackend.status(); }
+    static boolean healthy() { return active && !failed && ClockStyleBackend.healthy() && ClockSecondsBackend.healthy() && ClockVisibilityBackend.healthy() && StatusBarBackend.healthy() && ClockDateBackend.healthy() && ClockCaptureBackend.available(); }
+    static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "; dark updates kept: " + darkReapplications + ". " + ClockStyleBackend.status() + " " + ClockSecondsBackend.status() + " " + ClockVisibilityBackend.status() + " " + StatusBarBackend.status() + " " + ClockDateBackend.status(); }
 }

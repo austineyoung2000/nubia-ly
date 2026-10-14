@@ -3,6 +3,8 @@ from pathlib import Path
 import tempfile, subprocess
 root = Path(__file__).resolve().parents[1]
 sources = {
+'com/elitedarkkaiser/nubialy/xposed/ClockDateBackend.java': 'package com.elitedarkkaiser.nubialy.xposed;class ClockDateBackend {static void begin(int mode){}static void track(android.widget.TextView v){}static boolean restore(android.widget.TextView v){return true;}static boolean healthy(){return true;}static boolean end(){return true;}static String status(){return "Off";}}',
+
 'com/elitedarkkaiser/nubialy/xposed/StatusBarBackend.java': 'package com.elitedarkkaiser.nubialy.xposed;class StatusBarBackend {static void begin(com.elitedarkkaiser.nubialy.StatusBarStyle s,int c){}static void refresh(){}static boolean healthy(){return true;}static boolean end(){return true;}static String status(){return "Stock";}}',
 
 'android/view/View.java': 'package android.view;public class View {public static final int VISIBLE=0,INVISIBLE=4,GONE=8;}',
@@ -115,7 +117,7 @@ with tempfile.TemporaryDirectory(prefix='nubialy-clock-backend-') as work:
     for name, source in sources.items():
         path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source)
     files=[str(p) for p in work.rglob('*.java')]
-    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/StatusBarStyle.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockStylePolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockStyleBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockSecondsBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockVisibilityBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
+    files += [str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockDatePolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/StatusBarStyle.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockStylePolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockStyleBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockSecondsBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockVisibilityBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockEnabledPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/PreviewPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ClockColorPolicy.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/ColorRestore.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/ClockColorBackend.java')]
     subprocess.run(['java','com.sun.tools.javac.Main','-d',str(work/'classes'),*files],check=True)
     subprocess.run(['java','-cp',str(work/'classes'),'com.elitedarkkaiser.nubialy.xposed.BackendTest'],check=True)
 

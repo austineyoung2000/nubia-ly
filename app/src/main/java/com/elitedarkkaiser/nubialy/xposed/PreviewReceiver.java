@@ -34,7 +34,7 @@ final class PreviewReceiver extends BroadcastReceiver {
         String operation = intent.getStringExtra("operation");
         String nonce = intent.getStringExtra("nonce");
         if (!SystemUiGuardProtocol.PREVIEW_ACTION.equals(intent.getAction()) || !PreviewPolicy.uuid(nonce)
-                || !("start".equals(operation) || "clock_start".equals(operation) || "clock_enable".equals(operation) || "clock_resume".equals(operation) || "status".equals(operation) || "stop".equals(operation))) return;
+                || !("start".equals(operation) || "clock_start".equals(operation) || "clock_enable".equals(operation) || "clock_resume".equals(operation) || "inventory".equals(operation) || "status".equals(operation) || "stop".equals(operation))) return;
         int color = "clock_resume".equals(operation) ? ClockColorPolicy.DEFAULT : intent.getIntExtra("clock_color", 0);
         if (("clock_start".equals(operation) || "clock_enable".equals(operation)) && (!intent.hasExtra("clock_color") || !ClockColorPolicy.valid(color))) return;
         PendingResult pending = goAsync();

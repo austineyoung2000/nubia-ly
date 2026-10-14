@@ -4,7 +4,7 @@
 
 The goal is an Iconify-style customization experience built around Nubia's own System UI: status-bar appearance, Quick Settings styling, lock-screen clocks and notification visuals. nubia-ly is independent of Redmagic 11 Toolbox, with its own Android package, repository and release lifecycle.
 
-> **Current state: working NX809J clock customization, with a larger status-bar batch in testing.** Merged clock controls include persistent color, size, bold, seconds, italic, spacing, built-in font families and hiding. The user has confirmed these batches on the phone. The next signed test adds compatible status-icon tint/size/hiding, notification-icon size/hiding and battery-view size/hiding. Root and Vector are required for styling; an independent guard supports revocation and bounded health recovery. Full device boot-loop recovery is not claimed.
+> **Current state: working NX809J clock, compatible-icon and battery-view customization, with another details batch in testing.** Merged clock controls include persistent color, size, bold, seconds, italic, spacing, built-in font families and hiding. The user has confirmed these batches on the phone. Compatible status-icon tint/size/hiding, notification-icon size/hiding and battery-view size/hiding are merged after the user reported more than ten minutes of full-batch testing. The next signed test adds independent icon colors, opacity, individual hiding and clock dates. Root and Vector are required for styling; an independent guard supports revocation and bounded health recovery. Full device boot-loop recovery is not claimed.
 
 Development uses test branches, draft PRs and GitHub Actions signed APKs. Phone testing and explicit user authorization precede merges into `main`.
 
@@ -177,3 +177,7 @@ A single test APK adds italic, relative letter spacing, built-in font family sel
 ### Larger status-bar batch — 0.1.17
 
 Seven icon and battery controls share the persistent Enable/Restore flow with the working clock editor. Applied icon/battery settings and tint color are frozen separately from draft edits and bound to the enabled root identity. See [one batch checklist and scope](docs/STATUSBAR_BATCH.md). Phone results are pending for this batch.
+
+### Status-bar details batch — 0.1.18
+
+Independent icon RGB/hex color, separate status/notification/battery opacity, live individual icon hiding, date beside the stock clock and an icons/battery draft reset arrive together in one signed test APK. New date/icon settings stay bound to the applied identity snapshot; choices do not apply until Enable. See [combined checklist](docs/STATUSBAR_DETAILS.md). Phone results are pending.

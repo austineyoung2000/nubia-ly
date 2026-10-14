@@ -12,6 +12,9 @@ sources={
  check(StatusBarPreferences.read(c).equals(StatusBarStyle.STOCK));check(StatusBarPreferences.save(c,selected));check(StatusBarPreferences.active(c,id).equals(StatusBarStyle.STOCK));
  check(StatusBarPreferences.activate(c,id,selected,0xff112233));check(StatusBarPreferences.active(c,id).equals(selected));check(StatusBarPreferences.activeColor(c,id)==0xff112233);check(StatusBarPreferences.active(c,other).equals(StatusBarStyle.STOCK));
  check(StatusBarPreferences.save(c,StatusBarStyle.STOCK));check(StatusBarPreferences.read(c).equals(StatusBarStyle.STOCK));check(StatusBarPreferences.active(c,id).equals(selected));
+ var details=new StatusBarStyle(1,110,90,100,50,60,70,java.util.Set.of("alarm_clock","bluetooth"));check(StatusBarPreferences.save(c,details));check(StatusBarPreferences.saveColor(c,0xffabcdef));check(StatusBarPreferences.saveDate(c,2));check(StatusBarPreferences.active(c,id).equals(selected));check(StatusBarPreferences.activeDate(c,id)==0);
+ check(StatusBarPreferences.activate(c,id,details,0xffabcdef,2));check(StatusBarPreferences.active(c,id).equals(details));check(StatusBarPreferences.activeDate(c,id)==2);check(StatusBarPreferences.activeDate(c,other)==0);check(StatusBarPreferences.color(c)==0xffabcdef);check(StatusBarPreferences.activeColor(c,id)==0xffabcdef);
+ check(StatusBarPreferences.activate(c,id,selected,0xff112233));
  c.prefs.fail=true;check(!StatusBarPreferences.activate(c,other,StatusBarStyle.STOCK,0xff445566));check(StatusBarPreferences.active(c,id).equals(selected));check(StatusBarPreferences.active(c,other).equals(StatusBarStyle.STOCK));c.prefs.fail=false;
  check(!StatusBarPreferences.activate(c,"bad",selected,0xff112233));check(!StatusBarPreferences.activate(c,id,new StatusBarStyle(16,100,100,100),0xff112233));check(!StatusBarPreferences.activate(c,id,selected,0x00112233));
  c.prefs.values.put("active_mask","corrupt");check(StatusBarPreferences.active(c,id).equals(StatusBarStyle.STOCK));c.prefs.values.put("mask",99);check(StatusBarPreferences.read(c).equals(StatusBarStyle.STOCK));c.prefs.values.put("active_color",0);check(StatusBarPreferences.activeColor(c,id)==ClockColorPolicy.DEFAULT);
@@ -22,6 +25,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-status-prefs-') as work:
     work=Path(work)
     for name,content in sources.items():
         p=work/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
-    files=[str(p) for p in work.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/n) for n in ['StatusBarPreferences.java','StatusBarStyle.java','ClockColorPolicy.java','PreviewPolicy.java']]
+    files=[str(p) for p in work.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/n) for n in ['StatusBarPreferences.java','StatusBarStyle.java','ClockColorPolicy.java','ClockDatePolicy.java','PreviewPolicy.java']]
     subprocess.run(['java','com.sun.tools.javac.Main','-d',str(work/'classes'),*files],check=True)
     subprocess.run(['java','-cp',str(work/'classes'),'com.elitedarkkaiser.nubialy.PreferencesTest'],check=True)

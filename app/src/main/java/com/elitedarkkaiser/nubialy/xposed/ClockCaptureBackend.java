@@ -70,6 +70,7 @@ final class ClockCaptureBackend {
                                 (ClockColorBackend.DarkFrame)hook.getObjectExtra("nubia-ly:dark-frame"));
                             if (name.equals("reloadDimens")) ClockStyleBackend.afterDimensions(view,
                                 (ClockStyleBackend.DimensionFrame)hook.getObjectExtra("nubia-ly:dimension-frame"));
+                            if(name.equals("updateClock"))ClockDateBackend.afterUpdate(view);
                             ClockColorBackend.track(view);
                             observe(view);
                         } catch (Throwable unavailable) { fail("Clock callback: " + name, unavailable); }

@@ -30,6 +30,8 @@ jobs:
           python3 tests/test_clock_backend.py
           python3 tests/test_statusbar_backend.py
           python3 tests/test_statusbar_preferences.py
+          python3 tests/test_clock_date_backend.py
+          python3 tests/test_inventory_client.py
           python3 tests/test_recovery_store.py
           python3 tests/test_root_guard.py
       - name: Recovery guard tests and ZIP

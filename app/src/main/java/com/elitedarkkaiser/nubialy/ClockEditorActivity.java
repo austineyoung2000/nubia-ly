@@ -34,7 +34,12 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private int selected, sizePercent;
     private boolean bold, seconds, italic;
     private int spacing, fontFamily;
-    private int statusMask, systemScale, notificationScale, batteryScale;
+    private int statusMask, systemScale, notificationScale, batteryScale,systemOpacity,notificationOpacity,batteryOpacity,iconColor,dateMode;
+    private final java.util.Set<String> hiddenSlots=new java.util.TreeSet<>();
+    private LinearLayout iconSlots;
+    private ChipGroup iconPresets,dateControl;
+    private TextView iconSelection;
+    private MaterialButton inventoryButton,resetIcons;
     private final java.util.List<View> statusControls = new java.util.ArrayList<>();
     private boolean hidden;
     private ChipGroup fontControl;
@@ -48,7 +53,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE) || Build.VERSION.SDK_INT != 36) { finish(); return; }
         selected = ClockColorPreferences.read(this);
         sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this); seconds = ClockColorPreferences.seconds(this); italic = ClockColorPreferences.italic(this); spacing = ClockColorPreferences.spacing(this); fontFamily = ClockColorPreferences.family(this); hidden = ClockColorPreferences.hidden(this);
-        StatusBarStyle bar = StatusBarPreferences.read(this); statusMask = bar.mask(); systemScale = bar.systemScale(); notificationScale = bar.notificationScale(); batteryScale = bar.batteryScale();
+        StatusBarStyle bar = StatusBarPreferences.read(this); statusMask = bar.mask(); systemScale = bar.systemScale(); notificationScale = bar.notificationScale(); batteryScale = bar.batteryScale();systemOpacity=bar.systemOpacity();notificationOpacity=bar.notificationOpacity();batteryOpacity=bar.batteryOpacity();hiddenSlots.addAll(bar.hiddenSlots());iconColor=StatusBarPreferences.color(this);dateMode=StatusBarPreferences.date(this);
         if (state != null && ClockColorPolicy.valid(state.getInt("selection", 0))) selected = state.getInt("selection");
         client = new SystemUiGuardClient(this);
         ScrollView scroll = new ScrollView(this);
@@ -75,7 +80,14 @@ public final class ClockEditorActivity extends AppCompatActivity {
         MaterialButton custom = button("Custom color"); colors.addView(custom); custom.setOnClickListener(v -> customColor());
         saveStatus = text("Saved selection loaded.", 14, false); colors.addView(saveStatus);
         LinearLayout icons = card("Icons & battery");
-        icons.addView(text("Choose compatible icon appearance. Tint uses the clock color selected above when you press Enable. Battery keeps stock charge and warning colors.",14,false));
+        icons.addView(text("Choose compatible icon appearance. Status icons use their own saved color. Opacity follows stock animation alpha; 100% uses stock opacity. Battery keeps stock charge and warning colors.",14,false));
+        iconSelection=text("",16,true);icons.addView(iconSelection);iconPresets=new ChipGroup(this);iconPresets.setSingleSelection(true);icons.addView(iconPresets);
+        for(ClockColorPolicy.Preset preset:ClockColorPolicy.PRESETS){
+            Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setText(preset.name());chip.setTag(preset.color());chip.setCheckable(true);
+            GradientDrawable dot=new GradientDrawable();dot.setShape(GradientDrawable.OVAL);dot.setColor(preset.color());dot.setSize(dp(20),dp(20));chip.setChipIcon(dot);chip.setChipIconVisible(true);
+            chip.setOnClickListener(v->chooseIcon(preset.color()));iconPresets.addView(chip);statusControls.add(chip);
+        }
+        MaterialButton iconCustom=button("Custom status icon color");icons.addView(iconCustom);statusControls.add(iconCustom);iconCustom.setOnClickListener(v->customColor(true));redrawIcon();
         statusSwitch(icons,"Tint compatible status icons",StatusBarStyle.TINT);
         statusSwitch(icons,"Hide compatible status icons",StatusBarStyle.HIDE_SYSTEM);
         statusSwitch(icons,"Hide notification icons",StatusBarStyle.HIDE_NOTIFICATIONS);
@@ -83,6 +95,15 @@ public final class ClockEditorActivity extends AppCompatActivity {
         statusScale(icons,"Status icon size",systemScale,n->systemScale=n);
         statusScale(icons,"Notification icon size",notificationScale,n->notificationScale=n);
         statusScale(icons,"Battery size",batteryScale,n->batteryScale=n);
+        statusOpacity(icons,"Status icon opacity",systemOpacity,n->systemOpacity=n);
+        statusOpacity(icons,"Notification icon opacity",notificationOpacity,n->notificationOpacity=n);
+        statusOpacity(icons,"Battery opacity",batteryOpacity,n->batteryOpacity=n);
+        inventoryButton=button("Load individual status icons");icons.addView(inventoryButton);inventoryButton.setOnClickListener(v->{enabled(false);client.inventory(slots->{if(alive())showSlots(slots);},result->{if(alive()){enabled(true);saveStatus.setText(result);}});});
+        iconSlots=new LinearLayout(this);iconSlots.setOrientation(LinearLayout.VERTICAL);icons.addView(iconSlots);showSlots(java.util.List.of());
+        resetIcons=button("Reset icons & battery selections");icons.addView(resetIcons);resetIcons.setOnClickListener(v->{
+            enabled(false);worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),StatusBarStyle.STOCK);runOnUiThread(()->{if(alive()){if(saved){finish();startActivity(new android.content.Intent(this,ClockEditorActivity.class));}else {enabled(true);saveStatus.setText("Reset could not be saved.");}}});});
+        });
+        icons.addView(text("Reset clears draft icon/battery controls; press Enable afterward to apply stock icon/battery appearance while keeping your clock choices.",14,false));
         icons.addView(text("100% uses stock size. These controls apply to recognized top-status-bar views; other icons may keep their stock appearance. Press Enable to apply the entire saved style.",14,false));
         LinearLayout typography = card("Clock style");
         TextView sizeLabel = text("", 15, true); typography.addView(sizeLabel);
@@ -123,7 +144,12 @@ public final class ClockEditorActivity extends AppCompatActivity {
         });
         typography.addView(text("Seconds update using the stock clock while awake. They can use more power and status-bar space.", 14, false));
         typography.addView(text("Size follows your stock font scaling. Press Enable to apply your saved size and weight with the selected color.", 14, false));
-        LinearLayout controls = card("Clock customization");
+        typography.addView(text("Date beside clock",15,true));dateControl=new ChipGroup(this);dateControl.setSingleSelection(true);typography.addView(dateControl);
+        for(int i=0;i<ClockDatePolicy.LABELS.length;i++){final int value=i;Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setText(ClockDatePolicy.LABELS[i]);chip.setTag(i);chip.setCheckable(true);chip.setChecked(dateMode==i);dateControl.addView(chip);statusControls.add(chip);
+            chip.setOnClickListener(v->{dateMode=value;for(int n=0;n<dateControl.getChildCount();n++){Chip c=(Chip)dateControl.getChildAt(n);c.setChecked((Integer)c.getTag()==value);}worker.execute(()->{boolean saved=StatusBarPreferences.saveDate(getApplicationContext(),value);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Date selection saved. Press Enable to apply it.":"Date selection could not be saved.");});});});
+        }
+        typography.addView(text("Date keeps the stock time format and adds width. Smaller clock size may fit better.",14,false));
+        LinearLayout controls = card("Status-bar customization");
         controls.addView(text("Enable your selected color until you restore stock. Press Enable again to apply a different selection.", 15, false));
         controls.addView(text("Requires root and the updated recovery guard. Your enabled color resumes after wake or reboot. The guard Action independently turns it off.", 14, false));
         previewStatus = text(getSharedPreferences("recovery", MODE_PRIVATE).getBoolean("restart_recovery_stopped", false)
@@ -152,7 +178,20 @@ public final class ClockEditorActivity extends AppCompatActivity {
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
         swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
     }
-    private StatusBarStyle currentStatusBar() { return new StatusBarStyle(statusMask,systemScale,notificationScale,batteryScale); }
+    private StatusBarStyle currentStatusBar() { return new StatusBarStyle(statusMask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots); }
+    private void redrawIcon(){iconSelection.setText("Status icon color: "+ClockColorPolicy.hex(iconColor));iconSelection.setTextColor(iconColor);for(int n=0;n<iconPresets.getChildCount();n++){Chip c=(Chip)iconPresets.getChildAt(n);c.setChecked((Integer)c.getTag()==iconColor);}}
+    private void chooseIcon(int color){if(!ClockColorPolicy.valid(color))return;iconColor=color;redrawIcon();worker.execute(()->{boolean saved=StatusBarPreferences.saveColor(getApplicationContext(),color);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Icon color saved. Press Enable to apply it.":"Icon color could not be saved.");});});}
+    private void showSlots(java.util.List<String> live){
+        for(int n=0;n<iconSlots.getChildCount();n++)statusControls.remove(iconSlots.getChildAt(n));iconSlots.removeAllViews();java.util.Set<String> values=new java.util.TreeSet<>(live);values.addAll(hiddenSlots);
+        if(values.isEmpty()){iconSlots.addView(text("Load the live stock icon list to choose individual icons to hide.",14,false));return;}
+        for(String slot:values){var checkbox=new com.google.android.material.checkbox.MaterialCheckBox(this);checkbox.setText("Hide "+slot.replace('_',' '));checkbox.setChecked(hiddenSlots.contains(slot));iconSlots.addView(checkbox);statusControls.add(checkbox);
+            checkbox.setOnCheckedChangeListener((v,checked)->{if(checked){if(hiddenSlots.size()>=32&&!hiddenSlots.contains(slot)){checkbox.setChecked(false);saveStatus.setText("Choose at most 32 icon types.");return;}hiddenSlots.add(slot);}else hiddenSlots.remove(slot);saveStatusBar();});
+        }
+    }
+    private void statusOpacity(LinearLayout box,String title,int initial,java.util.function.IntConsumer selection){
+        TextView label=text(title+": "+initial+"%",15,true);box.addView(label);Slider slider=new Slider(this);slider.setValueFrom(25);slider.setValueTo(100);slider.setStepSize(5);slider.setValue(initial);box.addView(slider);statusControls.add(slider);
+        slider.addOnChangeListener((v,value,user)->{if(user){selection.accept((int)value);label.setText(title+": "+(int)value+"%");saveStatusBar();}});
+    }
     private void saveStatusBar() {
         final StatusBarStyle value=currentStatusBar();
         worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),value);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Status-bar selections saved. Press Enable to apply them.":"Status-bar selections could not be saved.");});});
@@ -200,11 +239,11 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private void enableColor() {
         enabled(false); final int requested = selected, requestedSize = sizePercent, requestedSpacing = spacing, requestedFamily = fontFamily; final boolean requestedBold = bold, requestedSeconds = seconds, requestedItalic = italic, requestedHidden = hidden;
-        final StatusBarStyle requestedBar = currentStatusBar();
+        final StatusBarStyle requestedBar = currentStatusBar(); final int requestedIconColor=iconColor,requestedDate=dateMode;
         long deadline = android.os.SystemClock.elapsedRealtime() + 8000;
         previewStatus.setText("Enabling clock color… Grant root access if asked.");
         worker.execute(() -> {
-            boolean allowed = StatusBarPreferences.save(getApplicationContext(), requestedBar) && ClockColorPreferences.saveHidden(getApplicationContext(), requestedHidden) && ClockColorPreferences.saveExtras(getApplicationContext(), requestedItalic, requestedSpacing, requestedFamily) && ClockColorPreferences.saveSeconds(getApplicationContext(), requestedSeconds) && ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && StatusBarPreferences.activate(getApplicationContext(), GuardReader.inspectEnabled(), requestedBar, requested) && RecoveryStore.allowEnabled(getApplicationContext());
+            boolean allowed = StatusBarPreferences.saveColor(getApplicationContext(),requestedIconColor) && StatusBarPreferences.saveDate(getApplicationContext(),requestedDate) && StatusBarPreferences.save(getApplicationContext(), requestedBar) && ClockColorPreferences.saveHidden(getApplicationContext(), requestedHidden) && ClockColorPreferences.saveExtras(getApplicationContext(), requestedItalic, requestedSpacing, requestedFamily) && ClockColorPreferences.saveSeconds(getApplicationContext(), requestedSeconds) && ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && StatusBarPreferences.activate(getApplicationContext(), GuardReader.inspectEnabled(), requestedBar, requestedIconColor,requestedDate) && RecoveryStore.allowEnabled(getApplicationContext());
             runOnUiThread(() -> {
                 if (!alive()) return;
                 if (!allowed) { enabled(true); previewStatus.setText("Could not enable. Check root access, updated guard module and Vector activation."); return; }
@@ -216,16 +255,17 @@ public final class ClockEditorActivity extends AppCompatActivity {
         enabled(false);
         client.preview(operation, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
     }
-    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); sizeControl.setEnabled(value); weightControl.setEnabled(value); stockSizeControl.setEnabled(value); secondsControl.setEnabled(value); italicControl.setEnabled(value); spacingControl.setEnabled(value); hideControl.setEnabled(value); for(View control:statusControls) control.setEnabled(value); for (int n=0;n<fontControl.getChildCount();n++) fontControl.getChildAt(n).setEnabled(value); }
+    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); sizeControl.setEnabled(value); weightControl.setEnabled(value); stockSizeControl.setEnabled(value); secondsControl.setEnabled(value); italicControl.setEnabled(value); spacingControl.setEnabled(value); hideControl.setEnabled(value); inventoryButton.setEnabled(value);resetIcons.setEnabled(value); for(View control:statusControls) control.setEnabled(value); for (int n=0;n<fontControl.getChildCount();n++) fontControl.getChildAt(n).setEnabled(value); }
     private boolean alive() { return !closed && !isFinishing() && !isDestroyed(); }
-    private void customColor() {
+    private void customColor(){customColor(false);}
+    private void customColor(boolean forIcons) {
         LinearLayout picker = new LinearLayout(this); picker.setOrientation(LinearLayout.VERTICAL); picker.setPadding(dp(24), dp(8), dp(24), dp(8));
         TextView sample = text("12:34", 36, true); picker.addView(sample);
         TextInputLayout field = new TextInputLayout(this); field.setHint("Hex color · RRGGBB");
         TextInputEditText hex = new TextInputEditText(this); hex.setSingleLine(true); hex.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         field.addView(hex); picker.addView(field);
         Slider[] sliders = new Slider[3]; String[] names = {"Red", "Green", "Blue"};
-        int[] draft = {selected}; boolean[] updating = {false};
+        int[] draft = {forIcons?iconColor:selected}; boolean[] updating = {false};
         for (int i=0;i<3;i++) {
             picker.addView(text(names[i],14,true)); Slider slider = new Slider(this); sliders[i]=slider;
             slider.setValueFrom(0); slider.setValueTo(255); slider.setStepSize(1); picker.addView(slider);
@@ -256,12 +296,12 @@ public final class ClockEditorActivity extends AppCompatActivity {
         });
         update.run();
         ScrollView pickerScroll = new ScrollView(this); pickerScroll.addView(picker);
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle("Custom clock color")
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(forIcons?"Custom status icon color":"Custom clock color")
             .setView(pickerScroll).setNegativeButton("Cancel", null).setPositiveButton("Use color", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(-1).setOnClickListener(v -> {
             Integer parsed=ClockColorPolicy.parse(hex.getText()==null ? null : hex.getText().toString());
             if(parsed==null) {field.setError("Enter six hex digits.");return;}
-            choose(parsed); dialog.dismiss();
+            if(forIcons)chooseIcon(parsed);else choose(parsed); dialog.dismiss();
         })); dialog.show();
     }
     private LinearLayout card(String title) {

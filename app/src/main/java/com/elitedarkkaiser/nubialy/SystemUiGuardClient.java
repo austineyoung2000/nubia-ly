@@ -15,6 +15,7 @@ public final class SystemUiGuardClient {
     private final Context context;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Consumer<String> callback;
+    private Consumer<java.util.List<String>> inventoryCallback;
     private Runnable timeout;
     private long generation;
     public SystemUiGuardClient(Context context) { this.context = context.getApplicationContext(); }
@@ -28,9 +29,11 @@ public final class SystemUiGuardClient {
         if (!ClockColorPolicy.valid(color)) { result.accept("Enable blocked: choose an opaque color."); return; }
         request(true, "clock_enable", color, result);
     }
-    private void request(boolean preview, String operation, Integer color, Consumer<String> result) {
+    public void inventory(Consumer<java.util.List<String>> slots,Consumer<String> result){request(true,"inventory",null,result,slots);}
+    private void request(boolean preview, String operation, Integer color, Consumer<String> result) {request(preview,operation,color,result,null);}
+    private void request(boolean preview, String operation, Integer color, Consumer<String> result,Consumer<java.util.List<String>> slots) {
         cancel();
-        callback = result;
+        callback = result; inventoryCallback=slots;
         long request = generation;
         long started = SystemClock.elapsedRealtime();
         String nonce = UUID.randomUUID().toString();
@@ -57,6 +60,15 @@ public final class SystemUiGuardClient {
                         finish(request, "System UI reply is stale or from another app version. Access unverified.");
                         return;
                     }
+                    if (preview && "inventory".equals(operation)) {
+                        java.util.ArrayList<?> values=extras.getStringArrayList("statusbar_slots");
+                        if(!"INVENTORY".equals(extras.getString("phase"))||values==null||values.size()>32||!values.stream().allMatch(value->value instanceof String&&StatusBarStyle.slot((String)value))){
+                            finish(request,"No valid live icon list. Verify Vector scope and reboot.");return;
+                        }
+                        java.util.ArrayList<String> names=new java.util.ArrayList<>();for(Object value:values)names.add((String)value);
+                        if(inventoryCallback!=null)inventoryCallback.accept(java.util.List.copyOf(names));
+                        finish(request,values.isEmpty()?"No compatible status icons are currently available.":"Live status icon list loaded.");return;
+                    }
                     if (preview) {
                         String phase = extras.getString("phase", "UNKNOWN");
                         long deadline = extras.getLong("deadline_ms", 0);
@@ -66,7 +78,7 @@ public final class SystemUiGuardClient {
                             finish(request, "System UI color reply did not match the requested selection. Preview unverified; restore clock color."); return;
                         }
                         if (extras.getBoolean("enabled_mode", false)) {
-                            finish(request, "Clock color: " + ("ACTIVE".equals(phase) ? "Enabled" : "Stopped") + ".\n"
+                            finish(request, "Status-bar style: " + ("ACTIVE".equals(phase) ? "Enabled" : "Stopped") + ".\n"
                                 + ("ACTIVE".equals(phase) ? "Stays enabled until you restore stock or stop the guard." : extras.getString("reason", "Not enabled."))
                                 + "\n" + extras.getString("clock_capture", "Restoration unverified.")); return;
                         }
@@ -92,14 +104,14 @@ public final class SystemUiGuardClient {
     private void finish(long request, String message) {
         if (request != generation || callback == null) return;
         Consumer<String> current = callback;
-        callback = null;
+        callback = null; inventoryCallback=null;
         if (timeout != null) handler.removeCallbacks(timeout);
         timeout = null;
         current.accept(message);
     }
     public void cancel() {
         generation++;
-        callback = null;
+        callback = null; inventoryCallback=null;
         if (timeout != null) handler.removeCallbacks(timeout);
         timeout = null;
     }
