@@ -34,7 +34,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private int selected, sizePercent;
     private boolean bold, seconds, italic;
     private int spacing, fontFamily;
-    private int statusMask, systemScale, notificationScale, batteryScale,systemOpacity,notificationOpacity,batteryOpacity,iconColor,dateMode,systemTransform,notificationTransform,batteryTransform;
+    private int statusMask, systemScale, notificationScale, batteryScale,systemOpacity,notificationOpacity,batteryOpacity,iconColor,dateMode,systemTransform,notificationTransform,batteryTransform,fanAppearance,pumpAppearance,refreshAppearance;
     private final java.util.Set<String> hiddenSlots=new java.util.TreeSet<>();
     private LinearLayout iconSlots;
     private ChipGroup iconPresets;
@@ -53,7 +53,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE) || Build.VERSION.SDK_INT != 36) { finish(); return; }
         selected = ClockColorPreferences.read(this);
         sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this); seconds = ClockColorPreferences.seconds(this); italic = ClockColorPreferences.italic(this); spacing = ClockColorPreferences.spacing(this); fontFamily = ClockColorPreferences.family(this); hidden = ClockColorPreferences.hidden(this);
-        StatusBarStyle bar = StatusBarPreferences.read(this); statusMask = bar.mask(); systemScale = bar.systemScale(); notificationScale = bar.notificationScale(); batteryScale = bar.batteryScale();systemOpacity=bar.systemOpacity();notificationOpacity=bar.notificationOpacity();batteryOpacity=bar.batteryOpacity();systemTransform=bar.systemTransform();notificationTransform=bar.notificationTransform();batteryTransform=bar.batteryTransform();hiddenSlots.addAll(bar.hiddenSlots());iconColor=StatusBarPreferences.color(this);dateMode=StatusBarPreferences.date(this);
+        StatusBarStyle bar = StatusBarPreferences.read(this); statusMask = bar.mask(); systemScale = bar.systemScale(); notificationScale = bar.notificationScale(); batteryScale = bar.batteryScale();systemOpacity=bar.systemOpacity();notificationOpacity=bar.notificationOpacity();batteryOpacity=bar.batteryOpacity();systemTransform=bar.systemTransform();notificationTransform=bar.notificationTransform();batteryTransform=bar.batteryTransform();fanAppearance=bar.fanAppearance();pumpAppearance=bar.pumpAppearance();refreshAppearance=bar.refreshAppearance();hiddenSlots.addAll(bar.hiddenSlots());iconColor=StatusBarPreferences.color(this);dateMode=StatusBarPreferences.date(this);
         if (state != null && ClockColorPolicy.valid(state.getInt("selection", 0))) selected = state.getInt("selection");
         client = new SystemUiGuardClient(this);
         ScrollView scroll = new ScrollView(this);
@@ -92,7 +92,6 @@ public final class ClockEditorActivity extends AppCompatActivity {
         statusSwitch(icons,"Hide mobile service icon",StatusBarStyle.HIDE_SYSTEM);
         statusSwitch(icons,"Hide notification icons",StatusBarStyle.HIDE_NOTIFICATIONS);
         statusSwitch(icons,"Hide battery",StatusBarStyle.HIDE_BATTERY);
-        statusSwitch(icons,"Hide cooling pump icon",StatusBarStyle.HIDE_PUMP);
         statusScale(icons,"Mobile service icon size",systemScale,n->systemScale=n);
         statusScale(icons,"Notification icon size",notificationScale,n->notificationScale=n);
         statusScale(icons,"Battery size",batteryScale,n->batteryScale=n);
@@ -182,15 +181,23 @@ public final class ClockEditorActivity extends AppCompatActivity {
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
         swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
     }
-    private StatusBarStyle currentStatusBar() { return new StatusBarStyle(statusMask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots,systemTransform,notificationTransform,batteryTransform); }
+    private StatusBarStyle currentStatusBar() { return new StatusBarStyle(statusMask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots,systemTransform,notificationTransform,batteryTransform,fanAppearance,pumpAppearance,refreshAppearance); }
     private void redrawIcon(){iconSelection.setText("Mobile service icon color: "+ClockColorPolicy.hex(iconColor));iconSelection.setTextColor(iconColor);for(int n=0;n<iconPresets.getChildCount();n++){Chip c=(Chip)iconPresets.getChildAt(n);c.setChecked((Integer)c.getTag()==iconColor);}}
     private void chooseIcon(int color){if(!ClockColorPolicy.valid(color))return;iconColor=color;redrawIcon();worker.execute(()->{boolean saved=StatusBarPreferences.saveColor(getApplicationContext(),color);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Icon color saved. Press Enable to apply it.":"Icon color could not be saved.");});});}
     private void showSlots(java.util.List<String> live){
-        for(int n=0;n<iconSlots.getChildCount();n++)statusControls.remove(iconSlots.getChildAt(n));iconSlots.removeAllViews();java.util.Set<String> values=new java.util.TreeSet<>(live);values.addAll(hiddenSlots);
-        if(values.isEmpty()){iconSlots.addView(text("Load the live stock icon list to choose individual icons to hide.",14,false));return;}
+        for(int n=0;n<iconSlots.getChildCount();n++)removeSlotControls(iconSlots.getChildAt(n));iconSlots.removeAllViews();java.util.Set<String> values=new java.util.TreeSet<>(live);values.addAll(hiddenSlots);
+        indicatorHide("Hide cooling fan icon",StatusBarStyle.HIDE_FAN);
+        indicatorHide("Hide cooling pump icon",StatusBarStyle.HIDE_PUMP);
+        indicatorHide("Hide refresh-rate icon",StatusBarStyle.HIDE_REFRESH);
+        if(values.isEmpty())iconSlots.addView(text("Load the live stock icon list to choose additional individual icons to hide.",14,false));
         for(String slot:values){var checkbox=new com.google.android.material.checkbox.MaterialCheckBox(this);checkbox.setText("Hide "+(slot.equals("alarm_clock")?"alarm indicator":slot.replace('_',' ')));checkbox.setChecked(hiddenSlots.contains(slot));iconSlots.addView(checkbox);statusControls.add(checkbox);
             checkbox.setOnCheckedChangeListener((v,checked)->{if(checked){if(hiddenSlots.size()>=32&&!hiddenSlots.contains(slot)){checkbox.setChecked(false);saveStatus.setText("Choose at most 32 icon types.");return;}hiddenSlots.add(slot);}else hiddenSlots.remove(slot);saveStatusBar();});
         }
+        MaterialButton appearance=button("Fan, pump & refresh-rate appearance");iconSlots.addView(appearance);statusControls.add(appearance);
+        LinearLayout details=new LinearLayout(this);details.setOrientation(LinearLayout.VERTICAL);details.setVisibility(View.GONE);iconSlots.addView(details);
+        appearance.setOnClickListener(v->{boolean open=details.getVisibility()!=View.VISIBLE;details.setVisibility(open?View.VISIBLE:View.GONE);appearance.setText(open?"Close indicator appearance":"Fan, pump & refresh-rate appearance");});
+        details.addView(text("Indicator size and opacity follow stock scaling and animation. Hidden indicators stay hidden. These controls only change appearance; cooling and refresh-rate operation stay unchanged.",14,false));
+        indicatorAppearance(details,"Cooling fan",0);indicatorAppearance(details,"Cooling pump",1);indicatorAppearance(details,"Refresh rate",2);
     }
     private void statusOpacity(LinearLayout box,String title,int initial,java.util.function.IntConsumer selection){
         TextView label=text(title+": "+initial+"%",15,true);box.addView(label);Slider slider=new Slider(this);slider.setValueFrom(25);slider.setValueTo(100);slider.setStepSize(5);slider.setValue(initial);box.addView(slider);statusControls.add(slider);
@@ -345,6 +352,19 @@ public final class ClockEditorActivity extends AppCompatActivity {
                 label.setText(labelText+": "+selected+unit);saveStatusBar();
             }});
         }
+    }
+
+    private void removeSlotControls(View view){statusControls.remove(view);if(view instanceof android.view.ViewGroup group)for(int i=0;i<group.getChildCount();i++)removeSlotControls(group.getChildAt(i));}
+    private void indicatorHide(String title,int flag){
+        var check=new com.google.android.material.checkbox.MaterialCheckBox(this);check.setText(title);check.setChecked((statusMask&flag)!=0);iconSlots.addView(check);statusControls.add(check);
+        check.setOnCheckedChangeListener((view,selected)->{statusMask=selected?statusMask|flag:statusMask&~flag;saveStatusBar();});
+    }
+    private int indicatorSelection(int category){return category==0?fanAppearance:category==1?pumpAppearance:refreshAppearance;}
+    private void saveIndicator(int category,int scale,int opacity){int value=StatusBarStyle.appearance(scale,opacity);if(category==0)fanAppearance=value;else if(category==1)pumpAppearance=value;else refreshAppearance=value;}
+    private void indicatorAppearance(LinearLayout box,String title,int category){
+        int value=indicatorSelection(category);
+        statusScale(box,title+" icon size",StatusBarStyle.indicatorScale(value),n->saveIndicator(category,n,StatusBarStyle.indicatorOpacity(indicatorSelection(category))));
+        statusOpacity(box,title+" icon opacity",StatusBarStyle.indicatorOpacity(value),n->saveIndicator(category,StatusBarStyle.indicatorScale(indicatorSelection(category)),n));
     }
 
 }

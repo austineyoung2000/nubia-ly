@@ -151,13 +151,15 @@ final class StatusBarBackend {
             ViewParent parent=current.getParent();current=parent instanceof View v?v:null;
         }return null;
     }
-    private static boolean pumpIcon(View view){
-        // The uploaded NX809J feature creates this ImageView inside PhoneStatusBarView.
-        // Resolve by package-qualified name rather than firmware-specific numeric ID.
-        if(!(view instanceof ImageView)||view.getId()==View.NO_ID)return false;
-        try{return "com.android.systemui".equals(view.getResources().getResourcePackageName(view.getId()))
-            &&"liquid_cooling_view".equals(view.getResources().getResourceEntryName(view.getId()));}
-        catch(android.content.res.Resources.NotFoundException absent){return false;}
+    private static int vendorIndicator(View view){
+        // The uploaded NX809J feature resolves these ImageViews under PhoneStatusBarView.
+        if(!(view instanceof ImageView)||view.getId()==View.NO_ID)return 0;
+        try{
+            if(!"com.android.systemui".equals(view.getResources().getResourcePackageName(view.getId())))return 0;
+            return switch(view.getResources().getResourceEntryName(view.getId())){
+                case "cooling_fan_view"->1;case "liquid_cooling_view"->2;case "refresh_rate_view"->3;default->0;
+            };
+        }catch(android.content.res.Resources.NotFoundException absent){return 0;}
     }
     private static void scan(ViewGroup root){
         ArrayDeque<View> queue=new ArrayDeque<>();queue.add(root);int count=0;
@@ -171,19 +173,24 @@ final class StatusBarBackend {
         if(!active||writing||failed||!v.isAttachedToWindow())return;
         String name=v.getClass().getName();
         ViewGroup root=owner(v);if(root==null)return;
-        boolean pump=pumpIcon(v);
-        if(!name.equals(ICON)&&!name.equals(BATTERY)&&!pump)return;
+        int indicator=vendorIndicator(v);
+        if(!name.equals(ICON)&&!name.equals(BATTERY)&&indicator==0){if(states.containsKey(v))restore(v);return;}
         try {
             boolean notification=name.equals(ICON)&&Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification"));
             String slot=name.equals(ICON)&&!notification?(String)XposedHelpers.callMethod(v,"getSlot"):"";
             // Some stock icons have no named slot. Keep bulk styling, but exclude them
             // from selective hiding and never pass null to immutable-set membership.
             if(!StatusBarStyle.slot(slot))slot="";
+            if(indicator!=0)slot="vendor:"+indicator;
             State s=states.get(v);
             if(s!=null&&(s.root.get()!=root||s.notification!=notification||!Objects.equals(s.slot,slot))){if(!restore(v))return;s=null;}
             if(s==null){
                 int scale,opacity,transform;boolean hide,tint=false;
-                if(pump){transform=0;scale=opacity=100;hide=style.selected(StatusBarStyle.HIDE_PUMP);}
+                if(indicator!=0){
+                    int appearance=indicator==1?style.fanAppearance():indicator==2?style.pumpAppearance():style.refreshAppearance();
+                    transform=0;scale=StatusBarStyle.indicatorScale(appearance);opacity=StatusBarStyle.indicatorOpacity(appearance);
+                    hide=style.selected(indicator==1?StatusBarStyle.HIDE_FAN:indicator==2?StatusBarStyle.HIDE_PUMP:StatusBarStyle.HIDE_REFRESH);
+                }
                 else if(name.equals(BATTERY)){transform=style.batteryTransform();scale=style.batteryScale();opacity=style.batteryOpacity();hide=style.selected(StatusBarStyle.HIDE_BATTERY);}
                 else {
                     transform=notification?style.notificationTransform():style.systemTransform();

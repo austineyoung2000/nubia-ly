@@ -2,18 +2,24 @@ package com.elitedarkkaiser.nubialy;
 import java.util.*;
 /** Fixed, bounded view styling. No commands or paths are configuration. */
 public record StatusBarStyle(int mask, int systemScale, int notificationScale, int batteryScale,
-        int systemOpacity, int notificationOpacity, int batteryOpacity, Set<String> hiddenSlots, int systemTransform, int notificationTransform, int batteryTransform) {
+        int systemOpacity, int notificationOpacity, int batteryOpacity, Set<String> hiddenSlots, int systemTransform, int notificationTransform, int batteryTransform, int fanAppearance, int pumpAppearance, int refreshAppearance) {
     public StatusBarStyle { hiddenSlots=hiddenSlots==null?Set.of("invalid\n"):Set.copyOf(hiddenSlots); }
+    public StatusBarStyle(int mask,int systemScale,int notificationScale,int batteryScale,int systemOpacity,int notificationOpacity,int batteryOpacity,Set<String> hiddenSlots,int systemTransform,int notificationTransform,int batteryTransform){this(mask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots,systemTransform,notificationTransform,batteryTransform,0,0,0);}
     public StatusBarStyle(int mask,int systemScale,int notificationScale,int batteryScale,int systemOpacity,int notificationOpacity,int batteryOpacity,Set<String> hiddenSlots){this(mask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots,0,0,0);}
     public StatusBarStyle(int mask,int systemScale,int notificationScale,int batteryScale){this(mask,systemScale,notificationScale,batteryScale,100,100,100,Set.of());}
-    public static final int TINT=1, HIDE_SYSTEM=2, HIDE_NOTIFICATIONS=4, HIDE_BATTERY=8, HIDE_PUMP=16;
+    public static final int TINT=1, HIDE_SYSTEM=2, HIDE_NOTIFICATIONS=4, HIDE_BATTERY=8, HIDE_PUMP=16, HIDE_FAN=32, HIDE_REFRESH=64;
     public static final StatusBarStyle STOCK = new StatusBarStyle(0,100,100,100);
-    public boolean valid() { return mask >= 0 && mask <= 31 && scale(systemScale) && scale(notificationScale) && scale(batteryScale)
+    public boolean valid() { return mask >= 0 && mask <= 127 && scale(systemScale) && scale(notificationScale) && scale(batteryScale)
+        && appearanceValid(fanAppearance)&&appearanceValid(pumpAppearance)&&appearanceValid(refreshAppearance)
         && transformValid(systemTransform)&&transformValid(notificationTransform)&&transformValid(batteryTransform)
         && opacity(systemOpacity)&&opacity(notificationOpacity)&&opacity(batteryOpacity)&&hiddenSlots.size()<=32&&hiddenSlots.stream().allMatch(StatusBarStyle::slot); }
     public boolean selected(int flag) { return (mask & flag) != 0; }
     public boolean any() { return mask != 0 || systemScale != 100 || notificationScale != 100 || batteryScale != 100
-        ||systemTransform!=0||notificationTransform!=0||batteryTransform!=0||systemOpacity!=100||notificationOpacity!=100||batteryOpacity!=100||!hiddenSlots.isEmpty(); }
+        ||fanAppearance!=0||pumpAppearance!=0||refreshAppearance!=0||systemTransform!=0||notificationTransform!=0||batteryTransform!=0||systemOpacity!=100||notificationOpacity!=100||batteryOpacity!=100||!hiddenSlots.isEmpty(); }
+    public static int indicatorScale(int value){return 100+(byte)value;}
+    public static int indicatorOpacity(int value){return 100+(byte)(value>>8);}
+    public static boolean appearanceValid(int value){return (value&0xffff0000)==0&&scale(indicatorScale(value))&&opacity(indicatorOpacity(value));}
+    public static int appearance(int scale,int opacity){if(!scale(scale)||!opacity(opacity))throw new IllegalArgumentException();return ((scale-100)&255)|(((opacity-100)&255)<<8);}
     public static int horizontal(int transform){return (byte)transform;}
     public static int vertical(int transform){return (byte)(transform>>8);}
     public static int rotation(int transform){return (byte)(transform>>16);}

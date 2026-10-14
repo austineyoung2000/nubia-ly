@@ -191,3 +191,8 @@ Eight new date formats join the existing four active formats. Separate controls 
 ### Status-bar position batch — 0.1.22
 
 A dedicated Hide cooling pump icon switch and nine independent controls adjust horizontal offset, vertical offset and rotation for compatible status icons, notification icons and battery. Offsets are bounded to ±8 dp and rotation to ±20°, relative to current stock properties. Applied selections remain identity-bound; existing guards restore the latest stock properties. The editor labels the shared indicator controls “Mobile service icon” and explains that other compatible system indicators can share them. See [combined phone checklist](docs/STATUSBAR_POSITION_BATCH.md). The user confirms the batch works, including screenshots of offsets and rotation; detailed pump-state and reboot results were not supplied.
+
+
+### Vendor indicator batch — 0.1.23
+
+Individual fan, pump and refresh-rate hide options are grouped under Load individual system status icons, alongside the live alarm and other icon entries. A collapsed Fan, pump & refresh-rate appearance section contains six independent size/opacity controls. Existing pump hiding survives the move. All three vendor views are identified from the uploaded NX809J stock System UI and stay scoped to PhoneStatusBarView; no cooling settings, hardware controls or display-rate settings are written. See [combined checklist](docs/VENDOR_INDICATOR_BATCH.md). Phone results are pending.
