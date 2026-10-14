@@ -25,6 +25,30 @@ public final class ClockColorPreferences {
     public static boolean saveSeconds(Context context, boolean seconds) {
         return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).edit().putBoolean("seconds", seconds).commit();
     }
+    public static boolean italic(Context context) {
+        try { return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).getBoolean("italic", false); }
+        catch (ClassCastException invalid) { return false; }
+    }
+    public static int spacing(Context context) {
+        try { int v = context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).getInt("spacing", 0);
+            return ClockStylePolicy.validSpacing(v) ? v : 0; }
+        catch (ClassCastException invalid) { return 0; }
+    }
+    public static int family(Context context) {
+        try { int v = context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).getInt("family", 0); return ClockStylePolicy.validFamily(v) ? v : 0; }
+        catch (ClassCastException invalid) { return 0; }
+    }
+    public static boolean hidden(Context context) {
+        try { return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).getBoolean("hidden", false); }
+        catch (ClassCastException invalid) { return false; }
+    }
+    public static boolean saveHidden(Context context, boolean hidden) {
+        return context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE).edit().putBoolean("hidden", hidden).commit();
+    }
+    public static boolean saveExtras(Context context, boolean italic, int spacing, int family) {
+        return ClockStylePolicy.validSpacing(spacing) && ClockStylePolicy.validFamily(family) && context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE)
+            .edit().putBoolean("italic", italic).putInt("spacing", spacing).putInt("family", family).commit();
+    }
     public static boolean saveStyle(Context context, int percent, boolean bold) {
         return ClockStylePolicy.valid(percent) && context.getSharedPreferences("clock_editor", Context.MODE_PRIVATE)
             .edit().putInt("size_percent", percent).putBoolean("bold", bold).commit();

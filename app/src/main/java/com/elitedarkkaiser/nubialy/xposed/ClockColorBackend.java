@@ -28,8 +28,10 @@ final class ClockColorBackend {
     static int color() { return selectedColor; }
     static boolean begin(long until, int color) { return begin(until, color, 0, false); }
     static boolean begin(long until, int color, int size, boolean bold) { return begin(until, color, size, bold, false); }
-    static boolean begin(long until, int color, int size, boolean bold, boolean seconds) {
-        if (!ClockColorPolicy.valid(color) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.valid(size)) return false;
+    static boolean begin(long until, int color, int size, boolean bold, boolean seconds) { return begin(until, color, size, bold, seconds, false, 0); }
+    static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing) { return begin(until, color, size, bold, seconds, italic, spacing, 0, false); }
+    static boolean begin(long until, int color, int size, boolean bold, boolean seconds, boolean italic, int spacing, int family, boolean hidden) {
+        if (!ClockColorPolicy.valid(color) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.valid(size) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.validSpacing(spacing) || !com.elitedarkkaiser.nubialy.ClockStylePolicy.validFamily(family)) return false;
         end();
         if (failed || !states.isEmpty() || until <= SystemClock.elapsedRealtime()
                 || until - SystemClock.elapsedRealtime() > 30000) return false;
@@ -67,7 +69,7 @@ final class ClockColorBackend {
             };
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTextColor", int.class, callback));
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTextColor", ColorStateList.class, callback));
-            ClockStyleBackend.begin(size, bold); ClockSecondsBackend.begin(seconds);
+            ClockStyleBackend.begin(size, bold, italic, spacing, family); ClockSecondsBackend.begin(seconds); ClockVisibilityBackend.begin(hidden);
             active = true;
             for (TextView view : ClockCaptureBackend.attachedClocks()) if (view.isAttachedToWindow()) track(view);
             if (!active || applied == 0) { end(); message = "No eligible attached clock; preview blocked."; return false; }
@@ -78,7 +80,7 @@ final class ClockColorBackend {
         if (!active || failed || writing || Looper.myLooper() != Looper.getMainLooper()) return;
         if (SystemClock.elapsedRealtime() >= deadline) { end(); return; }
         if (states.containsKey(view)) {
-            try { ClockStyleBackend.track(view); ClockSecondsBackend.track(view); } catch (Throwable unavailable) { abort("Clock typography reapplication failed."); return; }
+            try { ClockStyleBackend.track(view); ClockSecondsBackend.track(view); ClockVisibilityBackend.track(view); } catch (Throwable unavailable) { abort("Clock typography reapplication failed."); return; }
             // Reassert after the inspected clock callbacks if an inherited setter was bypassed.
             if (view.getCurrentTextColor() != selectedColor) {
                 states.get(view).stockWrite(view.getTextColors());
@@ -109,7 +111,7 @@ final class ClockColorBackend {
     }
     private static void paint(TextView view) {
         writing = true;
-        try { view.setTextColor(selectedColor); ClockStyleBackend.track(view); ClockSecondsBackend.track(view); } finally { writing = false; }
+        try { view.setTextColor(selectedColor); ClockStyleBackend.track(view); ClockSecondsBackend.track(view); ClockVisibilityBackend.track(view); } finally { writing = false; }
     }
     static void detach(TextView view) { if (states.containsKey(view)) restore(view); }
     private static void restore(TextView view) {
@@ -118,7 +120,7 @@ final class ClockColorBackend {
         try {
             writing = true;
             view.setTextColor(state.target());
-            if (!ClockStyleBackend.restore(view) || !ClockSecondsBackend.restore(view)) throw new IllegalStateException();
+            if (!ClockStyleBackend.restore(view) || !ClockSecondsBackend.restore(view) || !ClockVisibilityBackend.restore(view)) throw new IllegalStateException();
             if (!view.getTextColors().equals(state.target())) throw new IllegalStateException();
             state.restored(); states.remove(view); restored++;
         } catch (Throwable unavailable) { failed = true; message = "Clock restoration incomplete. Disable nubia-ly in Vector and reboot."; }
@@ -128,13 +130,13 @@ final class ClockColorBackend {
         generation++; active = false;
         for (TextView view : new ArrayList<>(states.keySet())) restore(view);
         for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
-        hooks.clear(); if (!ClockStyleBackend.end()) failed = true; if (!ClockSecondsBackend.end()) failed = true; deadline = 0;
+        hooks.clear(); if (!ClockStyleBackend.end()) failed = true; if (!ClockSecondsBackend.end()) failed = true; if (!ClockVisibilityBackend.end()) failed = true; deadline = 0;
         if (!failed && applied > 0) message = "Latest stock clock colors restored and read back.";
     }
     private static void abort(String reason) {
         if (Looper.myLooper() != Looper.getMainLooper()) { main.post(() -> abort(reason)); return; }
         end(); failed = true; message = reason + " Preview blocked; check restored count. Disable nubia-ly in Vector and reboot if incomplete.";
     }
-    static boolean healthy() { return active && !failed && ClockStyleBackend.healthy() && ClockSecondsBackend.healthy() && ClockCaptureBackend.available(); }
-    static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "; dark updates kept: " + darkReapplications + ". " + ClockStyleBackend.status() + " " + ClockSecondsBackend.status(); }
+    static boolean healthy() { return active && !failed && ClockStyleBackend.healthy() && ClockSecondsBackend.healthy() && ClockVisibilityBackend.healthy() && ClockCaptureBackend.available(); }
+    static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "; dark updates kept: " + darkReapplications + ". " + ClockStyleBackend.status() + " " + ClockSecondsBackend.status() + " " + ClockVisibilityBackend.status(); }
 }

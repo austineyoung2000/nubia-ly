@@ -32,14 +32,20 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private MaterialButton stockSizeControl;
     private com.google.android.material.materialswitch.MaterialSwitch secondsControl;
     private int selected, sizePercent;
-    private boolean bold, seconds;
+    private boolean bold, seconds, italic;
+    private int spacing, fontFamily;
+    private boolean hidden;
+    private ChipGroup fontControl;
+    private com.google.android.material.materialswitch.MaterialSwitch hideControl;
+    private com.google.android.material.materialswitch.MaterialSwitch italicControl;
+    private Slider spacingControl;
     private long saveGeneration;
     private boolean closed;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE) || Build.VERSION.SDK_INT != 36) { finish(); return; }
         selected = ClockColorPreferences.read(this);
-        sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this); seconds = ClockColorPreferences.seconds(this);
+        sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this); seconds = ClockColorPreferences.seconds(this); italic = ClockColorPreferences.italic(this); spacing = ClockColorPreferences.spacing(this); fontFamily = ClockColorPreferences.family(this); hidden = ClockColorPreferences.hidden(this);
         if (state != null && ClockColorPolicy.valid(state.getInt("selection", 0))) selected = state.getInt("selection");
         client = new SystemUiGuardClient(this);
         ScrollView scroll = new ScrollView(this);
@@ -76,6 +82,25 @@ public final class ClockEditorActivity extends AppCompatActivity {
         com.google.android.material.materialswitch.MaterialSwitch weight = new com.google.android.material.materialswitch.MaterialSwitch(this);
         weightControl = weight; weight.setText("Bold clock"); weight.setChecked(bold); typography.addView(weight);
         weight.setOnCheckedChangeListener((v, checked) -> { bold = checked; saveStyle(); });
+        typography.addView(text("Clock font", 15, true));
+        fontControl = new ChipGroup(this); fontControl.setSingleSelection(true); typography.addView(fontControl);
+        String[] fonts = {"Stock", "Sans serif", "Serif", "Monospace"};
+        for (int i = 0; i < fonts.length; i++) {
+            final int font = i; Chip chip = new Chip(this); chip.setId(View.generateViewId()); chip.setText(fonts[i]); chip.setTag(i); chip.setCheckable(true); chip.setChecked(fontFamily == i);
+            chip.setOnClickListener(v -> { fontFamily = font; for(int n=0;n<fontControl.getChildCount();n++){Chip c=(Chip)fontControl.getChildAt(n);c.setChecked((Integer)c.getTag()==font);} saveExtras(); }); fontControl.addView(chip);
+        }
+        hideControl = new com.google.android.material.materialswitch.MaterialSwitch(this); hideControl.setText("Hide status-bar clock"); hideControl.setChecked(hidden); typography.addView(hideControl);
+        hideControl.setOnCheckedChangeListener((v, checked) -> { hidden = checked; final boolean requested = checked;
+            worker.execute(() -> { boolean saved = ClockColorPreferences.saveHidden(getApplicationContext(), requested); runOnUiThread(() -> { if(alive()) saveStatus.setText(saved ? "Visibility saved. Press Enable to apply it." : "Visibility could not be saved."); }); }); });
+        italicControl = new com.google.android.material.materialswitch.MaterialSwitch(this);
+        italicControl.setText("Italic clock"); italicControl.setChecked(italic); typography.addView(italicControl);
+        italicControl.setOnCheckedChangeListener((v, checked) -> { italic = checked; saveExtras(); });
+        TextView spacingLabel = text("", 15, true); typography.addView(spacingLabel);
+        spacingControl = new Slider(this); spacingControl.setValueFrom(-5); spacingControl.setValueTo(15); spacingControl.setStepSize(1);
+        spacingControl.setValue(spacing); typography.addView(spacingControl);
+        Runnable spacingText = () -> spacingLabel.setText(spacing == 0 ? "Letter spacing: Stock" : "Letter spacing: " + String.format(java.util.Locale.ROOT, "%+.2f em", spacing / 100f)); spacingText.run();
+        spacingControl.addOnChangeListener((slider, value, fromUser) -> { if (fromUser) { spacing = (int)value; spacingText.run(); saveExtras(); } });
+        typography.addView(text("Letter spacing adjusts the gaps between clock characters relative to stock. Zero uses stock spacing.", 14, false));
         secondsControl = new com.google.android.material.materialswitch.MaterialSwitch(this);
         secondsControl.setText("Show seconds"); secondsControl.setChecked(seconds); typography.addView(secondsControl);
         secondsControl.setOnCheckedChangeListener((v, checked) -> {
@@ -110,15 +135,23 @@ public final class ClockEditorActivity extends AppCompatActivity {
             });
         });
         redraw();
+        swatch.setLetterSpacing(spacing / 100f);
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
-        swatch.setTypeface(null, bold ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
+    }
+    private void saveExtras() {
+        final boolean requestedItalic = italic; final int requestedSpacing = spacing, requestedFamily = fontFamily;
+        worker.execute(() -> { boolean saved = ClockColorPreferences.saveExtras(getApplicationContext(), requestedItalic, requestedSpacing, requestedFamily);
+            runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Enable to apply it." : "Style could not be saved."); }); });
+        swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
+        swatch.setLetterSpacing(spacing / 100f);
     }
     private void saveStyle() {
         final int requestedSize = sizePercent; final boolean requestedBold = bold, requestedSeconds = seconds;
         worker.execute(() -> { boolean saved = ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold);
             runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Enable to apply it." : "Style could not be saved."); }); });
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
-        swatch.setTypeface(null, bold ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
     }
     private void choose(int color) {
         if (!ClockColorPolicy.valid(color)) return;
@@ -140,11 +173,11 @@ public final class ClockEditorActivity extends AppCompatActivity {
         }
     }
     private void enableColor() {
-        enabled(false); final int requested = selected, requestedSize = sizePercent; final boolean requestedBold = bold, requestedSeconds = seconds;
+        enabled(false); final int requested = selected, requestedSize = sizePercent, requestedSpacing = spacing, requestedFamily = fontFamily; final boolean requestedBold = bold, requestedSeconds = seconds, requestedItalic = italic, requestedHidden = hidden;
         long deadline = android.os.SystemClock.elapsedRealtime() + 8000;
         previewStatus.setText("Enabling clock color… Grant root access if asked.");
         worker.execute(() -> {
-            boolean allowed = ClockColorPreferences.saveSeconds(getApplicationContext(), requestedSeconds) && ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && RecoveryStore.allowEnabled(getApplicationContext());
+            boolean allowed = ClockColorPreferences.saveHidden(getApplicationContext(), requestedHidden) && ClockColorPreferences.saveExtras(getApplicationContext(), requestedItalic, requestedSpacing, requestedFamily) && ClockColorPreferences.saveSeconds(getApplicationContext(), requestedSeconds) && ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && RecoveryStore.allowEnabled(getApplicationContext());
             runOnUiThread(() -> {
                 if (!alive()) return;
                 if (!allowed) { enabled(true); previewStatus.setText("Could not enable. Check root access, updated guard module and Vector activation."); return; }
@@ -156,7 +189,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         enabled(false);
         client.preview(operation, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
     }
-    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); sizeControl.setEnabled(value); weightControl.setEnabled(value); stockSizeControl.setEnabled(value); secondsControl.setEnabled(value); }
+    private void enabled(boolean value) { check.setEnabled(value); restore.setEnabled(value); enable.setEnabled(value); sizeControl.setEnabled(value); weightControl.setEnabled(value); stockSizeControl.setEnabled(value); secondsControl.setEnabled(value); italicControl.setEnabled(value); spacingControl.setEnabled(value); hideControl.setEnabled(value); for (int n=0;n<fontControl.getChildCount();n++) fontControl.getChildAt(n).setEnabled(value); }
     private boolean alive() { return !closed && !isFinishing() && !isDestroyed(); }
     private void customColor() {
         LinearLayout picker = new LinearLayout(this); picker.setOrientation(LinearLayout.VERTICAL); picker.setPadding(dp(24), dp(8), dp(24), dp(8));
