@@ -18,7 +18,13 @@ sources={
  clock.mCalendar.setTimeInMillis(java.time.Instant.parse("2026-10-14T00:01:00Z").toEpochMilli());clock.updateClock();check(clock.getText().toString().equals("09:21 · Oct 14"));clock.mCalendar.setTimeZone(java.util.TimeZone.getTimeZone("America/New_York"));clock.updateClock();check(clock.getText().toString().equals("09:21 · Oct 13"));
  check(ClockDateBackend.end());check(clock.getText().toString().equals("09:21"));check(clock.getContentDescription().toString().equals("09:21"));check(de.robv.android.xposed.XposedBridge.hooks.isEmpty());
  for(int mode=1;mode<ClockDatePolicy.LABELS.length;mode++){ClockDateBackend.begin(mode);ClockDateBackend.track(clock);check(clock.getText().toString().contains(" · "));check(ClockDateBackend.restore(clock));check(clock.getText().toString().equals("09:21"));check(ClockDateBackend.end());}
- ClockDateBackend.begin(1);ClockDateBackend.track(clock);clock.stopDuringFormat=true;clock.updateClock();check(clock.getText().toString().equals("09:21"));check(ClockDateBackend.status().contains("date remaining: 0"));check(!ClockDatePolicy.valid(5));
+ for(int base=1;base<ClockDatePolicy.LABELS.length;base++)for(int position=0;position<2;position++)for(int separator=0;separator<4;separator++)for(int letterCase=0;letterCase<3;letterCase++){
+ int mode=ClockDatePolicy.selection(base,position,separator,letterCase);check(ClockDatePolicy.valid(mode));ClockDateBackend.begin(mode);ClockDateBackend.track(clock);
+ String date=ClockDatePolicy.format(mode,clock.mCalendar,clock.mLocale),gap=ClockDatePolicy.separatorText(mode),expected=position==0?"09:21"+gap+date:date+gap+"09:21";
+ check(clock.getText().toString().equals(expected));check(clock.getContentDescription().toString().equals(expected));ClockDateBackend.afterUpdate(clock);check(clock.getContentDescription().toString().equals(expected));check(ClockDateBackend.end());check(clock.getText().toString().equals("09:21"));check(clock.getContentDescription().toString().equals("09:21"));
+ }
+ ClockDateBackend.begin(ClockDatePolicy.selection(0,1,3,2));ClockDateBackend.track(clock);check(clock.getText().toString().equals("09:21"));check(ClockDateBackend.end());
+ ClockDateBackend.begin(1);ClockDateBackend.track(clock);clock.stopDuringFormat=true;clock.updateClock();check(clock.getText().toString().equals("09:21"));check(ClockDateBackend.status().contains("date remaining: 0"));check(!ClockDatePolicy.valid(13));check(!ClockDatePolicy.valid(384));check(!ClockDatePolicy.valid(-1));
  System.out.println("Production clock date checks passed: stock time preservation, tracked scope, midnight/timezone rollover, accessibility without accumulation, every mode, stop/detach and late frame fencing");}}
 '''
 }

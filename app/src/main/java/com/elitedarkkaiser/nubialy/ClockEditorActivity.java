@@ -37,7 +37,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private int statusMask, systemScale, notificationScale, batteryScale,systemOpacity,notificationOpacity,batteryOpacity,iconColor,dateMode;
     private final java.util.Set<String> hiddenSlots=new java.util.TreeSet<>();
     private LinearLayout iconSlots;
-    private ChipGroup iconPresets,dateControl;
+    private ChipGroup iconPresets;
     private TextView iconSelection;
     private MaterialButton inventoryButton,resetIcons;
     private final java.util.List<View> statusControls = new java.util.ArrayList<>();
@@ -144,11 +144,11 @@ public final class ClockEditorActivity extends AppCompatActivity {
         });
         typography.addView(text("Seconds update using the stock clock while awake. They can use more power and status-bar space.", 14, false));
         typography.addView(text("Size follows your stock font scaling. Press Enable to apply your saved size and weight with the selected color.", 14, false));
-        typography.addView(text("Date beside clock",15,true));dateControl=new ChipGroup(this);dateControl.setSingleSelection(true);typography.addView(dateControl);
-        for(int i=0;i<ClockDatePolicy.LABELS.length;i++){final int value=i;Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setText(ClockDatePolicy.LABELS[i]);chip.setTag(i);chip.setCheckable(true);chip.setChecked(dateMode==i);dateControl.addView(chip);statusControls.add(chip);
-            chip.setOnClickListener(v->{dateMode=value;for(int n=0;n<dateControl.getChildCount();n++){Chip c=(Chip)dateControl.getChildAt(n);c.setChecked((Integer)c.getTag()==value);}worker.execute(()->{boolean saved=StatusBarPreferences.saveDate(getApplicationContext(),value);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Date selection saved. Press Enable to apply it.":"Date selection could not be saved.");});});});
-        }
-        typography.addView(text("Date keeps the stock time format and adds width. Smaller clock size may fit better.",14,false));
+        dateChoices(typography,"Date format",ClockDatePolicy.LABELS,0);
+        dateChoices(typography,"Date position",ClockDatePolicy.POSITIONS,1);
+        dateChoices(typography,"Date separator",ClockDatePolicy.SEPARATOR_LABELS,2);
+        dateChoices(typography,"Date letter case",ClockDatePolicy.CASE_LABELS,3);
+        typography.addView(text("Date uses your stock locale and timezone. Position, separator and letter case affect only the added date; time keeps its stock format. Long dates add width. Press Enable to apply your saved choices.",14,false));
         LinearLayout controls = card("Status-bar customization");
         controls.addView(text("Enable your selected color until you restore stock. Press Enable again to apply a different selection.", 15, false));
         controls.addView(text("Requires root and the updated recovery guard. Your enabled color resumes after wake or reboot. The guard Action independently turns it off.", 14, false));
@@ -316,4 +316,16 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private int dp(int n) {return Math.round(n*getResources().getDisplayMetrics().density);}
     @Override protected void onSaveInstanceState(Bundle state) { state.putInt("selection", selected);super.onSaveInstanceState(state); }
     @Override protected void onDestroy() {closed=true;if(client!=null)client.cancel();worker.shutdown();super.onDestroy();}
+    private void dateChoices(LinearLayout parent,String title,String[] labels,int component){
+        parent.addView(text(title,15,true));ChipGroup group=new ChipGroup(this);group.setSingleSelection(true);parent.addView(group);
+        int selected=switch(component){case 0->ClockDatePolicy.base(dateMode);case 1->ClockDatePolicy.position(dateMode);case 2->ClockDatePolicy.separator(dateMode);default->ClockDatePolicy.letterCase(dateMode);};
+        for(int i=0;i<labels.length;i++){final int value=i;Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setText(labels[i]);chip.setTag(i);chip.setCheckable(true);chip.setChecked(selected==i);group.addView(chip);statusControls.add(chip);
+            chip.setOnClickListener(v->{
+                dateMode=ClockDatePolicy.selection(component==0?value:ClockDatePolicy.base(dateMode),component==1?value:ClockDatePolicy.position(dateMode),component==2?value:ClockDatePolicy.separator(dateMode),component==3?value:ClockDatePolicy.letterCase(dateMode));
+                for(int n=0;n<group.getChildCount();n++){Chip c=(Chip)group.getChildAt(n);c.setChecked((Integer)c.getTag()==value);}
+                final int requested=dateMode;worker.execute(()->{boolean saved=StatusBarPreferences.saveDate(getApplicationContext(),requested);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Date choices saved. Press Enable to apply them.":"Date choices could not be saved.");});});
+            });
+        }
+    }
+
 }

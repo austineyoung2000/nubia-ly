@@ -180,4 +180,9 @@ Seven icon and battery controls share the persistent Enable/Restore flow with th
 
 ### Status-bar details batch — 0.1.18
 
-Independent icon RGB/hex color, separate status/notification/battery opacity, live individual icon hiding, date beside the stock clock and an icons/battery draft reset arrive together in one signed test APK. New date/icon settings stay bound to the applied identity snapshot; choices do not apply until Enable. See [combined checklist](docs/STATUSBAR_DETAILS.md). Phone results are pending.
+Independent icon RGB/hex color, separate status/notification/battery opacity, live individual icon hiding, date beside the stock clock and an icons/battery draft reset arrive together in one signed test APK. New date/icon settings stay bound to the applied identity snapshot; choices do not apply until Enable. See [combined checklist](docs/STATUSBAR_DETAILS.md). The user confirms the corrected 0.1.19 batch works flawlessly; PR #12 is merged.
+
+
+### Clock date formatting batch — 0.1.20
+
+Eight new date formats join the existing four active formats. Separate controls choose date before/after time, dot/space/dash/bar separators, and stock/upper/lower letter case. Stock time spans and formatting remain intact; dates follow the stock clock locale/timezone and tick lifecycle. All choices use the existing applied identity snapshot and persistent Enable/Restore flow. See [one combined phone checklist](docs/CLOCK_FORMAT_BATCH.md). Phone validation is pending.
