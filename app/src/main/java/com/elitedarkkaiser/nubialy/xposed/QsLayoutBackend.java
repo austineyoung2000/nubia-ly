@@ -13,6 +13,7 @@ import java.util.*;
 final class QsLayoutBackend {
     private static final String QS="com.zte.mifavor.qs.",CONTENT=QS+"MfvQSContent",PANEL=QS+"MfvQSPanel",QUICK=QS+"MfvQuickQSPanel",HEADER=QUICK+"$HeaderTileLayout",CIRCLE="com.zte.qs.tileimpl.QSTileViewCircle";
     private static final Map<ViewGroup,Boolean> roots=new WeakHashMap<>();
+    private static final Set<ViewGroup> changedRoots=Collections.newSetFromMap(new WeakHashMap<>());
     private static final Set<ViewGroup> pending=Collections.newSetFromMap(new WeakHashMap<>());
     private static final Map<View,LabelState> labels=new WeakHashMap<>();
     private static final Map<View,Integer> visibility=new WeakHashMap<>();
@@ -76,9 +77,9 @@ final class QsLayoutBackend {
     private static void restoreLabel(LabelState s){s.text.setMaxLines(s.maxLines);if(s.moved&&s.container.getParent()==s.parent){s.parent.removeView(s.container);s.parent.addView(s.container,Math.min(s.index,s.parent.getChildCount()));}}
     static List<?> remaining(Collection<?> all,int count){List<?> copy=new ArrayList<>(all);return new ArrayList<>(copy.subList(Math.min(count,copy.size()),copy.size()));}
     private static void schedule(ViewGroup r){if(!pending.add(r))return;int token=generation;r.post(()->{pending.remove(r);if(token!=generation||!active||!r.isAttachedToWindow())return;try{rebuild(r);}catch(Throwable error){failed=true;}});}
-    private static void rebuild(ViewGroup r){if(rebuilding)return;ViewGroup q=panel(r,true),p=panel(r,false);if(q==null||p==null)return;rebuilding=true;ViewGroup old=scope.get();scope.set(r);try{
+    private static void rebuild(ViewGroup r){if(rebuilding)return;ViewGroup q=panel(r,true),p=panel(r,false);if(q==null||p==null){if(changedRoots.contains(r))throw new IllegalStateException("QS panels unavailable during restoration");return;}rebuilding=true;ViewGroup old=scope.get();scope.set(r);try{
         if(!custom(r))restoreRootViews(r);
-        Object host=field(p,"mHost");if(host==null)return;Object tiles=XposedHelpers.callMethod(host,"getTiles");
+        Object host=field(p,"mHost");if(host==null){if(changedRoots.contains(r))throw new IllegalStateException("QS host unavailable during restoration");return;}if(custom(r)&&top!=0)changedRoots.add(r);Object tiles=XposedHelpers.callMethod(host,"getTiles");
         XposedHelpers.callMethod(q,"setMaxTiles",XposedHelpers.getIntField(q,"mMaxTiles"));XposedHelpers.callMethod(p,"setTiles",tiles);
         // Native fixed margins depend on the original quick-panel height. Shift whole blocks by the native row-height delta.
         ViewGroup previousScope=scope.get();scope.set(null);int stockHeight=((Number)XposedHelpers.callStaticMethod(dimensions,"getQuickQsPanelHeight")).intValue();scope.set(previousScope);int customHeight=((Number)XposedHelpers.callStaticMethod(dimensions,"getQuickQsPanelHeight")).intValue();
@@ -86,13 +87,13 @@ final class QsLayoutBackend {
         adjustMargin(find(r,"qs_brightness_dialog"),delta);adjustMargin(direct(r,p),delta);
         Object header=field(q,"mTileLayout");XposedHelpers.callMethod(header,"updateResources");
         ViewGroup.LayoutParams lp=q.getLayoutParams();if(custom(r)&&top!=0){heights.putIfAbsent(q,lp.height);lp.height=ViewGroup.LayoutParams.WRAP_CONTENT;writing=true;try{q.setLayoutParams(lp);}finally{writing=false;}}else restoreHeight(q);
-        XposedHelpers.callMethod(p,"updateResources");q.requestLayout();p.requestLayout();r.requestLayout();
+        XposedHelpers.callMethod(p,"updateResources");q.requestLayout();p.requestLayout();r.requestLayout();if(!custom(r))changedRoots.remove(r);
     }finally{scope.set(old);rebuilding=false;}}
     private static void adjustMargin(View v,int delta){if(v==null||!(v.getLayoutParams() instanceof ViewGroup.MarginLayoutParams lp))return;
-        if(delta==0){Integer original=margins.remove(v);marginDeltas.remove(v);if(original!=null){lp.topMargin=original;writing=true;try{v.setLayoutParams(lp);}finally{writing=false;}}return;}
+        if(delta==0){Integer original=margins.get(v);if(original!=null){lp.topMargin=original;writing=true;try{v.setLayoutParams(lp);margins.remove(v);marginDeltas.remove(v);}finally{writing=false;}}return;}
         margins.putIfAbsent(v,lp.topMargin);marginDeltas.put(v,delta);lp.topMargin=margins.get(v)+delta;writing=true;try{v.setLayoutParams(lp);}finally{writing=false;}
     }
-    private static void restoreHeight(View q){Integer height=heights.remove(q);if(height!=null){ViewGroup.LayoutParams lp=q.getLayoutParams();lp.height=height;writing=true;try{q.setLayoutParams(lp);}finally{writing=false;}}}
+    private static void restoreHeight(View q){Integer height=heights.get(q);if(height!=null){ViewGroup.LayoutParams lp=q.getLayoutParams();lp.height=height;writing=true;try{q.setLayoutParams(lp);heights.remove(q);}finally{writing=false;}}}
     private static void hide(View view){if(view==null)return;visibility.putIfAbsent(view,view.getVisibility());writing=true;try{view.setVisibility(View.INVISIBLE);}finally{writing=false;}}
     private static void applyIcons(ViewGroup r){if(!hideIcons)return;View b=find(r,"qs_brightness_dialog");if(!(b instanceof ViewGroup group)||direct(r,b)!=b)return;for(String name:new String[]{"qs_brightness_low","qs_brightness_high"}){View v=find(r,name);if(v!=null&&direct(group,v)!=null)hide(v);}}
     private static void applyLabel(View tile){
@@ -116,7 +117,7 @@ final class QsLayoutBackend {
         for(var entry:new ArrayList<>(labels.entrySet()))try{restoreLabel(entry.getValue());labels.remove(entry.getKey());}catch(Throwable error){ok=false;}
         for(View v:new ArrayList<>(margins.keySet()))try{adjustMargin(v,0);}catch(Throwable error){ok=false;}
         for(View v:new ArrayList<>(heights.keySet()))try{restoreHeight(v);}catch(Throwable error){ok=false;}
-        if(top!=0)for(ViewGroup r:new ArrayList<>(roots.keySet()))try{rebuild(r);}catch(Throwable error){ok=false;}
+        for(ViewGroup r:new ArrayList<>(changedRoots))try{rebuild(r);}catch(Throwable error){ok=false;}
         for(ViewGroup r:new ArrayList<>(roots.keySet()))r.requestLayout();
     }finally{writing=false;top=labelPosition=labelLines=brightness=0;hideIcons=false;}failed=!ok;return ok;}
     static boolean healthy(){return !failed;}
