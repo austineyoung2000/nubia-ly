@@ -1,6 +1,6 @@
 # Quick Settings layout editor
 
-## Combined phone test: 0.1.61-qs-layout (62)
+## Combined phone test: 0.1.62-qs-layout (63)
 
 The owner confirmed 3×2, 4×2 and 5×4 small grids, stock restoration, and smooth fourth-row expansion after five minutes of phone testing. The next APK adds the remaining requested layout controls together. Tile-size and spacing controls were explicitly excluded. Guard 0.1.15 is unchanged: Restore, its independent Action and emergency stop end both layout backends through the existing surface recovery contract.
 
@@ -53,3 +53,9 @@ The owner-supplied NX809J SystemUI APK and disassembly remain outside this repos
 5. Restore stock, then test guard Action with a custom layout enabled. Check both groups, labels, sun icons, paging and native tile count return. Re-enable desired choices and verify reboot resume.
 
 No merge until owner phone validation and explicit approval.
+
+## Reopening the shade after Enable
+
+The first 0.1.61 phone report showed four large tiles despite selecting six. It also confirmed the 5×4 small grid still worked; the preceding inspection snapshot was taken before the shade remeasured. A lifecycle regression reproduced the missed-update path: a root seen previously, detached while the app is open, then reattached with unchanged geometry. The old observer scheduled work only when attachment eligibility changed relative to its last layout, so it could miss the newly enabled selection.
+
+Each successful native rebuild now stamps the enabled generation. The next eligible layout queues one rebuild if that root has not applied the current generation, even when geometry matches its previous observation. Stop clears stamps and fences queued callbacks. Tests explicitly fail with the old scheduling condition and pass with the new one, including no repeated rebuild on subsequent layouts. Diagnostics distinguish waiting for attachment/panels/tile host and report the native quick count after a successful rebuild. This fixes the reproduced lifecycle gap; phone confirmation of the large-tile behavior is still required.
