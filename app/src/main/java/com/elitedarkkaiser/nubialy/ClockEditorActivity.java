@@ -474,8 +474,8 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private void gridControls(LinearLayout parent){
         parent.addView(text("Arrange the small tiles below brightness. These choices apply to the portrait paged panel; landscape and large text keep stock layout. Enable applies the saved grid.",14,false));
         gridChoices(parent,true,new int[]{0,2,3,5},new String[]{"Stock","2 columns","3 columns","5 columns"});
-        gridChoices(parent,false,new int[]{0,1,2},new String[]{"Stock","1 row","2 rows"});
-        parent.addView(text("Rows are a maximum: the phone may fit fewer when space is limited. Five columns require enough width for stock-size tiles and spacing; narrower panels keep stock columns. Page count follows your tiles. Large top tiles, tile order and tap actions remain native. Restore stock appearance or the guard Action restores the native grid.",14,false));
+        gridChoices(parent,false,new int[]{0,1,2,4},new String[]{"Stock","1 row","2 rows","4 rows"});
+        parent.addView(text("Rows are a maximum: the phone may fit fewer when space is limited. Four rows include matching expansion animations when the height allows. Five columns require enough width for stock-size tiles and spacing; narrower panels keep stock columns. Page count follows your tiles. Large top tiles, tile order and tap actions remain native. Restore stock appearance or the guard Action restores the native grid.",14,false));
     }
     private void gridChoices(LinearLayout parent,boolean column,int[] values,String[] names){
         parent.addView(text(column?"Columns":"Rows per page",18,true));
