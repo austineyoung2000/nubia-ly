@@ -58,6 +58,10 @@ final class QsLayoutBackend {
         for(String name:new String[]{"com.zte.utils.QsDimenUtils","com.zte.utils.QsDimenUtils$Companion"})for(String getter:new String[]{"getQuickTileNums","getQuickTileRows"}){
             final boolean count=getter.equals("getQuickTileNums");hooks.add(XposedBridge.hookMethod(XposedHelpers.findClass(name,loader).getDeclaredMethod(getter),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&top!=0&&custom(scope.get()))p.setResult(count?topCount():topRows());}}));
         }
+        // The compact container and notification stack query this native minimum separately
+        // from child measurement. Its stock padding still reserves only two quick-tile rows.
+        Class<?> container=XposedHelpers.findClass(QS+"MfvQSContainerImpl",loader);
+        hooks.add(XposedBridge.hookMethod(container.getDeclaredMethod("getMinHeight"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(p.hasThrowable()||!main()||top==0)return;try{ViewGroup r=contextRoot(p.thisObject);if(!custom(r)||!Boolean.TRUE.equals(field(p.thisObject,"showQsPanel"))||field(p.thisObject,"quickQSPanel")!=panel(r,true))return;int nativeHeight=((Number)p.getResult()).intValue();if(nativeHeight>0)p.setResult(Math.max(1,nativeHeight+quickHeightDelta(r)));}catch(Throwable error){failed=true;}}}));
         hooks.add(XposedBridge.hookMethod(XposedHelpers.findClass("com.zte.feature.qs.QSPanelLayoutFeature",loader).getDeclaredMethod("getZteQuickTilesNum"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&top!=0&&custom(scope.get()))p.setResult(topCount());}}));
         Class<?> adapter=XposedHelpers.findClass("com.zte.adapt.mifavor.qs.MfvQSPanelAdapt",loader);
         hooks.add(XposedBridge.hookMethod(adapter.getDeclaredMethod("getQQSMaxTilesCount",int.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){try{Object owner=field(p.thisObject,"mOwner");if(!p.hasThrowable()&&top!=0&&owner instanceof View v&&v.getClass().getName().equals(QUICK)&&custom(root(v)))p.setResult(topCount());}catch(Throwable error){failed=true;}}}));
@@ -84,13 +88,14 @@ final class QsLayoutBackend {
         Object host=field(p,"mHost");if(host==null){lastApply="waiting for tile host";if(changedRoots.contains(r))throw new IllegalStateException("QS host unavailable during restoration");return;}if(custom(r)&&top!=0)changedRoots.add(r);Object tiles=XposedHelpers.callMethod(host,"getTiles");
         XposedHelpers.callMethod(q,"setMaxTiles",XposedHelpers.getIntField(q,"mMaxTiles"));XposedHelpers.callMethod(p,"setTiles",tiles);
         // Native fixed margins depend on the original quick-panel height. Shift whole blocks by the native row-height delta.
-        ViewGroup previousScope=scope.get();scope.set(null);int stockHeight=((Number)XposedHelpers.callStaticMethod(dimensions,"getQuickQsPanelHeight")).intValue();scope.set(previousScope);int customHeight=((Number)XposedHelpers.callStaticMethod(dimensions,"getQuickQsPanelHeight")).intValue();
-        int delta=custom(r)&&top!=0?customHeight-stockHeight:0;
+        int delta=quickHeightDelta(r);
         adjustMargin(find(r,"qs_brightness_dialog"),delta);adjustMargin(direct(r,p),delta);
         Object header=field(q,"mTileLayout");XposedHelpers.callMethod(header,"updateResources");
         ViewGroup.LayoutParams lp=q.getLayoutParams();if(custom(r)&&top!=0){heights.putIfAbsent(q,lp.height);lp.height=ViewGroup.LayoutParams.WRAP_CONTENT;writing=true;try{q.setLayoutParams(lp);}finally{writing=false;}}else restoreHeight(q);
-        XposedHelpers.callMethod(p,"updateResources");q.requestLayout();p.requestLayout();r.requestLayout();if(!custom(r))changedRoots.remove(r);appliedGeneration.put(r,generation);lastApply="native quick count="+XposedHelpers.getIntField(q,"mMaxTiles");
+        XposedHelpers.callMethod(p,"updateResources");q.requestLayout();p.requestLayout();r.requestLayout();notifyHeight(r);if(!custom(r))changedRoots.remove(r);appliedGeneration.put(r,generation);lastApply="native quick count="+XposedHelpers.getIntField(q,"mMaxTiles");
     }finally{scope.set(old);rebuilding=false;}}
+    private static int quickHeightDelta(ViewGroup r){if(!custom(r)||top==0)return 0;ViewGroup previous=scope.get();try{scope.set(null);int stock=((Number)XposedHelpers.callStaticMethod(dimensions,"getQuickQsPanelHeight")).intValue();scope.set(r);int selected=((Number)XposedHelpers.callStaticMethod(dimensions,"getQuickQsPanelHeight")).intValue();return selected-stock;}finally{scope.set(previous);}}
+    private static void notifyHeight(ViewGroup r){Object qs=field(r,"mQs");if(qs!=null&&qs.getClass().getName().equals(QS+"MfvQSFragment")){XposedHelpers.callMethod(qs,"notifyCustomizeChanged");return;}for(View v=r;v!=null;v=v.getParent() instanceof View next?next:null)if(v.getClass().getName().equals(QS+"MfvQSContainerImpl")){XposedHelpers.callMethod(v,"updateExpansion");return;}}
     private static void adjustMargin(View v,int delta){if(v==null||!(v.getLayoutParams() instanceof ViewGroup.MarginLayoutParams lp))return;
         if(delta==0){Integer original=margins.get(v);if(original!=null){lp.topMargin=original;writing=true;try{v.setLayoutParams(lp);margins.remove(v);marginDeltas.remove(v);}finally{writing=false;}}return;}
         margins.putIfAbsent(v,lp.topMargin);marginDeltas.put(v,delta);lp.topMargin=margins.get(v)+delta;writing=true;try{v.setLayoutParams(lp);}finally{writing=false;}

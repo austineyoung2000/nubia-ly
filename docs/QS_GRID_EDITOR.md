@@ -1,6 +1,6 @@
 # Quick Settings layout editor
 
-## Combined phone test: 0.1.62-qs-layout (63)
+## Combined phone test: 0.1.63-qs-layout (64)
 
 The owner confirmed 3×2, 4×2 and 5×4 small grids, stock restoration, and smooth fourth-row expansion after five minutes of phone testing. The next APK adds the remaining requested layout controls together. Tile-size and spacing controls were explicitly excluded. Guard 0.1.15 is unchanged: Restore, its independent Action and emergency stop end both layout backends through the existing surface recovery contract.
 
@@ -59,3 +59,11 @@ No merge until owner phone validation and explicit approval.
 The first 0.1.61 phone report showed four large tiles despite selecting six. It also confirmed the 5×4 small grid still worked; the preceding inspection snapshot was taken before the shade remeasured. A lifecycle regression reproduced the missed-update path: a root seen previously, detached while the app is open, then reattached with unchanged geometry. The old observer scheduled work only when attachment eligibility changed relative to its last layout, so it could miss the newly enabled selection.
 
 Each successful native rebuild now stamps the enabled generation. The next eligible layout queues one rebuild if that root has not applied the current generation, even when geometry matches its previous observation. Stop clears stamps and fences queued callbacks. Tests explicitly fail with the old scheduling condition and pass with the new one, including no repeated rebuild on subsequent layouts. Diagnostics distinguish waiting for attachment/panels/tile host and report the native quick count after a successful rebuild. This fixes the reproduced lifecycle gap; phone confirmation of the large-tile behavior is still required.
+
+## Compact shade height and handle
+
+The owner confirmed six large tiles on 0.1.62, but the compact shade clipped brightness and left the drag handle over the new third tile row. MfvQSContainerImpl.getMinHeight reads a fixed mQsPanelTopPadding resource rather than the newly measured quick panel. calculateContainerHeight interpolates from that minimum, updateExpansion places the handle relative to that boundary, and the QS fragment exposes the same minimum to the notification panel.
+
+The exact normal-shade container now adds the native quick-row height difference to its current native minimum. The hook requires the current quick panel identity, showQsPanel, supported portrait geometry and active custom top layout. It does not change the full expansion height or write the native padding field. After a rebuild/restore, the native fragment notifyCustomizeChanged callback refreshes expansion and the notification height listener; without the fragment, the exact ancestor container updates expansion directly. Disabling the policy immediately returns the current native minimum.
+
+Regression tests cover compact boundary/handle offsets for one, three and four quick rows, interpolation to unchanged full expansion height, normal-panel exclusion and restoration. Removing the height hook makes the new regression fail. Phone verification should include brightness access, handle position and notifications in the compact shade, collapse/expand, and Restore/guard Action.
