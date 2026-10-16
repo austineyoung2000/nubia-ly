@@ -1,10 +1,24 @@
 # Quick Settings grid editor investigation
 
-## Current stage: read-only phone verification
+## Current stage: bounded editor phone test
 
-App 0.1.56-qs-grid-inspection (57) observes the existing native layouts and appends a short **QS grid inspection** summary to Check customization's technical details. No grid editor or layout override is enabled in this batch. The existing guard 0.1.15 is unchanged.
+App **0.1.57-qs-grid (58)** adds **Quick Settings → Rows & columns** to the existing focused editor. The owner supplied read-only phone evidence confirming the native paged route: 4 columns × 3 rows, 16 records split 12 + 4 across two pages, 210 × 271 px cells and 22 × 28 px field gaps, portrait. This does not establish support for additional rows or narrower cells.
 
-The summary contains only host category, columns, rows, tile-record counts, cell/gap sizes, bounds, orientation and pager counts. It reads no tile labels, SSIDs, notification data or user settings. Sampling follows native layout/measure callbacks, with exact class allowlists, main-thread and attachment checks, bounded weak references and no timers or root commands. Missing/changed signatures disable inspection without disabling the existing cosmetic backend.
+Choices are Stock / 3 / 4 columns and Stock / 2 / 3 maximum rows. Selection saves the shared draft; Enable applies an identity-bound snapshot. Stock is the default. Landscape and fontScale above 1.3 use stock resources; returning to supported portrait reapplies the enabled policy. Row count still respects the native available-height and tile-count limits. Large top tiles are excluded. Guard **0.1.15** is unchanged; its existing Action, emergency stop and Restore end this backend alongside the other surfaces.
+
+The read-only inspector remains available in technical details. It reports only host category, counts, dimensions and orientation; it does not read tile text or identities.
+
+## Scoped backend and restoration
+
+`QsGridBackend` requires the inspected classes/fields/methods. A paged host must be attached under the exact `MfvQSPanel` whose current `mTileLayout` field points to it. Only exact `MfvPagedTileLayout$TilePage` resource outputs are changed: column/resource-column count and a reduced maximum-row cap. The observed native four-column source is required; other native column regimes stay stock. Native cell sizes are unchanged. Three columns provide more spacing rather than shrinking touch targets; five columns and four rows are deliberately absent.
+
+Native pager measurement continues to compute row count and propagate it to pages; its existing `mDistributeTiles` path handles page creation/removal, records, adapter and indicator. New pages created during native distribution receive the same bounded policy before records are added. No tile/host model or tile order is written. Native cell measurement, horizontal spacing and RTL placement are retained.
+
+The animator's static and companion dimension getters return the current first-page dimensions only inside that exact pager's `updateAnimators`/`updateViews` call scope, using nested restoration of a thread-local context. All other callers see stock values. Native animation arrays and the three row-delay entries are not enlarged or replaced. A geometry/page-count/orientation change refreshes the existing animator after measurement. No new timer or polling loop.
+
+Restoration first disables policy, calls native `updateResources` on only the known changed pagers (including detached hosts), marks native redistribution and requests layout. This recomputes current stock resources rather than restoring stale captured integers. Next native measure redistributes records and refreshes animation mapping. A failed resource restore retains the host for retry, reports failure and keeps health false. Unmodified/default grids do not request a reflow. Runtime hook failures are visible through the existing surface health/recovery authority. Ordinary feature flags, system settings, overlays and system files are untouched.
+
+33-field SurfaceStyle encoding appends columns/rows; all prior supported formats default them to stock. Existing constructor call sites remain valid, and battery-copy helpers preserve the new fields.
 
 ## Inspected vendor boundaries
 
@@ -24,19 +38,15 @@ The owner-supplied NX809J System UI contains both paged and control-center paths
 
 `QsDimenUtils` also branches on orientation, large display density, control-center mode and device form factor. The phone's active route must be demonstrated before selecting a write boundary. Class presence alone does not establish which panel is used.
 
-## Required phone evidence
+## Validation and phone batch
 
-1. Install the test APK and reboot so the observers load. Leave the current guard installed.
-2. Open expanded Quick Settings in portrait; swipe through pages; close it.
-3. In nubia-ly, Quick Settings → Show technical details → Check customization, capture the **QS grid inspection** paragraph.
-4. Repeat in landscape if the stock panel rotates. Do not change display density for this first sample.
+Production-hook host tests exercise native-shaped reflow/redistribution, new-page initialization, preserved record order, scoped animator dimensions, stock restoration, current-resource changes, orientation/font suspension, unrelated hosts, failure/retry and default no-op behavior. Preference tests cover legacy decoding, strict bounds, draft/applied separation and copy-helper retention. Android tests cover grid routing, selection persistence across recreation and no recovery-authority changes while editing. Android compilation/tests run only through GitHub Actions. These tests do not replace phone validation.
 
-This phase needs no new Enable action; it does not alter layout. Existing enabled styles continue to use their previous authority and recovery.
+1. Update APK and reboot; leave Guard 0.1.15 installed.
+2. Quick Settings → Rows & columns: choose **3 columns / 2 rows**, then Enable. With 16 small tiles, expect three pages (6 + 6 + 4) when two rows fit. Check every tile is reachable and all tap/long-press actions remain normal.
+3. Swipe first/last pages, collapse/reopen, and check expansion/reveal animations. Change native tile ordering/add/remove a tile and verify it remains reachable.
+4. Restore stock appearance: expect the native 4 × 3 layout and two pages (12 + 4) for the original 16 records. Re-enable grid and test independent guard Action restores it too.
+5. Check rotation, a larger font setting, native media visibility and RTL when available. Unsupported geometry stays stock. Do not change display density as the initial test.
+6. Re-enable desired settings and reboot; verify saved enabled choices resume and later draft changes remain unapplied.
 
-## Editor implementation gates
-
-The intended entry is **Quick Settings → Rows & columns**, using the approved focused editor and shared draft/Enable/Restore flow. Initial choices must be bounded by measured width/height, full label/touch targets and native animation limits. Stock remains the default. Do not advertise fixed ranges before the evidence supports them.
-
-Before exposing application, verify: native pagination and tile ordering, first/last-page restoration, tile additions/removals and native editing, large font/display sizing, portrait/landscape, RTL, media visibility and expansion/reveal animation. Restoration must recompute the latest native resources and redistribute native records under the same existing guard, including independent stop and failed-apply cleanup. No System UI restart, package-data clearing, settings write or global resource replacement is an acceptable shortcut.
-
-Host-shaped inspection tests verify exact-host sampling, inherited fields, pager counts, detached/off-main exclusions and unchanged layout fields. They do not prove phone geometry, animation behavior or future grid override recovery.
+No merge until the owner tests and approves. No System UI restart, data clearing or settings-write shortcut is used.

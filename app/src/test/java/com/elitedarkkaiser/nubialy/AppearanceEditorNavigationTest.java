@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
 public final class AppearanceEditorNavigationTest {
     @Test public void everySectionOpensItsDetailPagesAndBackKeepsOverview(){
         ShadowBuild.setModel("NX809J");
-        String[][] routes={{"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},{"quick_settings","style","brightness","tiles","labels"},{"volume","styles"},{"notifications","styles","appearance","behavior","icons"},{"power_menu","styles"},{"status_bar","typography","date","color","icons","battery","connectivity","inventory"}};
+        String[][] routes={{"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},{"quick_settings","grid","style","brightness","tiles","labels"},{"volume","styles"},{"notifications","styles","appearance","behavior","icons"},{"power_menu","styles"},{"status_bar","typography","date","color","icons","battery","connectivity","inventory"}};
         for(String[] section:routes){
             var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section",section[0])).setup();var activity=controller.get();assertFalse(activity.isFinishing());EditorPages router=ReflectionHelpers.getField(activity,"pages");
             for(int i=1;i<section.length;i++){
@@ -60,6 +60,14 @@ public final class AppearanceEditorNavigationTest {
 
     @Test public void notificationAndBatteryControlsShareDraftAndPersist()throws Exception{
         ShadowBuild.setModel("NX809J");var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section","notifications")).setup();var activity=controller.get();var before=activity.getSharedPreferences("recovery",0).getAll();var decor=activity.getWindow().getDecorView();decor.findViewWithTag("editor-route:notifications:icons").performClick();decor.findViewWithTag("notification-overflow-count").performClick();decor.findViewWithTag("notification-limit:3").performClick();decor.findViewWithTag("battery-percent:2").performClick();decor.findViewWithTag("battery-hide-charge").performClick();java.util.concurrent.ExecutorService worker=ReflectionHelpers.getField(activity,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();SurfaceStyle s=StatusBarPreferences.read(activity).surfaces();assertEquals(1,s.notificationCount());assertEquals(3,s.notificationLimit());assertEquals(2,s.batteryPercent());assertEquals(1,s.batteryCharge());assertEquals(before,activity.getSharedPreferences("recovery",0).getAll());controller.recreate();EditorPages router=ReflectionHelpers.getField(controller.get(),"pages");assertEquals("icons",router.page());assertEquals("notifications",router.section());assertTrue(((com.google.android.material.chip.Chip)controller.get().getWindow().getDecorView().findViewWithTag("battery-percent:2")).isChecked());controller.pause().stop().destroy();
+    }
+
+    @org.junit.Test public void gridDraftSurvivesRecreationWithoutEnabling() throws Exception {
+        ShadowBuild.setModel("NX809J");var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section","quick_settings")).setup();var activity=controller.get();var before=activity.getSharedPreferences("recovery",0).getAll();var decor=activity.getWindow().getDecorView();
+        decor.findViewWithTag("editor-route:quick_settings:grid").performClick();decor.findViewWithTag("qs-columns:3").performClick();decor.findViewWithTag("qs-rows:2").performClick();
+        java.util.concurrent.ExecutorService worker=ReflectionHelpers.getField(activity,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+        assertEquals(3,StatusBarPreferences.read(activity).surfaces().qsColumns());assertEquals(2,StatusBarPreferences.read(activity).surfaces().qsRows());assertEquals(before,activity.getSharedPreferences("recovery",0).getAll());controller.recreate();
+        EditorPages router=ReflectionHelpers.getField(controller.get(),"pages");assertEquals("grid",router.page());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-columns:3").isSelected());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-rows:2").isSelected());controller.pause().stop().destroy();
     }
 
 }

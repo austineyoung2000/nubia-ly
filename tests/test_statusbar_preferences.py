@@ -19,6 +19,10 @@ sources={
  c.prefs.values.put("active_system_transform",1);check(StatusBarPreferences.active(c,id).equals(StatusBarStyle.STOCK));
  var surfaces=new SurfaceStyle(8,StatusBarStyle.appearance(110,75),0,StatusBarStyle.appearance(120,50),0,0,0,StatusBarStyle.transform(2,-2,5),0,3,2,7,4,1,25);var full=details.withSurfaces(surfaces);
  check(StatusBarPreferences.save(c,full));check(StatusBarPreferences.read(c).equals(full));check(StatusBarPreferences.activate(c,id,full,0xffabcdef,2));check(StatusBarPreferences.active(c,id).equals(full));check(StatusBarPreferences.save(c,selected));check(StatusBarPreferences.active(c,id).equals(full));
+ var grid=SurfaceStyle.decode(surfaces.encode().substring(0,surfaces.encode().lastIndexOf(",",surfaces.encode().lastIndexOf(",")-1))+",3,2");check(grid!=null&&grid.qsColumns()==3&&grid.qsRows()==2);check(grid.withBatteryControls(2,1).qsColumns()==3);check(grid.withBatteryStyle(4).qsRows()==2);
+ check(StatusBarPreferences.save(c,details.withSurfaces(grid)));check(StatusBarPreferences.read(c).surfaces().equals(grid));check(StatusBarPreferences.activate(c,id,details.withSurfaces(grid),0xffabcdef,2));check(StatusBarPreferences.save(c,StatusBarStyle.STOCK));check(StatusBarPreferences.active(c,id).surfaces().equals(grid));
+ check(SurfaceStyle.decode(grid.encode().substring(0,grid.encode().lastIndexOf(","))+",4")==null);
+ check(SurfaceStyle.decode(surfaces.encode().substring(0,surfaces.encode().lastIndexOf(",",surfaces.encode().lastIndexOf(",")-1))).qsColumns()==0);
  c.prefs.values.put("active_surfaces","bad");check(StatusBarPreferences.active(c,id).equals(StatusBarStyle.STOCK));
  check(StatusBarPreferences.activate(c,id,selected,0xff112233));
  c.prefs.fail=true;check(!StatusBarPreferences.activate(c,other,StatusBarStyle.STOCK,0xff445566));check(StatusBarPreferences.active(c,id).equals(selected));check(StatusBarPreferences.active(c,other).equals(StatusBarStyle.STOCK));c.prefs.fail=false;
