@@ -2,9 +2,9 @@
 
 ## Current stage: bounded editor phone test
 
-App **0.1.57-qs-grid (58)** adds **Quick Settings → Rows & columns** to the existing focused editor. The owner supplied read-only phone evidence confirming the native paged route: 4 columns × 3 rows, 16 records split 12 + 4 across two pages, 210 × 271 px cells and 22 × 28 px field gaps, portrait. This does not establish support for additional rows or narrower cells.
+App **0.1.58-qs-grid (59)** adds **Quick Settings → Rows & columns** to the existing focused editor. The owner supplied read-only phone evidence confirming the native paged route: 4 columns × 3 rows, 16 records split 12 + 4 across two pages, 210 × 271 px cells and 22 × 28 px field gaps, portrait. This does not establish support for additional rows or narrower cells.
 
-Choices are Stock / 3 / 4 columns and Stock / 2 / 3 maximum rows. Selection saves the shared draft; Enable applies an identity-bound snapshot. Stock is the default. Landscape and fontScale above 1.3 use stock resources; returning to supported portrait reapplies the enabled policy. Row count still respects the native available-height and tile-count limits. Large top tiles are excluded. Guard **0.1.15** is unchanged; its existing Action, emergency stop and Restore end this backend alongside the other surfaces.
+The editor offers Stock / 3 columns and Stock / 2 maximum rows. Duplicate 4-column and 3-row cards were removed because they match the observed stock layout. Previously saved explicit 4/3 drafts display as Stock; opening the editor does not alter the applied snapshot. The backend still accepts those older values for compatibility. Selection saves the shared draft; Enable applies an identity-bound snapshot. Stock is the default. Landscape and fontScale above 1.3 use stock resources; returning to supported portrait reapplies the enabled policy. Row count still respects the native available-height and tile-count limits. Large top tiles are excluded. Guard **0.1.15** is unchanged; its existing Action, emergency stop and Restore end this backend alongside the other surfaces.
 
 The read-only inspector remains available in technical details. It reports only host category, counts, dimensions and orientation; it does not read tile text or identities.
 
