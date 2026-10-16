@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
 public final class AppearanceEditorNavigationTest {
     @Test public void everySectionOpensItsDetailPagesAndBackKeepsOverview(){
         ShadowBuild.setModel("NX809J");
-        String[][] routes={{"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},{"quick_settings","grid","style","brightness","tiles","labels"},{"volume","styles"},{"notifications","styles","appearance","behavior","icons"},{"power_menu","styles"},{"status_bar","typography","date","color","icons","battery","connectivity","inventory"}};
+        String[][] routes={{"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},{"quick_settings","grid","landscape","top_layout","label_layout","brightness_layout","style","brightness","tiles","labels"},{"volume","styles"},{"notifications","styles","appearance","behavior","icons"},{"power_menu","styles"},{"status_bar","typography","date","color","icons","battery","connectivity","inventory"}};
         for(String[] section:routes){
             var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section",section[0])).setup();var activity=controller.get();assertFalse(activity.isFinishing());EditorPages router=ReflectionHelpers.getField(activity,"pages");
             for(int i=1;i<section.length;i++){
@@ -68,6 +68,12 @@ public final class AppearanceEditorNavigationTest {
         java.util.concurrent.ExecutorService worker=ReflectionHelpers.getField(activity,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
         assertEquals(5,StatusBarPreferences.read(activity).surfaces().qsColumns());assertEquals(4,StatusBarPreferences.read(activity).surfaces().qsRows());assertEquals(before,activity.getSharedPreferences("recovery",0).getAll());controller.recreate();
         EditorPages router=ReflectionHelpers.getField(controller.get(),"pages");assertEquals("grid",router.page());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-columns:5").isSelected());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-rows:4").isSelected());controller.pause().stop().destroy();
+    }
+
+    @Test public void expandedQsControlsShareDraftWithoutEnabling()throws Exception{
+        ShadowBuild.setModel("NX809J");var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section","quick_settings")).setup();var a=controller.get();var before=a.getSharedPreferences("recovery",0).getAll();var decor=a.getWindow().getDecorView();
+        for(String tag:new String[]{"qs-top-layout:2","qs-label-position:1","qs-label-lines:3","qs-brightness-position:2","qs-brightness-icons:1","qs-landscape-columns:6","qs-landscape-rows:5"}){assertNotNull(tag,decor.findViewWithTag(tag));decor.findViewWithTag(tag).performClick();}
+        java.util.concurrent.ExecutorService worker=ReflectionHelpers.getField(a,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();SurfaceStyle s=StatusBarPreferences.read(a).surfaces();assertEquals(2,s.qsTopLayout());assertEquals(1,s.qsLabelPosition());assertEquals(3,s.qsLabelLines());assertEquals(2,s.qsBrightnessPosition());assertTrue(s.qsHideBrightnessIcons());assertEquals(6,s.qsLandscapeColumns());assertEquals(5,s.qsLandscapeRows());assertEquals(before,a.getSharedPreferences("recovery",0).getAll());controller.recreate();assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-top-layout:2").isSelected());controller.pause().stop().destroy();
     }
 
 }

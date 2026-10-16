@@ -44,8 +44,10 @@ while(p.mTiles.size()<20)p.mTiles.add(new Object());p.onMeasure(1216,1600);Objec
 p.onMeasure(1216,900);check(p.mPages.get(0).mRows==2);check(a.mRowAnimators==originalRows&&a.ROW_START_DELAY==originalDelays);intact(p);p.onMeasure(1216,1600);check(p.mPages.get(0).mRows==4);check(QsGridBackend.end());check(a.mRowAnimators==originalRows&&a.ROW_START_DELAY==originalDelays);p.onMeasure(1216,1600);intact(p);
 // Native array replacements are preserved during stop.
 QsGridBackend.begin(5,4);p.onMeasure(1216,1600);var replacement=new com.android.systemui.qs.TouchAnimator[3][2];a.mRowAnimators=replacement;check(QsGridBackend.end());check(a.mRowAnimators==replacement);p.onMeasure(1216,1600);
+// Independent landscape policy and six-row animation capacity retain native cell sizes.
+while(p.mTiles.size()<36)p.mTiles.add(new Object());QsGridBackend.begin(3,2,6,6);p.resources.getConfiguration().orientation=2;p.onMeasure(1800,2100);check(p.mPages.get(0).mColumns==6&&p.mPages.get(0).mRows==6);check(a.mRowAnimators.length==6&&a.ROW_START_DELAY[5]<=.65f);a.setPosition(.8f);check(a.mRowAnimators[5][0].positions>0);intact(p);p.onMeasure(1216,1600);check(p.mPages.get(0).mColumns==4&&p.mPages.get(0).mRows==5);check(a.mRowAnimators.length==5);p.resources.getConfiguration().orientation=1;p.onMeasure(1216,900);check(p.mPages.get(0).mColumns==3&&p.mPages.get(0).mRows==2);check(QsGridBackend.end());
 // Off-main activation and out-of-range requests are rejected.
-android.os.Looper.main=false;try{QsGridBackend.begin(3,2);throw new AssertionError();}catch(IllegalArgumentException expected){}android.os.Looper.main=true;try{QsGridBackend.begin(6,5);throw new AssertionError();}catch(IllegalArgumentException expected){}
+android.os.Looper.main=false;try{QsGridBackend.begin(3,2);throw new AssertionError();}catch(IllegalArgumentException expected){}android.os.Looper.main=true;try{QsGridBackend.begin(7,5);throw new AssertionError();}catch(IllegalArgumentException expected){}
 }}
 '''
 })

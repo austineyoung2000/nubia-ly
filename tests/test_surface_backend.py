@@ -79,8 +79,8 @@ SurfaceBackend.begin(SurfaceStyle.STOCK);check(SurfaceBackend.end());System.out.
 })
 for name in ["WeatherWidgetViewTypeOne","WeatherWidgetViewTypeTwo","WeatherWidgetViewTypeThree","AlarmWidgetViewTypeOne","AlarmWidgetViewTypeTwo","BatteryWidgetView","BatteryWidgetViewTypeTwo"]:
     sources["com/zte/feature/keyguardwidget/"+name+".java"]="package com.zte.feature.keyguardwidget;public class "+name+" extends android.widget.LinearLayout {}"
-for backend in ['QsGridBackend','QsGridInspection','BatteryControlBackend','NotificationIconBackend','BatteryStyleBackend','ConnectivityBackend','PowerMenuBackend','NotificationBehaviorBackend','ChargingInfoBackend']:
-    sources['com/elitedarkkaiser/nubialy/xposed/'+backend+'.java']='package com.elitedarkkaiser.nubialy.xposed;final class '+backend+' {static void install(ClassLoader l){}static void observe(android.view.View v){}static void begin(int v){}static void begin(int v,int w){}static boolean end(){return true;}static boolean healthy(){return true;}static String status(){return "";}}'
+for backend in ['QsLayoutBackend','QsGridBackend','QsGridInspection','BatteryControlBackend','NotificationIconBackend','BatteryStyleBackend','ConnectivityBackend','PowerMenuBackend','NotificationBehaviorBackend','ChargingInfoBackend']:
+    sources['com/elitedarkkaiser/nubialy/xposed/'+backend+'.java']='package com.elitedarkkaiser.nubialy.xposed;final class '+backend+' {static void install(ClassLoader l){}static void observe(android.view.View v){}static void begin(int v){}static void begin(int v,int w){}static void begin(int a,int b,int c,int d){}static void begin(int a,int b,int c,int d,boolean e){}static boolean end(){return true;}static boolean healthy(){return true;}static String status(){return "";}}'
 with tempfile.TemporaryDirectory(prefix='nubialy-surfaces-') as work:
     work=Path(work)
     for name,content in sources.items():
