@@ -1,6 +1,6 @@
 # Quick Settings layout editor
 
-## Combined phone test: 0.1.63-qs-layout (64)
+## Combined phone test: 0.1.64-qs-layout (65)
 
 The owner confirmed 3×2, 4×2 and 5×4 small grids, stock restoration, and smooth fourth-row expansion after five minutes of phone testing. The next APK adds the remaining requested layout controls together. Tile-size and spacing controls were explicitly excluded. Guard 0.1.15 is unchanged: Restore, its independent Action and emergency stop end both layout backends through the existing surface recovery contract.
 
@@ -67,3 +67,13 @@ The owner confirmed six large tiles on 0.1.62, but the compact shade clipped bri
 The exact normal-shade container now adds the native quick-row height difference to its current native minimum. The hook requires the current quick panel identity, showQsPanel, supported portrait geometry and active custom top layout. It does not change the full expansion height or write the native padding field. After a rebuild/restore, the native fragment notifyCustomizeChanged callback refreshes expansion and the notification height listener; without the fragment, the exact ancestor container updates expansion directly. Disabling the policy immediately returns the current native minimum.
 
 Regression tests cover compact boundary/handle offsets for one, three and four quick rows, interpolation to unchanged full expansion height, normal-panel exclusion and restoration. Removing the height hook makes the new regression fail. Phone verification should include brightness access, handle position and notifications in the compact shade, collapse/expand, and Restore/guard Action.
+
+## Opening cost and fallback diagnosis
+
+The owner confirmed compact brightness and handle positions on 0.1.63, but reported slow opening and intermittent full stock fallback. The screenshot records a successful quick count of six before fallback and is not itself an exception trace.
+
+The rebuild now stamps its generation/eligibility before requesting layout and notifying the native height listener. Layout callbacks cannot schedule another rebuild while a rebuild is running; a queued callback also checks whether that generation/eligibility has already applied. Once a layout callback fails, further queued mutations stop until independent restoration/re-enable; recovery is not bypassed. First failure type and source location survive restoration in technical diagnostics for both layout and grid backends.
+
+Compact minimum queries use weak references to the already validated root/quick panel and a cached native height difference. Configuration changes refresh that difference; animation frames no longer search the view hierarchy, resolve resource names or recompute native quick heights for each minimum query. Native animation setPosition/setQsExpansion calls no longer install unnecessary dimension scopes, and remaining scope resolution uses only the inspected object's actual field path instead of exception-driven field probing.
+
+Host tests exercise synchronous layout during the native height callback, coalesced queued rebuilds, 200 compact-minimum queries with no additional native height reads, and an injected queued native failure that does not retry on 30 subsequent layouts. The first failure remains readable after successful recovery. Phone confirmation is still required for opening responsiveness and absence of fallback; if fallback recurs, Check customization exposes the retained failure rather than requiring inference from a pre-failure snapshot.

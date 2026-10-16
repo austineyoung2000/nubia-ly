@@ -13,7 +13,8 @@ final class QsGridBackend {
  private record AnimationState(Object originalRows,Object originalDelays,Object ownedRows,Object ownedDelays){}
  private static final Map<Object,AnimationState> animationStates=new WeakHashMap<>();
  private static final ThreadLocal<ViewGroup> animationOwner=new ThreadLocal<>();
- private static boolean ready,attempted,active,failed,restoring;private static int columns,rows,landColumns,landRows;private static String message="not ready";
+ private static boolean ready,attempted,active,failed,restoring;private static int columns,rows,landColumns,landRows;private static String message="not ready",lastFailure="none";
+ private static void fail(Throwable error){if(!failed){Throwable cause=error;for(int i=0;i<4&&cause.getCause()!=null;i++)cause=cause.getCause();lastFailure=cause.getClass().getSimpleName();for(StackTraceElement frame:cause.getStackTrace())if(frame.getClassName().startsWith("com.elitedarkkaiser.nubialy")||frame.getClassName().startsWith("com.zte.")){lastFailure+="@"+frame.getMethodName()+":"+frame.getLineNumber();break;}}failed=true;}
  private static boolean main(){return Looper.myLooper()==Looper.getMainLooper();}
  private static int n(Object o,String f){return ((Number)XposedHelpers.getObjectField(o,f)).intValue();}
  private static void put(Object o,String f,int v){XposedHelpers.setIntField(o,f,v);}
@@ -36,8 +37,8 @@ final class QsGridBackend {
   installed.add(XposedBridge.hookMethod(base.getDeclaredMethod("updateResources"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(p.hasThrowable()||!main()||!active||restoring)return;try{View v=(View)p.thisObject;if(!v.getClass().getName().equals(PAGE)||!applies(owner(v)))return;
    configure(v,owner(v));
    p.setResult(true);
-  }catch(Throwable error){failed=true;}}}));
-  installed.add(XposedBridge.hookMethod(pager.getDeclaredMethod("createTilePage"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(p.hasThrowable()||!main()||!applies((ViewGroup)p.thisObject))return;try{if(p.getResult() instanceof View v&&v.getClass().getName().equals(PAGE))configure(v,(ViewGroup)p.thisObject);}catch(Throwable error){failed=true;}}}));
+  }catch(Throwable error){fail(error);}}}));
+  installed.add(XposedBridge.hookMethod(pager.getDeclaredMethod("createTilePage"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(p.hasThrowable()||!main()||!applies((ViewGroup)p.thisObject))return;try{if(p.getResult() instanceof View v&&v.getClass().getName().equals(PAGE))configure(v,(ViewGroup)p.thisObject);}catch(Throwable error){fail(error);}}}));
   installed.add(XposedBridge.hookMethod(pager.getDeclaredMethod("onMeasure",int.class,int.class),new XC_MethodHook(){
    @Override protected void beforeHookedMethod(MethodHookParam p){if(!main())return;try{ViewGroup v=(ViewGroup)p.thisObject;if(!owned(v))return;if(!pagers.containsKey(v))pagers.put(v,"");
     int width=View.MeasureSpec.getSize((Integer)p.args[0]);XposedHelpers.setAdditionalInstanceField(v,"nubia-ly:grid-width",width);
@@ -46,16 +47,16 @@ final class QsGridBackend {
     String mode=(applies(v)?v.getResources().getConfiguration().orientation+":"+selectedColumns(v)+":"+selectedRows(v):"stock")+":"+width+":"+budget;
     // Native configuration may change while enabled: recompute resources on every policy transition.
     String key="policy:"+mode;if(!key.equals(XposedHelpers.getAdditionalInstanceField(v,"nubia-ly:grid-policy"))){XposedHelpers.setAdditionalInstanceField(v,"nubia-ly:grid-policy",key);if(applies(v)||changed.contains(v)){reflow(v);if(!applies(v))changed.remove(v);}}
-   }catch(Throwable error){failed=true;}}
+   }catch(Throwable error){fail(error);}}
    @Override protected void afterHookedMethod(MethodHookParam p){if(!main())return;try{ViewGroup v=(ViewGroup)p.thisObject;if(!owned(v))return;if(p.hasThrowable()){failed=true;return;}List<?> pages=(List<?>)XposedHelpers.getObjectField(v,"mPages");if(pages.isEmpty())return;Object first=pages.get(0);String key=n(first,"mColumns")+":"+n(first,"mRows")+":"+pages.size()+":"+v.getResources().getConfiguration().orientation;
     if(!key.equals(pagers.put(v,key)))refreshAnimators(v);
-   }catch(Throwable error){failed=true;}}
+   }catch(Throwable error){fail(error);}}
   }));
-  XC_MethodHook animation=new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(!main())return;try{Object o=p.thisObject;animators.put(o,true);p.setObjectExtra("nubia-ly:grid-animation",animationOwner.get());Object v=XposedHelpers.getObjectField(o,"mPagedLayout");prepareAnimation(o,v instanceof ViewGroup g?g:null);animationOwner.set(v instanceof ViewGroup g&&applies(g)?g:null);}catch(Throwable error){failed=true;}}
+  XC_MethodHook animation=new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(!main())return;try{Object o=p.thisObject;animators.put(o,true);p.setObjectExtra("nubia-ly:grid-animation",animationOwner.get());Object v=XposedHelpers.getObjectField(o,"mPagedLayout");prepareAnimation(o,v instanceof ViewGroup g?g:null);animationOwner.set(v instanceof ViewGroup g&&applies(g)?g:null);}catch(Throwable error){fail(error);}}
    @Override protected void afterHookedMethod(MethodHookParam p){if(main())animationOwner.set((ViewGroup)p.getObjectExtra("nubia-ly:grid-animation"));}};
   for(String method:new String[]{"updateAnimators","updateViews","setPosition"})installed.add(XposedBridge.hookMethod(method.equals("setPosition")?anim.getDeclaredMethod(method,float.class):anim.getDeclaredMethod(method),animation));
   for(String dimensionClass:new String[]{"com.zte.utils.QsDimenUtils","com.zte.utils.QsDimenUtils$Companion"}){Class<?> dimensions=XposedHelpers.findClass(dimensionClass,loader);
-  for(String method:new String[]{"getTileColumns","getMaxQsPanelRowCount"}){final boolean col=method.equals("getTileColumns");installed.add(XposedBridge.hookMethod(dimensions.getDeclaredMethod(method),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){ViewGroup v=animationOwner.get();if(p.hasThrowable()||!applies(v))return;try{List<?> pages=(List<?>)XposedHelpers.getObjectField(v,"mPages");if(pages.isEmpty())return;int value=n(pages.get(0),col?"mColumns":"mRows");if(value>=1&&value<=6)p.setResult(value);}catch(Throwable error){failed=true;}}}));}
+  for(String method:new String[]{"getTileColumns","getMaxQsPanelRowCount"}){final boolean col=method.equals("getTileColumns");installed.add(XposedBridge.hookMethod(dimensions.getDeclaredMethod(method),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){ViewGroup v=animationOwner.get();if(p.hasThrowable()||!applies(v))return;try{List<?> pages=(List<?>)XposedHelpers.getObjectField(v,"mPages");if(pages.isEmpty())return;int value=n(pages.get(0),col?"mColumns":"mRows");if(value>=1&&value<=6)p.setResult(value);}catch(Throwable error){fail(error);}}}));}
   }
   ready=true;message="Stock";
  }catch(Throwable error){for(var hook:installed)try{hook.unhook();}catch(Throwable ignored){}message="source unavailable";}}
@@ -109,5 +110,5 @@ final class QsGridBackend {
  static boolean end(){if(!main())return false;active=false;restoring=true;boolean ok=true;try{for(ViewGroup v:new ArrayList<>(changed))try{XposedHelpers.setAdditionalInstanceField(v,"nubia-ly:grid-policy",null);reflow(v);changed.remove(v);}catch(Throwable error){ok=false;}}finally{for(var entry:new ArrayList<>(animationStates.entrySet()))try{restoreAnimation(entry.getKey(),entry.getValue());}catch(Throwable error){ok=false;}restoring=false;columns=rows=landColumns=landRows=0;}if(ok){failed=false;message="Stock";}else{failed=true;message="Restoration incomplete";}return ok;}
 
  static boolean healthy(){return !failed;}
- static String status(){return "QS grid: "+message+"; requested columns="+columns+", rows="+rows+"; landscape columns="+landColumns+", rows="+landRows+"; native reflow hosts="+pagers.size()+"; extended row animators="+animationStates.size()+".";}
+ static String status(){return "QS grid: "+message+"; requested columns="+columns+", rows="+rows+"; landscape columns="+landColumns+", rows="+landRows+"; native reflow hosts="+pagers.size()+"; extended row animators="+animationStates.size()+"; last failure="+lastFailure+".";}
 }
