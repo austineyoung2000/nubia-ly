@@ -31,7 +31,7 @@ nubia-ly is a standalone app. [Redmagic 11 Toolbox](https://github.com/austineyo
 | --- | --- |
 | **Status bar** | Clock fonts, color, size, weight, seconds, spacing and dates; individual icon visibility; icon colors, opacity and placement; Wi-Fi and mobile signal artwork. |
 | **Battery** | Stock plus 24 alternatives, inside/outside/hidden percentage, charging-symbol visibility and adjustable size. |
-| **Quick Settings** | Separate large/small tile shapes, outline and layered visual treatments, label appearance and brightness-slider styles. |
+| **Quick Settings** | Independent portrait/landscape grids, native large-tile arrangements, label position and line limits, brightness placement and sun-icon visibility; separate large/small tile shapes, outline/layered treatments and brightness-slider styles. |
 | **Lock screen** | Clock/date appearance, built-in clock fonts, fingerprint icons and animations, plus measured charging diagnostics beneath the stock charging message. |
 | **Notifications** | Notification surface styles, corners and opacity, automatic heads-up suppression, overflow counts and notification-icon limits. |
 | **Volume** | A dedicated page with visual slider styles, including outline, gradient, neumorphic and layered treatments. |
@@ -46,7 +46,19 @@ nubia-ly is a standalone app. [Redmagic 11 Toolbox](https://github.com/austineyo
 - **Independent recovery controls:** Restore stock, Emergency stop and the Recovery Guard module's Action revoke nubia-ly customization.
 - **Systemless boot artwork:** the original animation archive stays untouched. A verified file bind supplies the chosen archive for the next boot.
 
-Tile actions, volume levels, biometric authentication and power actions remain controlled by the native firmware. Quick Settings grid/layout replacement is not exposed.
+Tile actions, volume levels, biometric authentication and power actions remain controlled by the native firmware. Quick Settings uses the existing native tile views and pager; tile size and spacing controls are not exposed.
+
+### Quick Settings layouts
+
+- **Portrait grid:** Stock, 2, 3 or 5 columns; Stock, 1, 2, 4, 5 or 6 maximum rows. Duplicate 4-column/3-row choices are represented by Stock.
+- **Landscape grid:** independent Stock or 2–6 columns and Stock or 1–6 maximum rows.
+- **Large tiles:** Stock, two tiles in one row, six tiles in three rows, or four tiles in a single column. Remaining tiles stay in their original order in the small grid.
+- **Labels:** stock placement, above icons or icons only, with stock or 1–3 maximum lines for small tile labels.
+- **Brightness:** stock position, above all tiles or below small tiles, with optional sun-icon hiding. The native slider and auto-brightness controls remain in use.
+
+Grid choices preserve native cell dimensions and use available width/height; extra rows and columns apply only when they fit. Expansion animations follow the fitted row count. Large-tile, label and brightness arrangements target the portrait shade; landscape has its own small-grid settings, and larger font configurations retain stock geometry. The compact shade reserves space for its selected large-tile rows so brightness, the drag handle and notifications stay below them.
+
+Selections save a draft until **Enable customization**. **Restore stock appearance** and the guard Action restore the native layout. Layout updates are coalesced, inherited lifecycle observers are deduplicated, and individual layout callbacks refresh only the affected surface. Technical details retain the last layout/grid failure for troubleshooting. See the [layout implementation and validation notes](docs/QS_GRID_EDITOR.md).
 
 ## Requirements
 
@@ -58,7 +70,7 @@ Tile actions, volume levels, biometric authentication and power actions remain c
 | Runtime framework | [Vector](https://github.com/JingMatrix/Vector) with a compatible Zygisk environment |
 | Companion module | **nubia-ly Recovery Guard**, installed through your root manager |
 | App package | `com.elitedarkkaiser.nubialy` |
-| Current app / guard | `0.1.55-systemless-boot` (56) / `0.1.15` (16) |
+| Current app / guard | `0.1.65-lifecycle` (66) / `0.1.15` (16) |
 
 Recommended Vector scopes are **System UI** (`com.android.systemui`) and **Fingerprint SensorService** (`com.fingerprint.sensorservice`). The latter is used for the firmware's separate fingerprint renderer. These are the app's declared scopes.
 
