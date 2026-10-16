@@ -2,15 +2,15 @@
 
 ## Current stage: bounded editor phone test
 
-App **0.1.58-qs-grid (59)** adds **Quick Settings → Rows & columns** to the existing focused editor. The owner supplied read-only phone evidence confirming the native paged route: 4 columns × 3 rows, 16 records split 12 + 4 across two pages, 210 × 271 px cells and 22 × 28 px field gaps, portrait. This does not establish support for additional rows or narrower cells.
+App **0.1.59-qs-grid (60)** adds **Quick Settings → Rows & columns** to the existing focused editor. The owner supplied read-only phone evidence confirming the native paged route: 4 columns × 3 rows, 16 records split 12 + 4 across two pages, 210 × 271 px cells and 22 × 28 px field gaps, portrait. This does not establish support for additional rows or narrower cells.
 
-The editor offers Stock / 3 columns and Stock / 2 maximum rows. Duplicate 4-column and 3-row cards were removed because they match the observed stock layout. Previously saved explicit 4/3 drafts display as Stock; opening the editor does not alter the applied snapshot. The backend still accepts those older values for compatibility. Selection saves the shared draft; Enable applies an identity-bound snapshot. Stock is the default. Landscape and fontScale above 1.3 use stock resources; returning to supported portrait reapplies the enabled policy. Row count still respects the native available-height and tile-count limits. Large top tiles are excluded. Guard **0.1.15** is unchanged; its existing Action, emergency stop and Restore end this backend alongside the other surfaces.
+The editor offers Stock / 2 / 3 / 5 columns and Stock / 1 / 2 maximum rows. Duplicate 4-column and 3-row cards were removed because they match the observed stock layout. Previously saved explicit 4/3 drafts display as Stock; opening the editor does not alter the applied snapshot. The backend still accepts those older values for compatibility. Selection saves the shared draft; Enable applies an identity-bound snapshot. Stock is the default. Landscape and fontScale above 1.3 use stock resources; returning to supported portrait reapplies the enabled policy. Row count still respects the native available-height and tile-count limits. Large top tiles are excluded. Guard **0.1.15** is unchanged; its existing Action, emergency stop and Restore end this backend alongside the other surfaces.
 
 The read-only inspector remains available in technical details. It reports only host category, counts, dimensions and orientation; it does not read tile text or identities.
 
 ## Scoped backend and restoration
 
-`QsGridBackend` requires the inspected classes/fields/methods. A paged host must be attached under the exact `MfvQSPanel` whose current `mTileLayout` field points to it. Only exact `MfvPagedTileLayout$TilePage` resource outputs are changed: column/resource-column count and a reduced maximum-row cap. The observed native four-column source is required; other native column regimes stay stock. Native cell sizes are unchanged. Three columns provide more spacing rather than shrinking touch targets; five columns and four rows are deliberately absent.
+`QsGridBackend` requires the inspected classes/fields/methods. A paged host must be attached under the exact `MfvQSPanel` whose current `mTileLayout` field points to it. Only exact `MfvPagedTileLayout$TilePage` resource outputs are changed: column/resource-column count and a reduced maximum-row cap. The observed native four-column source is required; other native column regimes stay stock. Native cell sizes are unchanged. Two/three columns provide more spacing. Five columns retain native cell width and require the current measure width to fit five cells, both native outer margins and at least 4 dp between columns; narrower widths keep stock columns. The width is part of the native reflow policy key, so resizing rechecks the fit. Four rows remain absent because native row-animation capacity has not been expanded.
 
 Native pager measurement continues to compute row count and propagate it to pages; its existing `mDistributeTiles` path handles page creation/removal, records, adapter and indicator. New pages created during native distribution receive the same bounded policy before records are added. No tile/host model or tile order is written. Native cell measurement, horizontal spacing and RTL placement are retained.
 
@@ -50,3 +50,7 @@ Production-hook host tests exercise native-shaped reflow/redistribution, new-pag
 6. Re-enable desired settings and reboot; verify saved enabled choices resume and later draft changes remain unapplied.
 
 No merge until the owner tests and approves. No System UI restart, data clearing or settings-write shortcut is used.
+
+## Additional layout phone test
+
+The owner confirmed 3×2, 4×2 and Restore resetting all styling. App 0.1.59 adds 2-column, 5-column and 1-row choices. Test 5 columns with Stock rows (for 16 tiles, 15 + 1 if three rows fit), then 5×2 (10 + 6), 3×1 and 2×2. Check narrow/rotated panels, every tile/action, swiping and Restore. Duplicates of observed stock 4 columns/3 rows remain removed. No phone success is claimed for these additional choices before owner feedback.

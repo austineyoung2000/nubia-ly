@@ -21,6 +21,7 @@ sources={
  check(StatusBarPreferences.save(c,full));check(StatusBarPreferences.read(c).equals(full));check(StatusBarPreferences.activate(c,id,full,0xffabcdef,2));check(StatusBarPreferences.active(c,id).equals(full));check(StatusBarPreferences.save(c,selected));check(StatusBarPreferences.active(c,id).equals(full));
  var grid=SurfaceStyle.decode(surfaces.encode().substring(0,surfaces.encode().lastIndexOf(",",surfaces.encode().lastIndexOf(",")-1))+",3,2");check(grid!=null&&grid.qsColumns()==3&&grid.qsRows()==2);check(grid.withBatteryControls(2,1).qsColumns()==3);check(grid.withBatteryStyle(4).qsRows()==2);
  check(StatusBarPreferences.save(c,details.withSurfaces(grid)));check(StatusBarPreferences.read(c).surfaces().equals(grid));check(StatusBarPreferences.activate(c,id,details.withSurfaces(grid),0xffabcdef,2));check(StatusBarPreferences.save(c,StatusBarStyle.STOCK));check(StatusBarPreferences.active(c,id).surfaces().equals(grid));
+ var dense=SurfaceStyle.decode(grid.encode().substring(0,grid.encode().lastIndexOf(",",grid.encode().lastIndexOf(",")-1))+",5,1");check(dense!=null&&dense.qsColumns()==5&&dense.qsRows()==1);
  check(SurfaceStyle.decode(grid.encode().substring(0,grid.encode().lastIndexOf(","))+",4")==null);
  check(SurfaceStyle.decode(surfaces.encode().substring(0,surfaces.encode().lastIndexOf(",",surfaces.encode().lastIndexOf(",")-1))).qsColumns()==0);
  c.prefs.values.put("active_surfaces","bad");check(StatusBarPreferences.active(c,id).equals(StatusBarStyle.STOCK));

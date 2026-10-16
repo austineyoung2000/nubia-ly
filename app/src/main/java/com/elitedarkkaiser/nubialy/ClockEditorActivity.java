@@ -473,9 +473,9 @@ public final class ClockEditorActivity extends AppCompatActivity {
     @Override protected void onActivityResult(int request,int result,android.content.Intent data){super.onActivityResult(request,result,data);if(request==PICK_CLOCK_FONT&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(LockClockFonts.valid(value)){lockClockFont=value;redrawClockFont();saveStatusBar();}}if(request==PICK_ANIMATION&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(FingerprintAnimations.valid(value)){fingerprintAnimation=value;animationPicker.setText("Fingerprint animation · "+FingerprintAnimations.NAMES[value]);saveStatusBar();}}if(request==PICK_FINGERPRINT&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(FingerprintStyles.valid(value)){fingerprintStyle=value;redrawFingerprint();saveStatusBar();}}}
     private void gridControls(LinearLayout parent){
         parent.addView(text("Arrange the small tiles below brightness. These choices apply to the portrait paged panel; landscape and large text keep stock layout. Enable applies the saved grid.",14,false));
-        gridChoices(parent,true,new int[]{0,3},new String[]{"Stock","3 columns"});
-        gridChoices(parent,false,new int[]{0,2},new String[]{"Stock","2 rows"});
-        parent.addView(text("Rows are a maximum: the phone may fit fewer when space is limited. Page count follows your tiles. Large top tiles, tile order and tap actions remain native. Restore stock appearance or the guard Action restores the native grid.",14,false));
+        gridChoices(parent,true,new int[]{0,2,3,5},new String[]{"Stock","2 columns","3 columns","5 columns"});
+        gridChoices(parent,false,new int[]{0,1,2},new String[]{"Stock","1 row","2 rows"});
+        parent.addView(text("Rows are a maximum: the phone may fit fewer when space is limited. Five columns require enough width for stock-size tiles and spacing; narrower panels keep stock columns. Page count follows your tiles. Large top tiles, tile order and tap actions remain native. Restore stock appearance or the guard Action restores the native grid.",14,false));
     }
     private void gridChoices(LinearLayout parent,boolean column,int[] values,String[] names){
         parent.addView(text(column?"Columns":"Rows per page",18,true));

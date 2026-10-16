@@ -64,10 +64,10 @@ public final class AppearanceEditorNavigationTest {
 
     @org.junit.Test public void gridDraftSurvivesRecreationWithoutEnabling() throws Exception {
         ShadowBuild.setModel("NX809J");var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section","quick_settings")).setup();var activity=controller.get();var before=activity.getSharedPreferences("recovery",0).getAll();var decor=activity.getWindow().getDecorView();
-        decor.findViewWithTag("editor-route:quick_settings:grid").performClick();decor.findViewWithTag("qs-columns:3").performClick();decor.findViewWithTag("qs-rows:2").performClick();
+        decor.findViewWithTag("editor-route:quick_settings:grid").performClick();assertNull(decor.findViewWithTag("qs-columns:4"));assertNull(decor.findViewWithTag("qs-rows:3"));assertNotNull(decor.findViewWithTag("qs-columns:2"));decor.findViewWithTag("qs-columns:5").performClick();decor.findViewWithTag("qs-rows:1").performClick();
         java.util.concurrent.ExecutorService worker=ReflectionHelpers.getField(activity,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
-        assertEquals(3,StatusBarPreferences.read(activity).surfaces().qsColumns());assertEquals(2,StatusBarPreferences.read(activity).surfaces().qsRows());assertEquals(before,activity.getSharedPreferences("recovery",0).getAll());controller.recreate();
-        EditorPages router=ReflectionHelpers.getField(controller.get(),"pages");assertEquals("grid",router.page());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-columns:3").isSelected());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-rows:2").isSelected());controller.pause().stop().destroy();
+        assertEquals(5,StatusBarPreferences.read(activity).surfaces().qsColumns());assertEquals(1,StatusBarPreferences.read(activity).surfaces().qsRows());assertEquals(before,activity.getSharedPreferences("recovery",0).getAll());controller.recreate();
+        EditorPages router=ReflectionHelpers.getField(controller.get(),"pages");assertEquals("grid",router.page());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-columns:5").isSelected());assertTrue(controller.get().getWindow().getDecorView().findViewWithTag("qs-rows:1").isSelected());controller.pause().stop().destroy();
     }
 
 }
