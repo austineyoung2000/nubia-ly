@@ -1,6 +1,6 @@
 # Quick Settings layout editor
 
-## Combined phone test: 0.1.64-qs-layout (65)
+## Combined phone test: 0.1.65-lifecycle (66)
 
 The owner confirmed 3×2, 4×2 and 5×4 small grids, stock restoration, and smooth fourth-row expansion after five minutes of phone testing. The next APK adds the remaining requested layout controls together. Tile-size and spacing controls were explicitly excluded. Guard 0.1.15 is unchanged: Restore, its independent Action and emergency stop end both layout backends through the existing surface recovery contract.
 
@@ -77,3 +77,11 @@ The rebuild now stamps its generation/eligibility before requesting layout and n
 Compact minimum queries use weak references to the already validated root/quick panel and a cached native height difference. Configuration changes refresh that difference; animation frames no longer search the view hierarchy, resolve resource names or recompute native quick heights for each minimum query. Native animation setPosition/setQsExpansion calls no longer install unnecessary dimension scopes, and remaining scope resolution uses only the inspected object's actual field path instead of exception-driven field probing.
 
 Host tests exercise synchronous layout during the native height callback, coalesced queued rebuilds, 200 compact-minimum queries with no additional native height reads, and an injected queued native failure that does not retry on 30 subsequent layouts. The first failure remains readable after successful recovery. Phone confirmation is still required for opening responsiveness and absence of fallback; if fallback recurs, Check customization exposes the retained failure rather than requiring inference from a pre-failure snapshot.
+
+## Screen transition lifecycle cost
+
+After confirming fast application on 0.1.64, the owner reported sluggish screen-on/off and lock/unlock transitions. A separate older SurfaceBackend path registered the same inherited lifecycle Method repeatedly across tile, clock and widget classes. Every matching layout callback then called full refresh, including scanning unrelated roots, volume, brightness and fingerprint owners and computing live diagnostic strings.
+
+Lifecycle Method registrations are now deduplicated. A lifecycle callback refreshes only its changed owner and bounded descendant subtree, with QS background ownership checked once for that traversal. Out-of-traversal property changes still discover replacement tile backgrounds. The redundant full-surface pulsing callback is reduced to fingerprint refresh; the normal owner callback synchronously handles clock/date/AOD restoration. Explicit screen on/off and periodic health refreshes are retained. Root restoration, permit checks and recovery authority are unchanged.
+
+The vendor-shaped lifecycle regression checks exactly one inherited onLayout observer, 100 tile plus 100 lock-screen layouts without global volume/fingerprint refresh, 20 pulsing cycles with immediate clock/date restoration, explicit full refresh, and stock cleanup. Existing keyguard/AOD/font/fingerprint failure and restoration tests still pass. This demonstrates eliminated repeated work, not measured phone frame times; screen-transition responsiveness still needs owner confirmation.
