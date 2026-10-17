@@ -16,7 +16,7 @@ final class QsShapeBackend {
     private record Frame(long generation,State state){}
     private static float[] copy(float[] values){return values==null?null:values.clone();}
     static void begin(int shape){begin(shape,0);}
-    static void begin(int shape,int largeShape){if(largeShape<0||largeShape>3)throw new IllegalArgumentException();largeSelected=largeShape;if(shape<0||shape>3)throw new IllegalArgumentException();if(!end())throw new IllegalStateException("Tile shape restoration incomplete");selected=shape;captured=restored=0;if(shape==0&&largeShape==0)return;
+    static void begin(int shape,int largeShape){if(!(largeShape>=0&&largeShape<=4||largeShape>=100&&largeShape<=150))throw new IllegalArgumentException();largeSelected=largeShape;if(!(shape>=0&&shape<=4||shape>=100&&shape<=150))throw new IllegalArgumentException();if(!end())throw new IllegalStateException("Tile shape restoration incomplete");selected=shape;captured=restored=0;if(shape==0&&largeShape==0)return;
         XC_MethodHook callback=new XC_MethodHook(){
             @Override protected void beforeHookedMethod(MethodHookParam p){if(!active||writing)return;State state=states.get(p.thisObject);if(state!=null)p.setObjectExtra("nubia-ly:qs-shape",new Frame(generation,state));}
             @Override protected void afterHookedMethod(MethodHookParam p){Object extra=p.getObjectExtra("nubia-ly:qs-shape");if(!(extra instanceof Frame frame)||!active||writing||frame.generation()!=generation||states.get(p.thisObject)!=frame.state())return;
@@ -38,7 +38,8 @@ final class QsShapeBackend {
     private static void paint(GradientDrawable d,State state){writing=true;try{
         ViewGroup owner=state.owner.get();if(owner==null)return;int selected=owner.getClass().getName().equals(WIDE)?largeSelected:QsShapeBackend.selected;
         int width=d.getBounds().width(),height=d.getBounds().height();if(selected!=1&&(width<=0||height<=0))return;
-        float radius=selected==1?0:Math.min(width,height)*(selected==2?0.24f:0.5f);
+        float factor=selected>=100?(selected-100)/100f:(selected==1?0f:selected==2?0.24f:0.5f);
+        float radius=Math.min(width,height)*factor;
         float[] corners=selected==3?new float[]{radius,radius,0,0,radius,radius,0,0}:new float[]{radius,radius,radius,radius,radius,radius,radius,radius};
         d.setShape(GradientDrawable.RECTANGLE);d.setCornerRadii(corners);
     }finally{writing=false;}}
@@ -49,5 +50,6 @@ final class QsShapeBackend {
     static void release(ViewGroup owner){for(GradientDrawable d:new ArrayList<>(states.keySet()))if(states.get(d).owner.get()==owner)restore(d);}
     static boolean end(){generation++;active=false;for(GradientDrawable d:new ArrayList<>(states.keySet()))restore(d);for(var h:hooks)try{h.unhook();}catch(Throwable unavailable){failed=true;}hooks.clear();return !failed&&states.isEmpty();}
     static boolean healthy(){return !failed;}
-    static String status(){return "Large QS tiles: "+new String[]{"Stock","Square","Rounded square","Leaf"}[largeSelected]+"; Small QS tiles: "+new String[]{"Stock","Square","Rounded square","Leaf"}[selected]+"; captured: "+captured+"; restored: "+restored+"; remaining: "+states.size()+(failed?"; shape blocked, check restoration.":".");}
+    private static String label(int s){return s>=100?"Custom "+(s-100)+"%":new String[]{"Stock","Square","Rounded square","Leaf","Pill"}[s];}
+    static String status(){return "Large QS tiles: "+label(largeSelected)+"; Small QS tiles: "+label(selected)+"; captured: "+captured+"; restored: "+restored+"; remaining: "+states.size()+(failed?"; shape blocked, check restoration.":".");}
 }

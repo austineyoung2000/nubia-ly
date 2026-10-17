@@ -45,7 +45,7 @@ final class EditorPreview extends View {
     private void drawText(Canvas c,String text,float x,float y,float size,int appearance,int transform,int color){c.save();c.translate(x+StatusBarStyle.horizontal(transform),y+StatusBarStyle.vertical(transform));c.rotate(StatusBarStyle.rotation(transform));float scale=StatusBarStyle.indicatorScale(appearance)/100f;c.scale(scale,scale);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(size);paint.setColor(color);paint.setAlpha(StatusBarStyle.indicatorOpacity(appearance)*255/100);c.drawText(text,0,0,paint);c.restore();paint.setAlpha(255);}
     private void shape(Canvas canvas,float x,float y,float w,float h,int shape){
         android.graphics.drawable.GradientDrawable tile=new android.graphics.drawable.GradientDrawable();tile.setColor(paint.getColor());tile.setBounds(Math.round(x),Math.round(y),Math.round(x+w),Math.round(y+h));
-        if(shape==3)tile.setCornerRadii(new float[]{22,22,0,0,22,22,0,0});else tile.setCornerRadius(shape==1?0:shape==2?10:h/2);
+        if(shape==3)tile.setCornerRadii(new float[]{22,22,0,0,22,22,0,0});else tile.setCornerRadius(shape==1?0:shape==2?10:shape==4?h/2:h/2);
         if(tileStyle==0)tile.draw(canvas);else try{if(!QsTileEffects.draw(tileStyle,canvas,tile,1f,()->true,()->tile.draw(canvas)))tile.draw(canvas);}catch(Throwable unavailable){tile.draw(canvas);}
     }
 }

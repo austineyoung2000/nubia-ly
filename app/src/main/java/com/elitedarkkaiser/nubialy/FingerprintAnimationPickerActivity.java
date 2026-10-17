@@ -16,7 +16,7 @@ public final class FingerprintAnimationPickerActivity extends AppCompatActivity 
     private final Handler main=new Handler(Looper.getMainLooper());
     private int selected;private long generation;private androidx.appcompat.app.AlertDialog dialog;private FingerprintAnimationArtwork.Preview playing;
     private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
-    @Override public void onCreate(Bundle state){super.onCreate(state);if(!CompatibilityPolicy.isNx809j(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36){finish();return;}
+    @Override public void onCreate(Bundle state){super.onCreate(state);if(!CompatibilityPolicy.isSupportedDevice(Build.MODEL,Build.DEVICE)||!CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT)){finish();return;}
         selected=getIntent().getIntExtra("selection",0);if(!FingerprintAnimations.valid(selected))selected=0;FingerprintAnimationArtwork.resources(getResources());
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(getColor(R.color.background));
         MaterialToolbar toolbar=new MaterialToolbar(this);toolbar.setTitle("Fingerprint animation");toolbar.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material);toolbar.setNavigationContentDescription("Back");toolbar.setNavigationOnClickListener(v->finish());root.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(64)));

@@ -1,6 +1,6 @@
 id=nubia_ly_guard
-name=nubia-ly Recovery Guard
-version=0.1.15
-versionCode=16
+name=nubia-ly Recovery Guard (NX789J port)
+version=0.1.15-nx789j.4
+versionCode=20
 author=EliteDarkKaiser
-description=NX809J independent recovery and saved-feature resume after first unlock. Action revokes enabled authority. Optional verified boot-animation file bind with incomplete-boot rollback. No full boot-loop recovery promise.
+description=NX789J (RedMagic 10 Pro / 10S Pro; also accepts NX809J model, Android 15/16) independent recovery and saved-feature resume after first unlock. Action revokes enabled authority. Optional verified boot-animation file bind with incomplete-boot rollback. No full boot-loop recovery promise.

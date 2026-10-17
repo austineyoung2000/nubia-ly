@@ -11,7 +11,7 @@ final class DeviceInspector {
     record Snapshot(CompatibilityPolicy.Status status, String fingerprint, String systemUiHash) {}
     static Snapshot inspect(Context context) {
         String fingerprint = Build.FINGERPRINT;
-        if (!CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE))
+        if (!CompatibilityPolicy.isSupportedDevice(Build.MODEL, Build.DEVICE))
             return new Snapshot(CompatibilityPolicy.Status.UNSUPPORTED_DEVICE, fingerprint, "");
         String hash = "";
         try {

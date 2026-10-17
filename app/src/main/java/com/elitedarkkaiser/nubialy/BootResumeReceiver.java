@@ -7,7 +7,7 @@ public final class BootResumeReceiver extends BroadcastReceiver {
  public static final String ACTION="com.elitedarkkaiser.nubialy.RESUME_AFTER_UNLOCK";
  private static final AtomicBoolean busy=new AtomicBoolean();
  @Override public void onReceive(Context context,Intent intent){
-  if(intent==null||!(Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())||ACTION.equals(intent.getAction()))||!CompatibilityPolicy.isNx809j(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36)return;
+  if(intent==null||!(Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())||ACTION.equals(intent.getAction()))||!CompatibilityPolicy.isSupportedDevice(Build.MODEL,Build.DEVICE)||!CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT))return;
   UserManager user=context.getSystemService(UserManager.class);if(user==null||!user.isUserUnlocked()||android.os.Process.myUid()/100000!=0||!busy.compareAndSet(false,true))return;
   PendingResult pending=goAsync();Context app=context.getApplicationContext();Handler main=new Handler(Looper.getMainLooper());
   // File reads and private preference access never block a broadcast's main thread.

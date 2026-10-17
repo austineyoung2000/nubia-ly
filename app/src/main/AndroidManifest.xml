@@ -8,7 +8,7 @@
         android:icon="@drawable/ic_nubialy" android:theme="@style/Theme.NubiaLy"
         android:supportsRtl="true">
         <meta-data android:name="xposedmodule" android:value="true" />
-        <meta-data android:name="xposeddescription" android:value="nubia-ly · NX809J stock customization foundation" />
+        <meta-data android:name="xposeddescription" android:value="nubia-ly · NX809J / NX789J stock customization (fork)" />
         <meta-data android:name="xposedminversion" android:value="82" />
         <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
         <provider android:name=".GuardBrokerProvider"
