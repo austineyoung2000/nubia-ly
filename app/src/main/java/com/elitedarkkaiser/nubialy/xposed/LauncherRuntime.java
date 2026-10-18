@@ -18,6 +18,7 @@ final class LauncherRuntime {
     private boolean ready,busy,screenOff,needsPolling;
     private long generation;
     private Runnable expiry;
+    private final Set<String> gridRequests=new LinkedHashSet<>();
     private String authority="checking APK";
     private final Runnable poll=()->{if(!screenOff&&(!resumed.isEmpty()||needsPolling))read(null);};
     private LauncherRuntime(Application app){context=app;}
@@ -36,7 +37,15 @@ final class LauncherRuntime {
             PendingResult result=goAsync();boolean[] answered={false};Runnable[] timeout={null};
             Consumer<String> finish=message->{if(answered[0])return;answered[0]=true;main.removeCallbacks(timeout[0]);try{Bundle b=new Bundle();b.putString("nonce",nonce);b.putInt("version",BuildConfig.VERSION_CODE);b.putString("launcher_status",message);result.setResultExtras(b);result.setResultCode(SystemUiGuardProtocol.RESPONSE);}finally{result.finish();}};
             timeout[0]=()->{revoke();finish.accept("Launcher guard read timed out. "+status());};main.postDelayed(timeout[0],2500);
-            read(finish);
+            int rows=i.getIntExtra("grid_rows",0),columns=i.getIntExtra("grid_columns",0);
+            if(rows==0&&columns==0){read(finish);return;}
+            if(!LauncherGridCatalogue.choice(rows,columns)||gridRequests.contains(nonce)||!ready||busy){finish.accept("Grid request rejected; check runtime and try again.");return;}
+            gridRequests.add(nonce);if(gridRequests.size()>64)gridRequests.remove(gridRequests.iterator().next());
+            long requestDeadline=i.getLongExtra("request_deadline_ms",0);
+            read(message->finish.accept(message),()->{
+                if(answered[0]||!SystemUiGuardProtocol.admitted(requestDeadline,SystemClock.elapsedRealtime()))return "Grid request expired";
+                return LauncherLayoutBackend.applyGrid(context,rows,columns);
+            });
         }},new IntentFilter(GuardBrokerPolicy.LAUNCHER_ACTION),SystemUiGuardProtocol.PERMISSION,null,Context.RECEIVER_EXPORTED);
         worker.execute(()->{boolean match=LauncherCompatibility.supported(context);main.post(()->{
             ready=match&&LauncherBackend.install(context.getClassLoader());authority=ready?"APK verified":"unsupported APK or hooks";
@@ -46,8 +55,10 @@ final class LauncherRuntime {
     private String status(){return authority+". "+LauncherBackend.status();}
     private void scheduleRefresh(){main.removeCallbacks(poll);if(needsPolling&&!screenOff)main.postDelayed(poll,resumed.isEmpty()?5000:3000);}
     private void revoke(){main.removeCallbacks(poll);needsPolling=false;generation++;if(expiry!=null)main.removeCallbacks(expiry);expiry=null;LauncherBackend.end();}
-    private void read(Consumer<String> reply){
+    private void read(Consumer<String> reply){read(reply,null);}
+    private void read(Consumer<String> reply,java.util.function.Supplier<String> operation){
         if(!ready||busy){if(reply!=null)reply.accept(status());return;}
+        final String[] operationResult={"Grid request blocked by launcher authority"};
         busy=true;long ticket=generation,started=SystemClock.elapsedRealtime();String nonce=UUID.randomUUID().toString();
         worker.execute(()->{
             Bundle answer=null;try{Bundle request=new Bundle();request.putString("nonce",nonce);request.putInt("version",BuildConfig.VERSION_CODE);answer=context.getContentResolver().call(Uri.parse("content://"+GuardBrokerPolicy.AUTHORITY),GuardBrokerPolicy.LAUNCHER_METHOD,null,request);}catch(Throwable unavailable){}
@@ -60,9 +71,9 @@ final class LauncherRuntime {
                     LauncherStyle selected=new LauncherStyle(valid?result.getInt("launcher_scale",-1):-1,valid&&result.getBoolean("launcher_labels"),valid?result.getInt("launcher_label_color",0):0,valid?result.getInt("folder_blur",-1):-1,valid?result.getInt("folder_labels",0):0,valid?result.getInt("folder_title",0):0,valid?result.getString("icon_pack",""):"",valid?result.getInt("icon_shape",0):0,LauncherStyle.Layout.decode(valid?result.getString("launcher_layout",LauncherStyle.Layout.STOCK.encode()):LauncherStyle.Layout.STOCK.encode()));
                     valid=valid&&result.getInt("status",-1)==GuardBrokerPolicy.READABLE&&PreviewPolicy.uuid(result.getString("permit_id"))&&until>now&&until-now<=ClockEnabledPolicy.HEALTH_MS&&selected.valid();
                     if(!valid||screenOff){authority=valid?"screen off":"guard blocked";revoke();}
-                    else{authority="guard readable";needsPolling=selected.custom();LauncherBackend.apply(selected,until);if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="guard expired";revoke();}};main.postDelayed(expiry,until-now);}
+                    else{authority="guard readable";needsPolling=selected.custom();LauncherBackend.apply(selected,until);if(operation!=null)operationResult[0]=operation.get();if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="guard expired";revoke();}};main.postDelayed(expiry,until-now);}
                 }catch(Throwable unavailable){authority="guard unavailable";revoke();}
-                finally{scheduleRefresh();if(reply!=null)reply.accept(status());}
+                finally{scheduleRefresh();if(reply!=null)reply.accept(operation==null?status():operationResult[0]+". "+status());}
             });
         });
     }

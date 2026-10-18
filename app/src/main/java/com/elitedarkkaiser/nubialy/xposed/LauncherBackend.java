@@ -26,7 +26,7 @@ final class LauncherBackend {
     private static boolean transitionArtworkReady;
     private static Field currentTextColor;
     private static final class Frame {
-        Frame previous;TextView view;Drawable icon;LauncherDrawState.TextState text;boolean home;android.content.ComponentName component;
+        Frame previous;TextView view;Drawable icon;LauncherDrawState.TextState text;boolean home,folder;android.content.ComponentName component;
     }
     static boolean install(ClassLoader loader){
         if(installed)return true;
@@ -39,10 +39,10 @@ final class LauncherBackend {
             XC_MethodHook viewDraw=new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
                     TextView view=(TextView)p.thisObject;
-                    boolean home=homeShortcut(view);android.content.ComponentName component=active()&&style.iconsCustom()?appComponent(view):null;if(!home&&component==null)return;
+                    boolean folder=folderShortcut(view),home=homeShortcut(view);android.content.ComponentName component=active()&&style.iconsCustom()?appComponent(view):null;if(!home&&!folder&&component==null)return;
                     seen.put(view,true);
                     if(!active())return;
-                    Frame f=new Frame();f.previous=drawing.get();f.view=view;f.home=home;f.component=component;
+                    Frame f=new Frame();f.previous=drawing.get();f.view=view;f.home=home;f.folder=folder;f.component=component;
                     p.setObjectExtra("launcher_frame",f);
                     try{
                         f.icon=(Drawable)getter.invoke(view);
@@ -60,7 +60,7 @@ final class LauncherBackend {
             added.add(XposedBridge.hookMethod(shadow.getDeclaredMethod("onDraw",Canvas.class),viewDraw));
             added.add(XposedBridge.hookMethod(draw,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
-                    Frame f=drawing.get();if(f==null||f.icon!=p.thisObject||!active()||!f.home||scaleFor(f.view)==100)return;
+                    Frame f=drawing.get();if(f==null||f.icon!=p.thisObject||!active()||!(f.home||f.folder)||scaleFor(f.view)==100)return;
                     Canvas c=(Canvas)p.args[0];
                     try{p.setObjectExtra("launcher_canvas",LauncherDrawState.scale(c,(Drawable)p.thisObject,scaleFor(f.view)));}
                     catch(Throwable unavailable){p.setObjectExtra("launcher_canvas",null);end();}
@@ -78,7 +78,7 @@ final class LauncherBackend {
             var bounds=LauncherTransitionBounds.resolve(XposedHelpers.findClass("com.android.launcher3.views.FloatingIconView",loader));
             added.add(XposedBridge.hookMethod(bounds,new XC_MethodHook(){
                 @Override protected void afterHookedMethod(MethodHookParam p){
-                    if(p.hasThrowable()||!active()||!(p.args[1] instanceof TextView icon)||!homeShortcut(icon))return;
+                    if(p.hasThrowable()||!active()||!(p.args[1] instanceof TextView icon)||(!homeShortcut(icon)&&!folderShortcut(icon)))return;
                     try{if(LauncherTransitionBounds.adjust((android.graphics.RectF)p.args[3],scaleFor(icon)))transitionCorrections++;}
                     catch(Throwable unavailable){end();}
                 }
@@ -121,7 +121,8 @@ final class LauncherBackend {
             if(!location)return null;Object target=XposedHelpers.callMethod(info,"getTargetComponent");return target instanceof android.content.ComponentName component&&!component.getPackageName().equals("theme.folder.add")?component:null;
         }catch(Throwable unavailable){return null;}
     }
-    private static int scaleFor(TextView view){try{Object info=view.getTag();if(info!=null&&XposedHelpers.getIntField(info,"container")==-101&&style.layout().dockScale()!=0)return style.layout().dockScale();}catch(Throwable ignored){}return style.iconScale();}
+    private static boolean folderShortcut(TextView view){for(var parent=view.getParent();parent!=null;parent=parent.getParent())if(parent.getClass().getName().equals("com.android.launcher3.folder.Folder"))return true;return false;}
+    private static int scaleFor(TextView view){if(folderShortcut(view))return style.layout().folderScale();try{Object info=view.getTag();if(info!=null&&XposedHelpers.getIntField(info,"container")==-101&&style.layout().dockScale()!=0)return style.layout().dockScale();}catch(Throwable ignored){}return style.iconScale();}
     private static boolean homeShortcut(TextView view){
         try{
             Object info=view.getTag();if(info==null)return false;

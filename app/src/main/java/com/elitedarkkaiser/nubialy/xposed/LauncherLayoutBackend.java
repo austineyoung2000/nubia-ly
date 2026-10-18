@@ -19,6 +19,16 @@ final class LauncherLayoutBackend {
  private static final Map<Class<?>,List<Field>> paints=new HashMap<>();
  private record FolderProfile(Object inv,int rows,int columns,int capacity,int[] rowArray,int[] columnArray,int appliedRows,int appliedColumns){}
  private static boolean active(){return Looper.myLooper()==Looper.getMainLooper()&&SystemClock.elapsedRealtime()<deadline;}
+ /** Explicit one-shot native reflow, called only after a fresh broker permit. Never called by polling. */
+ static String applyGrid(android.content.Context context,int rows,int columns){
+  if(!active()||!gridReady||!selected.expandedGrid()||!LauncherGridCatalogue.choice(rows,columns))return "Enable Home-screen grid before choosing a layout";
+  try{
+   Object manager=XposedHelpers.callStaticMethod(XposedHelpers.findClass("com.android.launcher3.H5",context.getClassLoader()),"T",context);
+   Object controller=XposedHelpers.callMethod(manager,"H");
+   Object result=XposedHelpers.callMethod(controller,"e",context,(rows<<4)|columns);
+   return Boolean.TRUE.equals(result)?"Native grid change requested: "+columns+" × "+rows+". Return home to see the result":"Launcher rejected the grid change";
+  }catch(Throwable unavailable){return "Native grid controller unavailable; existing layout retained";}
+ }
  static void install(ClassLoader loader){
   try{desktopGrid=XposedHelpers.findClass("com.android.launcher3.b0",loader);gridMap=desktopGrid.getDeclaredField("s");gridMap.setAccessible(true);if(!Modifier.isStatic(gridMap.getModifiers())||!Map.class.isAssignableFrom(gridMap.getType()))throw new IllegalStateException();gridReady=true;}catch(Throwable ignored){gridReady=false;}
   try{

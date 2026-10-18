@@ -3,6 +3,13 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import java.util.*;
 public final class LauncherLayoutTest {
+ @Test public void folderScaleMigratesAndStaysScoped(){
+  assertEquals(100,LauncherStyle.Layout.decode("6,6,0,0,100,0,1").folderScale());
+  var l=new LauncherStyle.Layout(6,6,false,0,100,75,true,65);assertEquals(l,LauncherStyle.Layout.decode(l.encode()));
+  assertNull(LauncherStyle.Layout.decode("6,6,0,0,100,0,1,49"));assertNull(LauncherStyle.Layout.decode("6,6,0,0,100,0,1,101"));
+  assertEquals(65,LauncherStyle.Layout.merge("folders",LauncherStyle.Layout.STOCK,l).folderScale());
+  assertEquals(100,LauncherStyle.Layout.merge("dock",LauncherStyle.Layout.STOCK,l).folderScale());
+ }
  @Test public void expandedCatalogueIsAdditiveBoundedAndRestoresOnlyOwnedEntries(){
   Object native4=new Object(),native5=new Object();Map<Integer,Object> map=new HashMap<>();map.put(100,native4);map.put(101,native5);var grids=new LauncherGridCatalogue();assertTrue(grids.enable(map));assertEquals(25,map.size());assertEquals(23,grids.added());assertSame(native4,map.get(100));assertSame(native5,map.get(101));
   for(int row=6;row<=10;row++)for(int column=4;column<=8;column++)assertTrue(map.containsKey(row*16+column));
