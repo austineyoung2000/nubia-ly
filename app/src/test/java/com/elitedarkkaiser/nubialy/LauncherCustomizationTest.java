@@ -23,7 +23,7 @@ public final class LauncherCustomizationTest {
         var state=LauncherDrawState.hide(view,field);
         try{assertEquals(0,view.getCurrentTextColor());assertEquals(0,view.getPaint().getColor());view.getPaint().clearShadowLayer();throw new IllegalStateException("original draw failed");}
         catch(IllegalStateException expected){}finally{state.restore();}
-        assertTrue(view.getPaint().hasShadowLayer());assertEquals(color,view.getCurrentTextColor());assertEquals(paint,view.getPaint().getColor());assertEquals("App label",view.getText().toString());
+        assertEquals(3f,view.getPaint().getShadowLayerRadius(),0f);assertEquals(color,view.getCurrentTextColor());assertEquals(paint,view.getPaint().getColor());assertEquals("App label",view.getText().toString());
     }
     @Test public void iconTransformRestoresCanvasAndNeverChangesDrawableBounds(){
         Canvas c=new Canvas(Bitmap.createBitmap(100,100,Bitmap.Config.ARGB_8888));ColorDrawable icon=new ColorDrawable(0xffffffff);icon.setBounds(10,20,50,60);Rect before=new Rect(icon.getBounds());int count=c.getSaveCount();

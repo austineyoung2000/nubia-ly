@@ -5,6 +5,7 @@ import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import com.elitedarkkaiser.nubialy.LauncherStyle;
 import com.elitedarkkaiser.nubialy.LauncherDrawState;
@@ -63,6 +64,10 @@ final class LauncherBackend {
             }));
             installed=true;return true;
         }catch(Throwable unavailable){for(var hook:added)hook.unhook();end();return false;}
+    }
+    static void observe(View root){
+        if(root instanceof TextView label&&homeShortcut(label)){seen.put(label,true);label.invalidate();}
+        if(root instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++)observe(group.getChildAt(i));
     }
     private static boolean homeShortcut(TextView view){
         try{

@@ -24,7 +24,7 @@ final class LauncherRuntime {
     static void install(Application app){new LauncherRuntime(app).start();}
     private void start(){
         context.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks(){
-            public void onActivityResumed(Activity a){resumed.add(a);main.removeCallbacks(poll);if(!screenOff)main.post(poll);}
+            public void onActivityResumed(Activity a){resumed.add(a);LauncherBackend.observe(a.getWindow().getDecorView());main.removeCallbacks(poll);if(!screenOff)main.post(poll);}
             public void onActivityPaused(Activity a){resumed.remove(a);if(resumed.isEmpty()){main.removeCallbacks(poll);revoke();}}
             public void onActivityCreated(Activity a,Bundle b){}public void onActivityStarted(Activity a){}public void onActivityStopped(Activity a){}public void onActivitySaveInstanceState(Activity a,Bundle b){}public void onActivityDestroyed(Activity a){resumed.remove(a);}
         });
@@ -40,7 +40,7 @@ final class LauncherRuntime {
         }},new IntentFilter(GuardBrokerPolicy.LAUNCHER_ACTION),SystemUiGuardProtocol.PERMISSION,null,Context.RECEIVER_EXPORTED);
         worker.execute(()->{boolean match=LauncherCompatibility.supported(context);main.post(()->{
             ready=match&&LauncherBackend.install(context.getClassLoader());authority=ready?"APK verified":"unsupported APK or hooks";
-            if(ready&&!resumed.isEmpty()&&!screenOff){main.removeCallbacks(poll);main.post(poll);}
+            if(ready&&!resumed.isEmpty()&&!screenOff){for(Activity a:resumed)LauncherBackend.observe(a.getWindow().getDecorView());main.removeCallbacks(poll);main.post(poll);}
         });});
     }
     private String status(){return authority+". "+LauncherBackend.status();}
