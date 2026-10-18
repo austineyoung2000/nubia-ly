@@ -67,6 +67,7 @@ final class LauncherBackend {
                 }
                 @Override protected void afterHookedMethod(MethodHookParam p){Object save=p.getObjectExtra("launcher_canvas");if(save instanceof Integer count)((Canvas)p.args[0]).restoreToCount(count);}
             }));
+            if(!com.elitedarkkaiser.nubialy.LauncherProbePolicy.ENABLED){
             var inner=getter.getReturnType().getDeclaredMethod("c",Canvas.class,android.graphics.Rect.class);
             var paintField=java.util.Arrays.stream(getter.getReturnType().getDeclaredFields()).filter(field->field.getType()==Paint.class).findFirst().orElseThrow();paintField.setAccessible(true);
             added.add(XposedBridge.hookMethod(inner,new XC_MethodHook(){
@@ -99,7 +100,8 @@ final class LauncherBackend {
                     }
                 }));transitionArtworkReady=true;
             }catch(Throwable unavailable){transitionArtworkReady=false;}
-            LauncherLayoutBackend.install(loader);LauncherFolderBackend.install(loader);installed=true;return true;
+            LauncherLayoutBackend.install(loader);LauncherFolderBackend.install(loader);}
+            installed=true;return true;
         }catch(Throwable unavailable){for(var hook:added)hook.unhook();end();return false;}
     }
     private static Drawable transitionIcon(TextView icon,Drawable original){
@@ -141,7 +143,7 @@ final class LauncherBackend {
         finally{if(f.previous==null)drawing.remove();else drawing.set(f.previous);}
     }
     private static boolean active(){return installed&&style.custom()&&SystemClock.elapsedRealtime()<deadline;}
-    static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;LauncherLayoutBackend.apply(selected.layout(),until);LauncherFolderBackend.apply(selected,until);LauncherIconRuntime.apply(selected,until);if(changed)refresh();}
+    static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}selected=com.elitedarkkaiser.nubialy.LauncherProbePolicy.restrict(selected);boolean changed=!selected.equals(style);style=selected;deadline=until;LauncherLayoutBackend.apply(selected.layout(),until);LauncherFolderBackend.apply(selected,until);LauncherIconRuntime.apply(selected,until);if(changed)refresh();}
     static void end(){LauncherIconRuntime.end();LauncherLayoutBackend.end();LauncherFolderBackend.end();boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
     private static void refresh(){for(TextView view:new ArrayList<>(seen.keySet()))if(view!=null)view.invalidate();}
     static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":LauncherStyle.labelName(style.labelColor())):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+"; animation artwork: "+(transitionArtworkReady?"ready":"native fallback")+" / "+artworkCorrections+". "+LauncherFolderBackend.status()+" "+LauncherIconRuntime.status()+" "+LauncherLayoutBackend.status();}
