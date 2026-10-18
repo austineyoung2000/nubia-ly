@@ -28,7 +28,7 @@ final class ColorPickerDialog {
         AlertDialog dialog=new MaterialAlertDialogBuilder(activity).setTitle(title).setView(scroll).setNegativeButton("Cancel",null).setPositiveButton("Use color",null).create();
         DefaultLifecycleObserver lifecycle=new DefaultLifecycleObserver(){@Override public void onDestroy(LifecycleOwner owner){dialog.dismiss();}};
         activity.getLifecycle().addObserver(lifecycle);dialog.setOnDismissListener(ignored->activity.getLifecycle().removeObserver(lifecycle));
-        dialog.setOnShowListener(ignored->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{Integer parsed=ClockColorPolicy.parse(hex.getText()==null?null:hex.getText().toString());if(parsed==null){field.setError("Enter six hex digits.");return;}use.accept(parsed);dialog.dismiss();}));dialog.show();return dialog;
+        dialog.show();dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{Integer parsed=ClockColorPolicy.parse(hex.getText()==null?null:hex.getText().toString());if(parsed==null){field.setError("Enter six hex digits.");return;}use.accept(parsed);dialog.dismiss();});return dialog;
     }
     private static TextView text(AppCompatActivity a,String value,int size){TextView text=new TextView(a);text.setText(value);text.setTextSize(size);text.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));text.setTextColor(a.getColor(R.color.on_surface));text.setPadding(0,dp(a,4),0,dp(a,10));return text;}
     private static int dp(AppCompatActivity a,float value){return PersonalizationUi.dp(a,value);}
