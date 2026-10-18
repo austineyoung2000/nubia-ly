@@ -43,6 +43,15 @@ public final class LauncherActivityTest {
         root.findViewWithTag("launcher-details-toggle").performClick();assertEquals(View.VISIBLE,root.findViewWithTag("launcher-details").getVisibility());controller.recreate();
         assertEquals(View.VISIBLE,controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-details").getVisibility());controller.pause().stop().destroy();
     }
+    @Test public void iconsPageBackAndRecreationKeepOneDraft(){
+        var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();View root=a.findViewById(android.R.id.content);
+        root.findViewWithTag("launcher-icons").performClick();android.widget.SeekBar scale=root.findViewWithTag("launcher-scale");
+        com.google.android.material.materialswitch.MaterialSwitch hide=root.findViewWithTag("launcher-hide-labels");hide.setChecked(true);
+        a.getOnBackPressedDispatcher().onBackPressed();assertFalse(a.isFinishing());assertTrue(hide.isChecked());
+        root.findViewWithTag("launcher-icons").performClick();assertTrue(hide.isChecked());controller.recreate();
+        assertTrue(((com.google.android.material.materialswitch.MaterialSwitch)controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-hide-labels")).isChecked());
+        controller.pause().stop().destroy();
+    }
     @Test public void dashboardLauncherTileHasItsOwnRoute(){
         var controller=Robolectric.buildActivity(androidx.appcompat.app.AppCompatActivity.class);var a=controller.get();a.setTheme(R.style.Theme_NubiaLy);controller.setup();
         String[] route={null};ViewGroup dashboard=PersonalizationUi.dashboard(a,value->route[0]=value);View launcher=find(dashboard,"Launcher. Home screen & launcher settings");assertNotNull(launcher);launcher.performClick();assertEquals("launcher",route[0]);controller.pause().stop().destroy();

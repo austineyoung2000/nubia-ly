@@ -1,9 +1,10 @@
 # Launcher page and OS11.5 research
 
 The user has this launcher installed and requested a separate Launcher dashboard
-tile and page. The initial page opens the verified exported native settings
-activity and reports installed version information. It does not claim working
-custom launcher hooks. No additional Vector scope is needed for this stage.
+tile and page. The page includes an Icons & labels detail editor, a saved draft, explicit Enable
+and Restore, and the native settings shortcut. The test build adds the Launcher
+Vector scope (`com.zte.mifavor.launcher`); enable it and reboot after updating.
+Phone validation of the cosmetic hooks is still required.
 
 ## Uploaded research baseline
 
@@ -47,16 +48,57 @@ Icon size updates call a native layout recalculation path; they are not merely
 draw-time scaling. Grid mutation can migrate workspace items. Do not extend
 grid bounds or mutate launcher databases in an initial cosmetic implementation.
 
-Next: validate in-process getters and narrowly scoped cosmetic hooks, including
-original-state capture, revocation on guard stop, crash/startup limits, and
-restoration. Only then expose draft/apply controls for icons and labels. Folder,
-grid, gesture and animation findings require separate validation. No launcher
-data clearing, stock APK replacement, automatic restart or arbitrary root
-commands are introduced by this stage.
+## Cosmetic test implementation
 
-## Phone check
+Only exact APK SHA-256 and NX809J Android 16 pass the app and in-process gates.
+`BubbleTextView.onDraw` and its `DoubleShadowBubbleTextView` override establish a
+home-screen-only draw scope. Item container/type and Workspace/Hotseat ancestry
+exclude folders, all apps, widgets and non-shortcut views. Hook the drawable class
+returned by `getIcon` rather than relying on its obfuscated name.
 
-Open Launcher from the dashboard, inspect version details, open native settings,
-and return with Back. Check large font, rotation, and missing/disabled launcher
-handling. This stage has no custom styling to apply or restore. Native settings
-changes are owned by the launcher and are outside nubia-ly's global Restore.
+Icon scale is 70–100% of native rendering, around the drawable bounds center.
+Canvas save/restore encloses the native icon draw; native bounds, cells, hit
+regions, icon positions and databases are never mutated. Labels use a temporary
+TextView current-color override during that synchronous draw. Restore the color
+and full paint (including shadow state) in the after-hook, even when native draw
+throws. Text, accessibility labels and persistent launcher preferences stay intact.
+
+The launcher reads a separate authenticated broker method: resolved launcher UID
+plus framework-verified calling package, nonce/version checks, bounded latency,
+15-second maximum authority and independent startup restart accounting. It cannot
+read System UI or fingerprint broker methods. Guard Action, global emergency
+stop/Restore, blocked replies, screen-off, launcher pause and expiry revoke draws.
+Poll only while a launcher Activity is resumed and customization is active (or the
+broker reports busy); native mode does not continually poll. APK hashing and Binder
+reads stay off the main thread. The launcher-only Restore leaves other areas alone.
+
+Launcher Enable reuses current valid global guard authority when possible. If no
+valid authority exists it explicitly arms the existing guard; it does not apply
+unrelated editor drafts. Global stop also clears the launcher enabled preference.
+Drafts remain separate from active launcher selections.
+
+This does not enable themed app icons, folder styles, grid migration, gestures or
+animation changes. Those need separate work. No provider writes, launcher data
+clearing, APK replacement, automatic restart or arbitrary root commands are used.
+
+## Validation and phone check
+
+Host recovery/broker tests include launcher caller isolation, independent startup
+cutoff and global stop. Android tests cover draft/active separation, invalid scale
+rejection, temporary text/paint restoration after failure, canvas/bounds restoration,
+editor navigation, recreation and native settings permission checks.
+
+1. Install the signed test APK over the existing installation.
+2. In Vector retain System UI and Fingerprint SensorService and add Launcher
+   (`com.zte.mifavor.launcher`); reboot.
+3. Open Launcher → Icons & labels. Try 80% size and hidden labels. Before Enable,
+   home-screen appearance should not change.
+4. Enable launcher customization and go home. Verify smaller shortcut icons and
+   hidden labels; long-press/drag/tap targets and icon positions should be unchanged.
+5. App drawer, open folders and widgets should retain native appearance.
+6. Reopen nubia-ly → Launcher → Check launcher runtime. Confirm APK/hooks readiness.
+7. Restore launcher appearance, go home and verify original native icons/labels.
+8. Re-enable and test global Restore/Emergency stop and guard Action separately.
+9. Check screen off/on and reboot/first unlock with saved enabled settings.
+
+No guard-module update is required for the launcher-only protocol extension.
