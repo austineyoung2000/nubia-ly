@@ -30,7 +30,10 @@ public final class LauncherActivity extends AppCompatActivity {
     private int draftScale=100;
     private boolean draftHide;
     private int draftColor;
-    private EditText labelHex;
+    private TextView labelSelection;
+    private MaterialButton customColor;
+    private com.google.android.material.chip.ChipGroup labelPresets;
+    private int customLabelColor=ClockColorPolicy.DEFAULT;
     private MaterialSwitch nativeColor;
     private String diagnostic="";
 
@@ -39,6 +42,8 @@ public final class LauncherActivity extends AppCompatActivity {
         LauncherStyle draft=LauncherPreferences.draft(this);draftScale=state==null?draft.iconScale():state.getInt("scale",draft.iconScale());draftHide=state==null?draft.hideLabels():state.getBoolean("hide",draft.hideLabels());
         draftColor=state==null?draft.labelColor():state.getInt("color",draft.labelColor());
         if(!new LauncherStyle(draftScale,draftHide,draftColor).valid()){draftScale=100;draftHide=false;draftColor=0;}
+        customLabelColor=draftColor==0?ClockColorPolicy.DEFAULT:draftColor;
+        if(state!=null&&ClockColorPolicy.valid(state.getInt("custom_label_color",customLabelColor)))customLabelColor=state.getInt("custom_label_color",customLabelColor);
         client=new LauncherServiceClient(this);
         ScrollView scroll=new ScrollView(this);LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(20),dp(16),dp(20),dp(24));scroll.addView(content);setContentView(scroll);
@@ -53,10 +58,15 @@ public final class LauncherActivity extends AppCompatActivity {
         hide=new MaterialSwitch(this);hide.setText("Hide home-screen app labels");hide.setTag("launcher-hide-labels");hide.setChecked(draftHide);editor.addView(hide);hide.setOnCheckedChangeListener((v,checked)->{draftHide=checked;mark();saveDraft();});
         editor.addView(text("Label color",18));
         nativeColor=new MaterialSwitch(this);nativeColor.setText("Use native label color");nativeColor.setTag("launcher-native-label-color");nativeColor.setChecked(draftColor==0);editor.addView(nativeColor);
-        labelHex=new EditText(this);labelHex.setTag("launcher-label-hex");labelHex.setSingleLine(true);labelHex.setHint("#RRGGBB");labelHex.setContentDescription("Home-screen label color, six hexadecimal digits");labelHex.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);labelHex.setText(draftColor==0?"#D3CBEF":LauncherStyle.labelName(draftColor));labelHex.setEnabled(draftColor!=0);editor.addView(labelHex);
-        editor.addView(text("Enter six hex digits, for example #D3CBEF. The preview updates as you type. Hidden labels stay hidden.",14));
-        labelHex.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){}public void afterTextChanged(android.text.Editable value){if(nativeColor.isChecked())return;Integer color=LauncherStyle.parseLabelHex(value.toString());labelHex.setError(color==null?"Enter six hex digits, such as #D3CBEF":null);if(color!=null){draftColor=color;mark();saveDraft();}controls();}});
-        nativeColor.setOnCheckedChangeListener((v,checked)->{Integer color=LauncherStyle.parseLabelHex(labelHex.getText().toString());if(checked)color=0;labelHex.setError(color==null?"Enter six hex digits, such as #D3CBEF":null);if(color!=null){draftColor=color;mark();saveDraft();}controls();});
+        labelSelection=text("",16);labelSelection.setTag("launcher-label-selection");editor.addView(labelSelection);
+        labelPresets=new com.google.android.material.chip.ChipGroup(this);labelPresets.setSingleSelection(true);editor.addView(labelPresets);
+        for(ClockColorPolicy.Preset preset:ClockColorPolicy.PRESETS){
+            com.google.android.material.chip.Chip chip=new com.google.android.material.chip.Chip(this);chip.setId(View.generateViewId());chip.setText(preset.name());chip.setCheckable(true);chip.setTag(preset.color());
+            android.graphics.drawable.GradientDrawable dot=new android.graphics.drawable.GradientDrawable();dot.setShape(android.graphics.drawable.GradientDrawable.OVAL);dot.setColor(preset.color());dot.setSize(dp(20),dp(20));chip.setChipIcon(dot);chip.setChipIconVisible(true);chip.setOnClickListener(v->chooseLabelColor(preset.color()));labelPresets.addView(chip);
+        }
+        customColor=button("Custom color");customColor.setTag("launcher-custom-color");editor.addView(customColor);customColor.setOnClickListener(v->ColorPickerDialog.show(this,"Custom label color","App label",customLabelColor,color->{if(!closed&&!busy)chooseLabelColor(color);}));
+        editor.addView(text("Choose a preset or open Custom color for hex and RGB controls. Hidden labels stay hidden.",14));
+        nativeColor.setOnCheckedChangeListener((v,checked)->{draftColor=checked?0:customLabelColor;mark();saveDraft();});
         MaterialButton defaults=button("Use native appearance");editor.addView(defaults);defaults.setOnClickListener(v->{if(busy)return;draftScale=100;draftHide=false;draftColor=0;nativeColor.setChecked(true);scale.setProgress(30);hide.setChecked(false);mark();saveDraft();});
         editor.addView(text("Selections save a draft. Enable launcher customization to apply. App drawer, folders and widgets retain their native appearance.",14));pages.register("launcher","icons","Icons & labels",(View)editor.getParent());
         LinearLayout actions=panel(content,"Apply & restore");status=text("Checking installed launcher…",15);status.setTag("launcher-status");actions.addView(status);
@@ -67,15 +77,14 @@ public final class LauncherActivity extends AppCompatActivity {
         LinearLayout nativeSettings=panel(content,"Launcher settings");nativeSettings.addView(text("Open the launcher's own settings for layout, folders and other native options. Changes made there remain managed by the launcher.",14));
         open=button("Open launcher settings");open.setTag("launcher-native-settings");nativeSettings.addView(open);open.setOnClickListener(v->openSettings());pages.register("launcher","","Launcher",(View)nativeSettings.getParent());
         LinearLayout support=panel(content,"Compatibility");MaterialButton technical=button("Technical details");technical.setTag("launcher-details-toggle");support.addView(technical);details=text("",13);details.setTag("launcher-details");support.addView(details);details.setVisibility(state!=null&&state.getBoolean("details")?View.VISIBLE:View.GONE);technical.setOnClickListener(v->details.setVisibility(details.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));pages.register("launcher","","Launcher",(View)support.getParent());
-        if(state!=null){labelHex.setText(state.getString("hex",labelHex.getText().toString()));nativeColor.setChecked(state.getBoolean("native_color",draftColor==0));}
         mark();pages.show("launcher",state==null?"":state.getString("page",""));
         worker.execute(()->{boolean allowed=LauncherCompatibility.supported(getApplicationContext());runOnUiThread(()->{if(closed)return;compatible=allowed;controls();status.setText(allowed?"APK verified. Choose styles, enable the Launcher scope in Vector, reboot, then apply.":"Custom controls blocked: the installed APK or device does not match the verified baseline.");});});
     }
-    private void mark(){scaleLabel.setText("Icon size: "+draftScale+"%");preview.setStyle(new LauncherStyle(draftScale,draftHide,draftColor));}
-    private boolean validLabelDraft(){return nativeColor.isChecked()||LauncherStyle.parseLabelHex(labelHex.getText().toString())!=null;}
+    private void mark(){scaleLabel.setText("Icon size: "+draftScale+"%");preview.setStyle(new LauncherStyle(draftScale,draftHide,draftColor));labelSelection.setText(draftColor==0?"Native label color":ClockColorPolicy.hex(draftColor));labelSelection.setTextColor(draftColor==0?getColor(R.color.on_surface):draftColor);for(int i=0;i<labelPresets.getChildCount();i++){var chip=(com.google.android.material.chip.Chip)labelPresets.getChildAt(i);chip.setChecked((Integer)chip.getTag()==draftColor);}}
+    private void chooseLabelColor(int color){if(busy||!ClockColorPolicy.valid(color))return;customLabelColor=color;if(nativeColor.isChecked())nativeColor.setChecked(false);else{draftColor=color;mark();saveDraft();}}
     private void saveDraft(){LauncherStyle draft=new LauncherStyle(draftScale,draftHide,draftColor);worker.execute(()->{boolean saved=LauncherPreferences.save(getApplicationContext(),draft);if(!saved)runOnUiThread(()->{if(!closed)status.setText("Draft could not be saved.");});});}
     private void apply(){
-        if(busy||!compatible||!validLabelDraft())return;busy=true;controls();LauncherStyle draft=new LauncherStyle(draftScale,draftHide,draftColor);status.setText("Enabling launcher customization…");
+        if(busy||!compatible)return;busy=true;controls();LauncherStyle draft=new LauncherStyle(draftScale,draftHide,draftColor);status.setText("Enabling launcher customization…");
         worker.execute(()->{boolean allowed=false;try{
             String id=GuardReader.inspectEnabled();boolean authority=RecoveryStore.enabledAllowed(getApplicationContext(),id);
             allowed=LauncherPreferences.save(getApplicationContext(),draft)&&(authority||(RootGuardCommand.enableClock(SystemClock.elapsedRealtime()+8000)&&RecoveryStore.allowEnabled(getApplicationContext())))&&LauncherPreferences.activate(getApplicationContext(),draft);
@@ -83,11 +92,11 @@ public final class LauncherActivity extends AppCompatActivity {
     }
     private void restore(){if(busy)return;busy=true;controls();worker.execute(()->{boolean stopped=LauncherPreferences.stop(getApplicationContext());runOnUiThread(()->{if(closed)return;busy=false;controls();if(stopped)refreshLauncher("Launcher styling disabled. Native appearance restored on refresh.");else status.setText("Could not save restoration. Use Emergency stop or Recovery Guard Action.");});});}
     private void refreshLauncher(String message){status.setText(message+" Checking launcher…");client.check(reply->{if(!closed)status.setText(message+"\n"+reply);});}
-    private void controls(){enable.setEnabled(!busy&&compatible&&validLabelDraft());restore.setEnabled(!busy);scale.setEnabled(!busy);hide.setEnabled(!busy);nativeColor.setEnabled(!busy);labelHex.setEnabled(!busy&&!nativeColor.isChecked());}
+    private void controls(){enable.setEnabled(!busy&&compatible);restore.setEnabled(!busy);scale.setEnabled(!busy);hide.setEnabled(!busy);nativeColor.setEnabled(!busy);customColor.setEnabled(!busy);for(int i=0;i<labelPresets.getChildCount();i++)labelPresets.getChildAt(i).setEnabled(!busy);}
     @Override protected void onResume(){super.onResume();inspect();}
     @Override protected void onStop(){client.cancel();super.onStop();}
     @Override protected void onDestroy(){closed=true;client.cancel();worker.shutdown();super.onDestroy();}
-    @Override protected void onSaveInstanceState(Bundle out){out.putBoolean("details",details.getVisibility()==View.VISIBLE);out.putInt("scale",draftScale);out.putBoolean("hide",draftHide);out.putInt("color",draftColor);out.putString("hex",labelHex.getText().toString());out.putBoolean("native_color",nativeColor.isChecked());out.putString("page",pages.page());super.onSaveInstanceState(out);}
+    @Override protected void onSaveInstanceState(Bundle out){out.putBoolean("details",details.getVisibility()==View.VISIBLE);out.putInt("scale",draftScale);out.putBoolean("hide",draftHide);out.putInt("color",draftColor);out.putInt("custom_label_color",customLabelColor);out.putString("page",pages.page());super.onSaveInstanceState(out);}
     private void inspect(){
         open.setEnabled(false);
         try{var info=getPackageManager().getPackageInfo(PACKAGE,0);var activity=getPackageManager().getActivityInfo(new ComponentName(PACKAGE,SETTINGS),0);boolean allowed=info.applicationInfo!=null&&info.applicationInfo.enabled&&activity.enabled&&activity.exported&&(activity.permission==null||checkSelfPermission(activity.permission)==PackageManager.PERMISSION_GRANTED);open.setEnabled(allowed);

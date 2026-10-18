@@ -52,10 +52,15 @@ public final class LauncherActivityTest {
         assertTrue(((com.google.android.material.materialswitch.MaterialSwitch)controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-hide-labels")).isChecked());
         controller.pause().stop().destroy();
     }
-    @Test public void invalidHexIsVisibleAndSurvivesRecreation(){
+    @Test public void sharedColorDialogCancelsDraftAndCommitsOnlyUseColor(){
         var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();View root=a.findViewById(android.R.id.content);root.findViewWithTag("launcher-icons").performClick();
-        com.google.android.material.materialswitch.MaterialSwitch nativeColor=root.findViewWithTag("launcher-native-label-color");nativeColor.setChecked(false);android.widget.EditText hex=root.findViewWithTag("launcher-label-hex");hex.setText("#12");assertNotNull(hex.getError());controller.recreate();
-        hex=controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-label-hex");assertEquals("#12",hex.getText().toString());assertNotNull(hex.getError());hex.setText("#D3CBEF");assertNull(hex.getError());controller.pause().stop().destroy();
+        root.findViewWithTag("launcher-custom-color").performClick();var dialog=(androidx.appcompat.app.AlertDialog)org.robolectric.shadows.ShadowDialog.getLatestDialog();
+        com.google.android.material.textfield.TextInputEditText hex=dialog.getWindow().getDecorView().findViewWithTag("color-picker-hex");com.google.android.material.textfield.TextInputLayout field=dialog.getWindow().getDecorView().findViewWithTag("color-picker-field");
+        hex.setText("#12");dialog.getButton(-1).performClick();assertTrue(dialog.isShowing());assertNotNull(field.getError());
+        hex.setText("#123456");assertEquals(18f,((com.google.android.material.slider.Slider)dialog.getWindow().getDecorView().findViewWithTag("color-picker-red")).getValue(),0f);
+        dialog.getButton(-2).performClick();assertTrue(((com.google.android.material.materialswitch.MaterialSwitch)root.findViewWithTag("launcher-native-label-color")).isChecked());assertEquals("Native label color",((TextView)root.findViewWithTag("launcher-label-selection")).getText().toString());
+        root.findViewWithTag("launcher-custom-color").performClick();dialog=(androidx.appcompat.app.AlertDialog)org.robolectric.shadows.ShadowDialog.getLatestDialog();hex=dialog.getWindow().getDecorView().findViewWithTag("color-picker-hex");hex.setText("#123456");dialog.getButton(-1).performClick();assertFalse(dialog.isShowing());assertEquals("#123456",((TextView)root.findViewWithTag("launcher-label-selection")).getText().toString());
+        controller.recreate();assertEquals("#123456",((TextView)controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-label-selection")).getText().toString());controller.pause().stop().destroy();
     }
     @Test public void dashboardLauncherTileHasItsOwnRoute(){
         var controller=Robolectric.buildActivity(androidx.appcompat.app.AppCompatActivity.class);var a=controller.get();a.setTheme(R.style.Theme_NubiaLy);controller.setup();
