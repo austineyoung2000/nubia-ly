@@ -220,3 +220,28 @@ unaltered native mBlurValue, unrelated native writes, missing/new folder
 sessions, callback failure cleanup, expiry and ownership-aware restoration.
 Android tests additionally cover synthetic Add exclusion and surface restore
 state. Actual v76 live blur and restoration still require user phone validation.
+
+
+## Folder-close transition continuity (version code 77)
+
+Phone testing confirmed v76 blur works at multiple strengths, but showed an
+animation glitch when closing a folder. Native `Folder.handleClose(boolean)`
+sets `mIsOpen=false` before it starts the closing animator. `Folder.i1` then
+returns null while that same folder is still attached and animating. v76 used
+only that open lookup, so later close-frame transactions escaped scaling and
+could jump from the selected blur to native strength.
+
+v77 weakly remembers the positively identified folder per depth controller and
+marks its close lifecycle. When the native open lookup becomes null, only that
+same marked, still-attached closing folder retains the blur scale. Actual
+close completion/detachment releases the session. Rejected close requests clear
+the marker if the folder remains open; nonanimated closes clear immediately.
+A new open folder always takes precedence, and guard/deadline checks remain
+unchanged. No artificial delay, duration override, native state mutation or
+extra per-frame polling was added.
+
+The production-hook harness now reproduces the exact false-open/attached-close
+sequence and verifies progressive close radii, instant close, rejected close,
+new-folder precedence and native restoration during closing. Phone verification
+of the corrected transition is still needed. Native lifecycle signatures were
+checked against the uploaded launcher APK before building.

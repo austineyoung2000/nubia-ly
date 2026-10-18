@@ -10,6 +10,8 @@ import java.util.*;
 final class LauncherFolderSurface {
     private static final ThreadLocal<Frame> applying=new ThreadLocal<>();
     private record Frame(Frame previous,Object controller,Object folder,Object base,Object blur){}
+    private static final Map<Object,java.lang.ref.WeakReference<Object>> lastFolders=new WeakHashMap<>();
+    private static final Set<Object> closing=Collections.newSetFromMap(new WeakHashMap<>());
     private static final FolderSurfaceState overrides=new FolderSurfaceState();
     private static volatile LauncherStyle style=LauncherStyle.STOCK;private static volatile long deadline;
     private static Method openFolder,setRadius;private static Field launcher,baseSurface,blurSurface;
@@ -29,6 +31,13 @@ final class LauncherFolderSurface {
                 }
                 protected void afterHookedMethod(MethodHookParam p){Object value=p.getObjectExtra("folder_surface_frame");if(value instanceof Frame frame){if(frame.previous()==null)applying.remove();else applying.set(frame.previous());}}
             };
+            hooks.add(XposedBridge.hookMethod(folder.getDeclaredMethod("handleClose",boolean.class),new XC_MethodHook(){
+                protected void beforeHookedMethod(MethodHookParam p){if(active()&&attached(p.thisObject))closing.add(p.thisObject);}
+                protected void afterHookedMethod(MethodHookParam p){try{if(Boolean.TRUE.equals(XposedHelpers.callMethod(p.thisObject,"isOpen"))||!attached(p.thisObject))closing.remove(p.thisObject);}catch(Throwable unavailable){closing.remove(p.thisObject);}}
+            }));
+            hooks.add(XposedBridge.hookMethod(folder.getDeclaredMethod("closeComplete",boolean.class),new XC_MethodHook(){
+                protected void afterHookedMethod(MethodHookParam p){if(!attached(p.thisObject))closing.remove(p.thisObject);}
+            }));
             hooks.add(XposedBridge.hookMethod(depth.getDeclaredMethod("setWallpaperBlur",int.class),scope));
             hooks.add(XposedBridge.hookMethod(depth.getDeclaredMethod("applyDepthAndBlur",boolean.class,boolean.class,boolean.class),scope));
             hooks.add(XposedBridge.hookMethod(setRadius,new XC_MethodHook(){
@@ -43,7 +52,15 @@ final class LauncherFolderSurface {
         }catch(Throwable failure){for(var hook:hooks)hook.unhook();installed=false;report="live surface hooks unavailable";}
     }
     private static Object field(Field f,Object o){try{return f.get(o);}catch(Throwable unavailable){return null;}}
-    private static Object folder(Object controller){try{return openFolder.invoke(null,launcher.get(controller));}catch(Throwable unavailable){return null;}}
+    private static boolean attached(Object folder){try{return XposedHelpers.callMethod(folder,"getParent")!=null;}catch(Throwable unavailable){return false;}}
+    private static Object folder(Object controller){
+        try{Object current=openFolder.invoke(null,launcher.get(controller));
+            if(current!=null){lastFolders.put(controller,new java.lang.ref.WeakReference<>(current));return current;}
+            var remembered=lastFolders.get(controller);Object previous=remembered==null?null:remembered.get();
+            if(previous!=null&&closing.contains(previous)&&attached(previous))return previous;
+            lastFolders.remove(controller);if(previous!=null)closing.remove(previous);
+        }catch(Throwable unavailable){}return null;
+    }
     private static boolean active(){return installed&&style.folderBlur()>=0&&SystemClock.elapsedRealtime()<deadline;}
     static void apply(LauncherStyle selected,long until){boolean changed=style.folderBlur()!=selected.folderBlur();if(changed)end();style=selected;deadline=until;}
     static void end(){style=LauncherStyle.STOCK;deadline=0;
