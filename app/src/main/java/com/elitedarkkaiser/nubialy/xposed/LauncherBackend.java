@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import com.elitedarkkaiser.nubialy.LauncherStyle;
 import com.elitedarkkaiser.nubialy.LauncherDrawState;
+import com.elitedarkkaiser.nubialy.LauncherTransitionBounds;
 import de.robv.android.xposed.*;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -20,6 +21,7 @@ final class LauncherBackend {
     private static LauncherStyle style=LauncherStyle.STOCK;
     private static long deadline;
     private static boolean installed;
+    private static long transitionCorrections;
     private static Field currentTextColor;
     private static final class Frame {
         Frame previous;TextView view;Drawable icon;LauncherDrawState.TextState text;
@@ -62,6 +64,14 @@ final class LauncherBackend {
                 }
                 @Override protected void afterHookedMethod(MethodHookParam p){Object save=p.getObjectExtra("launcher_canvas");if(save instanceof Integer count)((Canvas)p.args[0]).restoreToCount(count);}
             }));
+            var bounds=LauncherTransitionBounds.resolve(XposedHelpers.findClass("com.android.launcher3.views.FloatingIconView",loader));
+            added.add(XposedBridge.hookMethod(bounds,new XC_MethodHook(){
+                @Override protected void afterHookedMethod(MethodHookParam p){
+                    if(p.hasThrowable()||!active()||!(p.args[1] instanceof TextView icon)||!homeShortcut(icon))return;
+                    try{if(LauncherTransitionBounds.adjust((android.graphics.RectF)p.args[3],style.iconScale()))transitionCorrections++;}
+                    catch(Throwable unavailable){end();}
+                }
+            }));
             installed=true;return true;
         }catch(Throwable unavailable){for(var hook:added)hook.unhook();end();return false;}
     }
@@ -90,5 +100,5 @@ final class LauncherBackend {
     static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;if(changed)refresh();}
     static void end(){boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
     private static void refresh(){for(TextView view:new ArrayList<>(seen.keySet()))if(view!=null)view.invalidate();}
-    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":"native"):"native")+"; observed shortcuts: "+seen.size()+".";}
+    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":"native"):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+".";}
 }

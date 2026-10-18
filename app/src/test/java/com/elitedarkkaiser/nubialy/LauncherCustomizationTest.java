@@ -32,6 +32,25 @@ public final class LauncherCustomizationTest {
         int token=LauncherDrawState.scale(c,icon,70);assertTrue(c.getSaveCount()>count);assertEquals(before,icon.getBounds());c.restoreToCount(token);assertEquals(count,c.getSaveCount());assertEquals(before,icon.getBounds());
         try{LauncherDrawState.scale(c,icon,120);fail();}catch(IllegalArgumentException expected){}assertEquals(count,c.getSaveCount());
     }
+    public static class BoundsHelper {
+        public static void target(android.app.Activity a,android.view.View v,boolean opening,android.graphics.RectF out,android.graphics.Rect local){}
+        public static void wrapper(android.app.Activity a,android.view.View v,boolean opening,android.graphics.RectF out){}
+    }
+    public static class AmbiguousBounds {
+        public static void first(android.app.Activity a,android.view.View v,boolean opening,android.graphics.RectF out,android.graphics.Rect local){}
+        public static void second(android.app.Activity a,android.view.View v,boolean opening,android.graphics.RectF out,android.graphics.Rect local){}
+    }
+    @Test public void floatingAnimationTargetMatchesSeventyPercentWithoutMovingCenter(){
+        RectF target=new RectF(100,200,200,300);assertTrue(LauncherTransitionBounds.adjust(target,70));
+        assertEquals(70f,target.width(),0.001f);assertEquals(70f,target.height(),0.001f);assertEquals(150f,target.centerX(),0f);assertEquals(250f,target.centerY(),0f);
+        RectF stock=new RectF(100,200,200,300),copy=new RectF(stock);assertFalse(LauncherTransitionBounds.adjust(stock,100));assertEquals(copy,stock);
+        assertFalse(LauncherTransitionBounds.adjust(stock,69));assertEquals(copy,stock);assertFalse(LauncherTransitionBounds.adjust(new RectF(),70));assertFalse(LauncherTransitionBounds.adjust(new RectF(Float.NaN,0,50,50),70));
+    }
+    @Test public void animationHookSignatureMustBeUniqueAndComplete() throws Exception {
+        assertEquals("target",LauncherTransitionBounds.resolve(BoundsHelper.class).getName());
+        try{LauncherTransitionBounds.resolve(AmbiguousBounds.class);fail();}catch(NoSuchMethodException expected){}
+        try{LauncherTransitionBounds.resolve(String.class);fail();}catch(NoSuchMethodException expected){}
+    }
     @Test public void launcherIdentityCannotBeBorrowedByAnotherUidOrPackage(){
         assertTrue(GuardBrokerPolicy.permitsLauncher(10040,10040,GuardBrokerPolicy.LAUNCHER_PACKAGE));
         assertFalse(GuardBrokerPolicy.permitsLauncher(10041,10040,GuardBrokerPolicy.LAUNCHER_PACKAGE));assertFalse(GuardBrokerPolicy.permitsLauncher(10040,10040,"com.android.systemui"));assertFalse(GuardBrokerPolicy.permitsLauncher(10040,-1,GuardBrokerPolicy.LAUNCHER_PACKAGE));

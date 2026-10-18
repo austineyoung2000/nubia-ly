@@ -1,0 +1,53 @@
+"""Exercise the production launcher runtime across app/home transitions and guard loss."""
+from pathlib import Path
+import ast,tempfile,subprocess
+root=Path(__file__).resolve().parents[1]
+module=ast.parse((root/'tests/test_inventory_client.py').read_text())
+sources=ast.literal_eval(next(n.value for n in module.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='sources' for t in n.targets)))
+sources.pop('com/elitedarkkaiser/nubialy/InventoryTest.java')
+sources['android/os/Handler.java']='''package android.os;public class Handler {public static final java.util.Map<Runnable,Long> tasks=new java.util.concurrent.ConcurrentHashMap<>();public Handler(Looper l){}public boolean post(Runnable r){r.run();return true;}public boolean postDelayed(Runnable r,long d){tasks.put(r,d);return true;}public void removeCallbacks(Runnable r){if(r!=null)tasks.remove(r);}}'''
+sources['android/os/Bundle.java']=sources['android/os/Bundle.java'].replace('public void putString(', 'public boolean getBoolean(String k){return getBoolean(k,false);}public void putBoolean(String k,boolean v){values.put(k,v);}public void putLong(String k,long v){values.put(k,v);}public void putString(')
+sources['android/content/Intent.java']='''package android.content;public class Intent {public static final int FLAG_RECEIVER_REGISTERED_ONLY=1;public static final String ACTION_SCREEN_ON="on",ACTION_SCREEN_OFF="off";private String action;public Intent(String a){action=a;}public String getAction(){return action;}public String getStringExtra(String k){return null;}public long getLongExtra(String k,long d){return d;}}'''
+sources['android/content/BroadcastReceiver.java']='''package android.content;public abstract class BroadcastReceiver {public abstract void onReceive(Context c,Intent i);public boolean isOrderedBroadcast(){return true;}public PendingResult goAsync(){return new PendingResult();}public static class PendingResult {public void setResultExtras(android.os.Bundle b){}public void setResultCode(int c){}public void finish(){}}}'''
+sources['android/content/IntentFilter.java']='package android.content;public class IntentFilter {public IntentFilter(String s){}public void addAction(String s){}}'
+sources['android/net/Uri.java']='package android.net;public class Uri {public static Uri parse(String u){return new Uri();}}'
+sources['android/content/Context.java']='''package android.content;public class Context {public static final int RECEIVER_EXPORTED=2,RECEIVER_NOT_EXPORTED=4;public java.util.function.Function<android.os.Bundle,android.os.Bundle> answer;public BroadcastReceiver screen;public int reads;public class Resolver {public android.os.Bundle call(android.net.Uri u,String method,String arg,android.os.Bundle b){if(!method.equals("inspect_launcher_enabled"))throw new AssertionError();reads++;return answer.apply(b);}}public Resolver getContentResolver(){return new Resolver();}public ClassLoader getClassLoader(){return getClass().getClassLoader();}public void registerReceiver(BroadcastReceiver r,IntentFilter f,String p,android.os.Handler h,int flags){}public void registerReceiver(BroadcastReceiver r,IntentFilter f,int flags){screen=r;}}'''
+sources['android/view/View.java']='package android.view;public class View {}'
+sources['android/view/Window.java']='package android.view;public class Window {public View getDecorView(){return new View();}}'
+sources['android/app/Activity.java']='package android.app;public class Activity {public android.view.Window getWindow(){return new android.view.Window();}}'
+sources['android/app/Application.java']='''package android.app;import android.os.Bundle;public class Application extends android.content.Context {public ActivityLifecycleCallbacks lifecycle;public void registerActivityLifecycleCallbacks(ActivityLifecycleCallbacks c){lifecycle=c;}public interface ActivityLifecycleCallbacks {void onActivityResumed(Activity a);void onActivityPaused(Activity a);void onActivityCreated(Activity a,Bundle b);void onActivityStarted(Activity a);void onActivityStopped(Activity a);void onActivitySaveInstanceState(Activity a,Bundle b);void onActivityDestroyed(Activity a);}}'''
+sources['com/elitedarkkaiser/nubialy/LauncherCompatibility.java']='package com.elitedarkkaiser.nubialy;public class LauncherCompatibility {public static boolean supported(android.content.Context c){return true;}}'
+sources['com/elitedarkkaiser/nubialy/xposed/LauncherBackend.java']='''package com.elitedarkkaiser.nubialy.xposed;import com.elitedarkkaiser.nubialy.*;class LauncherBackend {static int applies,ends;static long deadline;static LauncherStyle style=LauncherStyle.STOCK;static boolean install(ClassLoader l){return true;}static void observe(android.view.View v){}static void apply(LauncherStyle s,long until){applies++;style=s;deadline=until;}static void end(){ends++;style=LauncherStyle.STOCK;deadline=0;}static String status(){return "backend";}}'''
+sources['com/elitedarkkaiser/nubialy/xposed/LauncherRuntimeTest.java']='''package com.elitedarkkaiser.nubialy.xposed;
+import android.os.*;import android.app.*;import android.content.*;import java.util.concurrent.*;import java.util.function.Consumer;
+public class LauncherRuntimeTest {
+static void check(boolean b){if(!b)throw new AssertionError();}
+static Object field(Object o,String n)throws Exception{var f=o.getClass().getDeclaredField(n);f.setAccessible(true);return f.get(o);}
+static void flush(Object runtime)throws Exception{((ExecutorService)field(runtime,"worker")).submit(()->{}).get(3,TimeUnit.SECONDS);}
+static Bundle response(Bundle b,int status){Bundle r=new Bundle();r.putString("nonce",b.getString("nonce"));r.putInt("version",19);r.putInt("status",status);r.putString("permit_id","12345678-1234-4234-8234-123456789abc");r.putLong("deadline_ms",SystemClock.now+15000);r.putInt("launcher_scale",70);r.putBoolean("launcher_labels",true);return r;}
+static CountDownLatch request(Object runtime)throws Exception{CountDownLatch done=new CountDownLatch(1);var m=runtime.getClass().getDeclaredMethod("read",Consumer.class);m.setAccessible(true);m.invoke(runtime,(Consumer<String>)s->done.countDown());return done;}
+static void await(CountDownLatch l)throws Exception{check(l.await(3,TimeUnit.SECONDS));}
+public static void main(String[] args)throws Exception{
+Application app=new Application();app.answer=b->response(b,2);var ctor=LauncherRuntime.class.getDeclaredConstructor(Application.class);ctor.setAccessible(true);Object runtime=ctor.newInstance(app);
+try{var start=runtime.getClass().getDeclaredMethod("start");start.setAccessible(true);start.invoke(runtime);flush(runtime);Activity home=new Activity();app.lifecycle.onActivityResumed(home);flush(runtime);
+check(LauncherBackend.style.iconScale()==70);int ends=LauncherBackend.ends;long deadline=LauncherBackend.deadline;Runnable poll=(Runnable)field(runtime,"poll");
+app.lifecycle.onActivityPaused(home);check(LauncherBackend.ends==ends&&LauncherBackend.deadline==deadline&&LauncherBackend.style.iconScale()==70);
+for(int i=0;i<6;i++){SystemClock.now+=5000;poll.run();flush(runtime);check(LauncherBackend.style.iconScale()==70&&LauncherBackend.deadline>SystemClock.now);check(Handler.tasks.get(poll)==5000L);}
+CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);app.answer=b->{entered.countDown();try{release.await();}catch(Exception e){throw new RuntimeException(e);}return response(b,2);};app.lifecycle.onActivityResumed(home);await(entered);check(LauncherBackend.style.iconScale()==70&&LauncherBackend.ends==ends);release.countDown();flush(runtime);
+app.answer=b->response(b,3);deadline=LauncherBackend.deadline;Object expiry=field(runtime,"expiry");await(request(runtime));check(LauncherBackend.deadline==deadline&&field(runtime,"expiry")==expiry);
+app.answer=b->response(b,1);await(request(runtime));check(LauncherBackend.style.equals(com.elitedarkkaiser.nubialy.LauncherStyle.STOCK));app.lifecycle.onActivityPaused(home);int reads=app.reads;poll.run();flush(runtime);check(app.reads==reads&&!Handler.tasks.containsKey(poll));
+for(int mode=0;mode<5;mode++){final int type=mode;app.answer=b->{Bundle r=response(b,2);if(type==0)r.putString("nonce","bad");if(type==1)r.putInt("version",18);if(type==2)r.putInt("launcher_scale",69);if(type==3)r.putLong("deadline_ms",SystemClock.now+15001);if(type==4)SystemClock.now+=2001;return r;};int applied=LauncherBackend.applies;await(request(runtime));check(LauncherBackend.applies==applied);}
+app.answer=b->response(b,2);await(request(runtime));check(LauncherBackend.style.iconScale()==70);app.screen.onReceive(app,new Intent(Intent.ACTION_SCREEN_OFF));check(LauncherBackend.style.equals(com.elitedarkkaiser.nubialy.LauncherStyle.STOCK)&&!Handler.tasks.containsKey(poll));int applied=LauncherBackend.applies;poll.run();flush(runtime);check(LauncherBackend.applies==applied);
+app.screen.onReceive(app,new Intent(Intent.ACTION_SCREEN_ON));await(request(runtime));check(LauncherBackend.style.iconScale()==70);
+CountDownLatch waiting=new CountDownLatch(1),finish=new CountDownLatch(1);app.answer=b->{waiting.countDown();try{finish.await();}catch(Exception e){throw new RuntimeException(e);}return response(b,2);};var done=request(runtime);await(waiting);applied=LauncherBackend.applies;((Runnable)field(runtime,"expiry")).run();check(LauncherBackend.style.equals(com.elitedarkkaiser.nubialy.LauncherStyle.STOCK));finish.countDown();await(done);check(LauncherBackend.applies==applied&&!Handler.tasks.containsKey(poll));
+System.out.println("Launcher runtime passed: pause/30-second app stay/slow-return continuity, bounded background renewals, busy without deadline extension, stop/sleep/expiry, stale replies and invalid authority rejection");
+}finally{((ExecutorService)field(runtime,"worker")).shutdownNow();}}
+}'''
+with tempfile.TemporaryDirectory(prefix='nubialy-launcher-runtime-') as temp:
+    temp=Path(temp)
+    for name,content in sources.items():
+        p=temp/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
+    names=['GuardBrokerPolicy','SystemUiGuardProtocol','PreviewPolicy','ClockEnabledPolicy','LauncherStyle']
+    files=[str(p) for p in temp.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/(n+'.java')) for n in names]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/LauncherRuntime.java')]
+    subprocess.run(['java','com.sun.tools.javac.Main','-d',str(temp/'classes'),*files],check=True)
+    subprocess.run(['java','-cp',str(temp/'classes'),'com.elitedarkkaiser.nubialy.xposed.LauncherRuntimeTest'],check=True)

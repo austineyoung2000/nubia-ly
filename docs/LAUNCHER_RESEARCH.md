@@ -67,9 +67,13 @@ The launcher reads a separate authenticated broker method: resolved launcher UID
 plus framework-verified calling package, nonce/version checks, bounded latency,
 15-second maximum authority and independent startup restart accounting. It cannot
 read System UI or fingerprint broker methods. Guard Action, global emergency
-stop/Restore, blocked replies, screen-off, launcher pause and expiry revoke draws.
-Poll only while a launcher Activity is resumed and customization is active (or the
-broker reports busy); native mode does not continually poll. APK hashing and Binder
+stop/Restore, blocked replies, screen-off and expiry revoke draws.
+Retain current bounded authority across launcher pause and app/home animations.
+For active styling, refresh every 3 seconds with a resumed launcher Activity and
+every 5 seconds while another app is foreground and the display remains on.
+Pausing never grants or extends authority; only a fresh validated broker response
+can renew the 15-second deadline. Screen-off, stop and expiry cancel refreshes.
+Native mode does not continually poll. APK hashing and Binder
 reads stay off the main thread. The launcher-only Restore leaves other areas alone.
 
 Launcher Enable reuses current valid global guard authority when possible. If no
@@ -80,6 +84,18 @@ Drafts remain separate from active launcher selections.
 This does not enable themed app icons, folder styles, grid migration, gestures or
 animation changes. Those need separate work. No provider writes, launcher data
 clearing, APK replacement, automatic restart or arbitrary root commands are used.
+
+## App/home transition correction
+
+The return animation uses `FloatingIconView` rather than the normal home shortcut
+draw path. Resolve its unique static void `(LauncherActivitySubclass, View, boolean,
+RectF, Rect)` bounds helper by signature (the baseline's obfuscated method is `y`).
+For a verified home shortcut and a current guard permit only, inset the freshly
+computed RectF around its center by the selected visual scale. The native local
+Rect, workspace coordinates, hit targets, animation duration and interpolator stay
+unchanged. This covers both the floating icon layout and gesture-home target calls.
+Unknown/ambiguous signatures fail installation closed. Diagnostics count corrected
+animation bounds. Native 100%, folders, widgets and unsupported views are untouched.
 
 ## Validation and phone check
 
@@ -100,5 +116,8 @@ editor navigation, recreation and native settings permission checks.
 7. Restore launcher appearance, go home and verify original native icons/labels.
 8. Re-enable and test global Restore/Emergency stop and guard Action separately.
 9. Check screen off/on and reboot/first unlock with saved enabled settings.
+10. With 70% enabled, open nubia-ly and return home immediately, then repeat
+    after staying in it or another app for at least 30 seconds. Icons should retain
+    their chosen size during the return transition, without a stock-size flash.
 
 No guard-module update is required for the launcher-only protocol extension.

@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 
-/** Independent launcher authority. Polls only while a launcher Activity is resumed. */
+/** Independent bounded launcher authority, retained through screen-on app/home transitions. */
 final class LauncherRuntime {
     private final Application context;
     private final Handler main=new Handler(Looper.getMainLooper());
@@ -19,13 +19,13 @@ final class LauncherRuntime {
     private long generation;
     private Runnable expiry;
     private String authority="checking APK";
-    private final Runnable poll=new Runnable(){@Override public void run(){if(resumed.isEmpty()||screenOff)return;read(ignored->{if(needsPolling&&!resumed.isEmpty()&&!screenOff)main.postDelayed(this,3000);});}};
+    private final Runnable poll=()->{if(!screenOff&&(!resumed.isEmpty()||needsPolling))read(null);};
     private LauncherRuntime(Application app){context=app;}
     static void install(Application app){new LauncherRuntime(app).start();}
     private void start(){
         context.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks(){
             public void onActivityResumed(Activity a){resumed.add(a);LauncherBackend.observe(a.getWindow().getDecorView());main.removeCallbacks(poll);if(!screenOff)main.post(poll);}
-            public void onActivityPaused(Activity a){resumed.remove(a);if(resumed.isEmpty()){main.removeCallbacks(poll);revoke();}}
+            public void onActivityPaused(Activity a){resumed.remove(a); /* App/home animation still draws this launcher. Keep only the current bounded permit. */}
             public void onActivityCreated(Activity a,Bundle b){}public void onActivityStarted(Activity a){}public void onActivityStopped(Activity a){}public void onActivitySaveInstanceState(Activity a,Bundle b){}public void onActivityDestroyed(Activity a){resumed.remove(a);}
         });
         IntentFilter screen=new IntentFilter(Intent.ACTION_SCREEN_OFF);screen.addAction(Intent.ACTION_SCREEN_ON);
@@ -44,7 +44,8 @@ final class LauncherRuntime {
         });});
     }
     private String status(){return authority+". "+LauncherBackend.status();}
-    private void revoke(){needsPolling=false;generation++;if(expiry!=null)main.removeCallbacks(expiry);expiry=null;LauncherBackend.end();}
+    private void scheduleRefresh(){main.removeCallbacks(poll);if(needsPolling&&!screenOff)main.postDelayed(poll,resumed.isEmpty()?5000:3000);}
+    private void revoke(){main.removeCallbacks(poll);needsPolling=false;generation++;if(expiry!=null)main.removeCallbacks(expiry);expiry=null;LauncherBackend.end();}
     private void read(Consumer<String> reply){
         if(!ready||busy){if(reply!=null)reply.accept(status());return;}
         busy=true;long ticket=generation,started=SystemClock.elapsedRealtime();String nonce=UUID.randomUUID().toString();
@@ -58,10 +59,10 @@ final class LauncherRuntime {
                     long until=valid?result.getLong("deadline_ms",0):0;
                     LauncherStyle selected=new LauncherStyle(valid?result.getInt("launcher_scale",-1):-1,valid&&result.getBoolean("launcher_labels"));
                     valid=valid&&result.getInt("status",-1)==GuardBrokerPolicy.READABLE&&PreviewPolicy.uuid(result.getString("permit_id"))&&until>now&&until-now<=ClockEnabledPolicy.HEALTH_MS&&selected.valid();
-                    if(!valid||screenOff||resumed.isEmpty()){authority=valid?"waiting for launcher foreground":"guard blocked";revoke();}
+                    if(!valid||screenOff){authority=valid?"screen off":"guard blocked";revoke();}
                     else{authority="guard readable";needsPolling=selected.custom();LauncherBackend.apply(selected,until);if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="guard expired";revoke();}};main.postDelayed(expiry,until-now);}
                 }catch(Throwable unavailable){authority="guard unavailable";revoke();}
-                finally{if(reply!=null)reply.accept(status());}
+                finally{scheduleRefresh();if(reply!=null)reply.accept(status());}
             });
         });
     }
