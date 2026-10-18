@@ -137,3 +137,48 @@ editor navigation, recreation and native settings permission checks.
     their chosen size during the return transition, without a stock-size flash.
 
 No guard-module update is required for the launcher-only protocol extension.
+
+## Open-folder appearance test (version code 75)
+
+Launcher → Folders is a dedicated detail page. Its blur radius (Native or 0–25),
+app-label RGB color and title RGB color share the existing draft/apply/restore
+contract. Both folder colors use the same shared hex/RGB dialog as the status-bar
+clock and home-screen labels. Colors preserve native text alpha. Home icon size,
+hidden home labels and home label color do not alter folder items.
+
+On the pinned APK, `Folder.B0()` creates `Folder$l` (an ImageView) and obtains a
+mutable copy via `resource.G1.k()`. The native worker `G1.v(Bitmap)` applies
+`A1.d(Context, Bitmap, 20f)` before storing its small wallpaper cache; the native
+source reader is `G1.r()`. That source is typically only 90 pixels wide. Custom
+blur is therefore not a full-resolution wallpaper replacement: at radius zero
+its pixelation can be visible. The UI says this explicitly.
+
+The test backend captures source pixels before the native cache blur. If capture
+was missed during launcher startup, first folder use schedules the same native
+wallpaper reader on a separate serialized worker. The first open can stay native
+while preparation finishes; close/reopen to use the ready copy. Live wallpaper
+uses the launcher's own thumbnail/source behavior. Inputs over 524288 pixels or
+unavailable sources keep native blur. No file/bitmap processing happens per frame.
+The custom algorithm is three separable box passes, not the native RenderScript
+algorithm; radius 20 should not be represented as an exact native match.
+
+Only calls to `G1.k()` inside `Folder.B0()` can receive a custom copy. The native
+cache, other launcher blur consumers, stock files and databases are unchanged.
+The stock folder tint operation is mirrored to a private native restore copy.
+Weakly tracked folder backgrounds restore on disable, selection changes, sleep,
+guard expiry and emergency/global stop, only if the launcher has not installed a
+new background meanwhile. Native-owned bitmaps are never recycled.
+
+Text hooks only accept exact open-Folder ancestry and real BubbleTextView app
+items (types 0/1/6 with a nonnegative folder container), or FolderNameEditText.
+They exclude home/workspace, dock, all apps, arbitrary texts and folder add items.
+Current color, Paint and shadow state restore after each nested draw.
+Folder hook installation is transactional and optional; failed resolution keeps
+folders native without removing working home-screen customization. Runtime
+checks report folder hook and blur preparation state.
+
+Automated coverage includes strict scope, profile migration, independent folder
+settings, native restoration without overwriting a later launcher background,
+blur bounds/input immutability/solid colors/edge smoothing, editor navigation,
+independent shared-picker commits and recreation. Physical folder behavior,
+wallpaper changes, live wallpaper and animation/restore behavior await user tests.

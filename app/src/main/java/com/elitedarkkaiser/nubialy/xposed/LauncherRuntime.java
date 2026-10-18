@@ -57,7 +57,7 @@ final class LauncherRuntime {
                     long now=SystemClock.elapsedRealtime();boolean valid=result!=null&&now-started<=2000&&SystemUiGuardProtocol.accepts(nonce,result.getString("nonce"),BuildConfig.VERSION_CODE,result.getInt("version",-1),now-started);
                     if(valid&&result.getInt("status",-1)==GuardBrokerPolicy.BUSY){authority="guard busy; current deadline retained";needsPolling=true;return;}
                     long until=valid?result.getLong("deadline_ms",0):0;
-                    LauncherStyle selected=new LauncherStyle(valid?result.getInt("launcher_scale",-1):-1,valid&&result.getBoolean("launcher_labels"),valid?result.getInt("launcher_label_color",0):0);
+                    LauncherStyle selected=new LauncherStyle(valid?result.getInt("launcher_scale",-1):-1,valid&&result.getBoolean("launcher_labels"),valid?result.getInt("launcher_label_color",0):0,valid?result.getInt("folder_blur",-1):-1,valid?result.getInt("folder_labels",0):0,valid?result.getInt("folder_title",0):0);
                     valid=valid&&result.getInt("status",-1)==GuardBrokerPolicy.READABLE&&PreviewPolicy.uuid(result.getString("permit_id"))&&until>now&&until-now<=ClockEnabledPolicy.HEALTH_MS&&selected.valid();
                     if(!valid||screenOff){authority=valid?"screen off":"guard blocked";revoke();}
                     else{authority="guard readable";needsPolling=selected.custom();LauncherBackend.apply(selected,until);if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="guard expired";revoke();}};main.postDelayed(expiry,until-now);}

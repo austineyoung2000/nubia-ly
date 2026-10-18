@@ -42,7 +42,7 @@ public final class GuardBrokerProvider extends ContentProvider {
                 LauncherStyle style=allowed?LauncherPreferences.active(getContext()):LauncherStyle.STOCK;
                 if(allowed&&style.custom())allowed=RecoveryStore.claimLauncherStartup(getContext(),callerPid);
                 reply.putInt("status",allowed?GuardBrokerPolicy.READABLE:GuardBrokerPolicy.BLOCKED);
-                if(allowed){reply.putString("permit_id",id);reply.putLong("deadline_ms",android.os.SystemClock.elapsedRealtime()+ClockEnabledPolicy.HEALTH_MS);reply.putInt("launcher_scale",style.iconScale());reply.putBoolean("launcher_labels",style.hideLabels());reply.putInt("launcher_label_color",style.labelColor());}
+                if(allowed){reply.putString("permit_id",id);reply.putLong("deadline_ms",android.os.SystemClock.elapsedRealtime()+ClockEnabledPolicy.HEALTH_MS);reply.putInt("launcher_scale",style.iconScale());reply.putBoolean("launcher_labels",style.hideLabels());reply.putInt("launcher_label_color",style.labelColor());reply.putInt("folder_blur",style.folderBlur());reply.putInt("folder_labels",style.folderLabelColor());reply.putInt("folder_title",style.folderTitleColor());}
             } else if(GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method)) {
                 String id=GuardReader.inspectEnabled();boolean allowed=RecoveryStore.enabledAllowed(getContext(),id);
                 SurfaceStyle style=allowed?StatusBarPreferences.active(getContext(),id).surfaces():SurfaceStyle.STOCK;

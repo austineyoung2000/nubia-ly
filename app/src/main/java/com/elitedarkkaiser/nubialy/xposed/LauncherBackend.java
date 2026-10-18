@@ -73,10 +73,11 @@ final class LauncherBackend {
                     catch(Throwable unavailable){end();}
                 }
             }));
-            installed=true;return true;
+            LauncherFolderBackend.install(loader);installed=true;return true;
         }catch(Throwable unavailable){for(var hook:added)hook.unhook();end();return false;}
     }
     static void observe(View root){
+        LauncherFolderBackend.observe(root);
         if(root instanceof TextView label&&homeShortcut(label)){seen.put(label,true);label.invalidate();}
         if(root instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++)observe(group.getChildAt(i));
     }
@@ -98,8 +99,8 @@ final class LauncherBackend {
         finally{if(f.previous==null)drawing.remove();else drawing.set(f.previous);}
     }
     private static boolean active(){return installed&&style.custom()&&SystemClock.elapsedRealtime()<deadline;}
-    static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;if(changed)refresh();}
-    static void end(){boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
+    static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;LauncherFolderBackend.apply(selected,until);if(changed)refresh();}
+    static void end(){LauncherFolderBackend.end();boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
     private static void refresh(){for(TextView view:new ArrayList<>(seen.keySet()))if(view!=null)view.invalidate();}
-    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":LauncherStyle.labelName(style.labelColor())):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+".";}
+    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":LauncherStyle.labelName(style.labelColor())):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+". "+LauncherFolderBackend.status();}
 }
