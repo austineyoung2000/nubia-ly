@@ -11,10 +11,10 @@ public final class LauncherLayoutTest {
   assertEquals(100,LauncherStyle.Layout.merge("dock",LauncherStyle.Layout.STOCK,l).folderScale());
  }
  @Test public void expandedCatalogueIsAdditiveBoundedAndRestoresOnlyOwnedEntries(){
-  Object native4=new Object(),native5=new Object();Map<Integer,Object> map=new HashMap<>();map.put(100,native4);map.put(101,native5);var grids=new LauncherGridCatalogue();assertTrue(grids.enable(map));assertEquals(15,map.size());assertEquals(13,grids.added());assertSame(native4,map.get(100));assertSame(native5,map.get(101));
-  for(int row=6;row<=8;row++)for(int column=4;column<=8;column++)assertTrue(map.containsKey(row*16+column));
-  assertTrue(grids.enable(map));assertEquals(15,map.size());Object external=new Object();map.put(102,external);grids.restore();assertEquals(3,map.size());assertSame(external,map.get(102));assertSame(native4,map.get(100));assertSame(native5,map.get(101));
-  assertFalse(grids.enable(new HashMap<>()));assertFalse(LauncherGridCatalogue.choice(5,5));assertFalse(LauncherGridCatalogue.choice(6,9));assertFalse(LauncherGridCatalogue.choice(9,8));assertTrue(LauncherGridCatalogue.choice(8,8));
+  Object native4=new Object(),native5=new Object();Map<Integer,Object> map=new HashMap<>();map.put(100,native4);map.put(101,native5);var grids=new LauncherGridCatalogue();assertTrue(grids.enable(map));assertEquals(12,map.size());assertEquals(10,grids.added());assertSame(native4,map.get(100));assertSame(native5,map.get(101));
+  for(int row=6;row<=8;row++)for(int column=4;column<=7;column++)assertTrue(map.containsKey(row*16+column));
+  assertTrue(grids.enable(map));assertEquals(12,map.size());Object external=new Object();map.put(102,external);grids.restore();assertEquals(3,map.size());assertSame(external,map.get(102));assertSame(native4,map.get(100));assertSame(native5,map.get(101));
+  assertFalse(grids.enable(new HashMap<>()));assertFalse(LauncherGridCatalogue.choice(5,5));assertFalse(LauncherGridCatalogue.choice(6,9));assertFalse(LauncherGridCatalogue.choice(9,8));assertFalse(LauncherGridCatalogue.choice(8,8));assertTrue(LauncherGridCatalogue.choice(8,7));
  }
  @Test public void layoutValidationAndMigrationKeepLegacyDefaults(){
   var l=new LauncherStyle.Layout(6,5,true,0xff123456,150,70,true);assertTrue(l.valid());assertEquals(l,LauncherStyle.Layout.decode(l.encode()));assertEquals(LauncherStyle.Layout.STOCK,new LauncherStyle(70,false).layout());

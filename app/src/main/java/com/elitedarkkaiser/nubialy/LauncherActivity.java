@@ -74,7 +74,7 @@ public final class LauncherActivity extends AppCompatActivity {
         customLabelColor=draftColor==0?ClockColorPolicy.DEFAULT:draftColor;
         if(state!=null&&ClockColorPolicy.valid(state.getInt("custom_label_color",customLabelColor)))customLabelColor=state.getInt("custom_label_color",customLabelColor);
         client=new LauncherServiceClient(this);
-        var gridDraft=getSharedPreferences("launcher_grid_draft",MODE_PRIVATE);gridRows=Math.max(6,Math.min(8,gridDraft.getInt("rows",6)));gridColumns=Math.max(4,Math.min(8,gridDraft.getInt("columns",5)));
+        var gridDraft=getSharedPreferences("launcher_grid_draft",MODE_PRIVATE);gridRows=Math.max(6,Math.min(8,gridDraft.getInt("rows",6)));gridColumns=Math.max(4,Math.min(7,gridDraft.getInt("columns",5)));
         ScrollView scroll=new ScrollView(this);LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(20),dp(16),dp(20),dp(24));scroll.addView(content);setContentView(scroll);
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scroll,(v,insets)->{var bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});
@@ -84,7 +84,7 @@ public final class LauncherActivity extends AppCompatActivity {
         for(String[] route:new String[][]{{"grid","Home-screen grid"},{"dock","Dock icon size"},{"indicator","Page indicator"}}){MaterialButton row=button(route[1]);row.setTag("launcher-"+route[0]);overview.addView(row);row.setOnClickListener(v->pages.show("launcher",route[0]));}
         LinearLayout gridEditor=panel(content,"Home-screen grid");
         MaterialSwitch expanded=new MaterialSwitch(this);expanded.setText("Expanded grid choices");expanded.setTag("launcher-expanded-grid");expanded.setChecked(draftLayout.expandedGrid());gridEditor.addView(expanded);layoutControls.add(expanded);expanded.setOnCheckedChangeListener((v,value)->changeLayout(6,value?1:0));
-        gridEditor.addView(text("Choose 4–8 columns and 6–8 rows, up to 8 × 8. Enable this page, then apply the selected grid. The launcher moves icons and widgets using its own layout flow.",14));
+        gridEditor.addView(text("Choose 4–7 columns and 6–8 rows, up to 7 × 8. Enable this page, then apply the selected grid. The launcher moves icons and widgets using its own layout flow.",14));
         gridSlider(gridEditor,"Columns",false);gridSlider(gridEditor,"Rows",true);
         MaterialButton gridSettings=button("Apply selected grid");gridSettings.setTag("launcher-grid-settings");gridEditor.addView(gridSettings);layoutControls.add(gridSettings);gridSettings.setOnClickListener(v->chooseGrid());
         gridEditor.addView(text("Denser grids make each cell smaller. Widgets retain their cell spans and may need resizing with the launcher’s resize handles. Icon sizing does not resize widget contents.",14));
@@ -157,7 +157,7 @@ public final class LauncherActivity extends AppCompatActivity {
     }
     private void gridSlider(LinearLayout parent,String title,boolean rows){
         TextView label=text(title+": "+(rows?gridRows:gridColumns),18);parent.addView(label);
-        var slider=new com.google.android.material.slider.Slider(this);slider.setTag(rows?"launcher-grid-rows":"launcher-grid-columns");slider.setValueFrom(rows?6:4);slider.setValueTo(8);slider.setStepSize(1);slider.setValue(rows?gridRows:gridColumns);parent.addView(slider);layoutControls.add(slider);
+        var slider=new com.google.android.material.slider.Slider(this);slider.setTag(rows?"launcher-grid-rows":"launcher-grid-columns");slider.setValueFrom(rows?6:4);slider.setValueTo(rows?8:7);slider.setStepSize(1);slider.setValue(rows?gridRows:gridColumns);parent.addView(slider);layoutControls.add(slider);
         slider.addOnChangeListener((view,value,user)->{if(!user||busy)return;if(rows)gridRows=Math.round(value);else gridColumns=Math.round(value);label.setText(title+": "+Math.round(value));int r=gridRows,c=gridColumns;worker.execute(()->getSharedPreferences("launcher_grid_draft",MODE_PRIVATE).edit().putInt("rows",r).putInt("columns",c).commit());});
     }
     private void chooseGrid(){if(busy)return;gridPending=true;busy=true;controls();status.setText("Requesting native grid change…");client.applyGrid(gridRows,gridColumns,message->{if(closed)return;gridPending=false;busy=false;controls();status.setText(message);});}

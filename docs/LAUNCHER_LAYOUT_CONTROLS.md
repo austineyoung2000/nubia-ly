@@ -2,11 +2,11 @@
 
 Exact launcher APK gate remains required. The native DesktopGrid class is
 `com.android.launcher3.b0`; its static catalogue `s` initially contains rows/cols
-6/4 and 6/5. Thirteen additional entries provide a total of 15 choices,
-columns 4..8 and rows 6..8, using its native spacing profile. Nubia-ly changes
+6/4 and 6/5. Ten additional entries provide a total of 12 choices,
+columns 4..7 and rows 6..8, using its native spacing profile. Nubia-ly changes
 the in-memory choice catalogue. The native DesktopGridActivity fragment has
 two hard-coded radio rows, so catalogue expansion alone cannot add visible
-choices there. Nubia-ly now exposes all 15 choices through row/column sliders (maximum 8×8).
+choices there. Nubia-ly now exposes all 12 choices through row/column sliders (maximum 7×8).
 An explicit signature-protected, bounded request performs a fresh guard read
 and invokes H5.T(context).H().e(context, encodedRowsColumns) in the launcher
 process. Polling never calls this operation; expired, duplicate, unsupported,
@@ -50,7 +50,7 @@ The native DesktopGrid.r method changes DeviceProfile workspace row/column
 counts. Its model reflow retains widget spanX/spanY. More rows/columns therefore
 allocate fewer physical pixels to a widget with unchanged spans; RemoteViews
 with fixed internal dimensions can clip (as seen in the clock/date screenshot).
-This is independent of nubia-ly icon drawing scale. The 8×8 cap does not promise
+This is independent of nubia-ly icon drawing scale. The 7×8 cap does not promise
 unchanged widget size: use native resize handles after switching grids. This
 build does not rewrite widget database spans or apply a blanket widget scale.
 
