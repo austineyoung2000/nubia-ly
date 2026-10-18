@@ -91,6 +91,7 @@ with open(os.environ['CALLS'],'a') as f:f.write(args[3]+'\\n')
  allowlist.write_text('NX809J 36 '+new_hash+'\n');assert 'profile=ready' in run('status')
  allowlist.chmod(0o666);assert 'profile=blocked' in run('status');allowlist.chmod(0o644)
  allowlist.write_text('NX789J 35 '+new_hash+'\n');assert 'profile=ready' in run('status',extra={'MODEL':'NX789J','SDK':'35'});assert 'profile=blocked' in run('status',extra={'MODEL':'NX789J','SDK':'36'})
+ allowlist.write_text('NX789J 36 '+new_hash+'\n');assert 'profile=ready' in run('status',extra={'MODEL':'NX789J','SDK':'36'});assert 'profile=blocked' in run('status',extra={'MODEL':'NX789J','SDK':'35'})
  allowlist.unlink();player.write_bytes(b'known-player');assert 'profile=ready' in run('status');assert 'profile=blocked' in run('status',extra={'SDK':'35'})
  # Corrupted metadata must remain independently removable.
  (state/'boot/selection').write_text('garbage\n');os.chmod(state/'boot/selection',0o600);run('restore');assert not (state/'boot/selection').exists()
