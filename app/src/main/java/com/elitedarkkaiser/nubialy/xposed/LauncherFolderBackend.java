@@ -80,7 +80,7 @@ final class LauncherFolderBackend {
                     }else prepare();
                 }
             }));
-            installed=true;
+            LauncherFolderSurface.install(loader);installed=true;
         }catch(Throwable unavailable){for(var hook:hooks)hook.unhook();installed=false;blurState="folder hooks unavailable";}
     }
     static int kind(TextView view){
@@ -93,8 +93,8 @@ final class LauncherFolderBackend {
     }
     static void observe(View view){if(view instanceof TextView text&&kind(text)!=0){seen.put(text,true);text.invalidate();}}
     private static boolean active(){return installed&&style.folderCustom()&&SystemClock.elapsedRealtime()<deadline;}
-    static void apply(LauncherStyle selected,long until){boolean changed=!selected.equals(style);style=selected;deadline=until;if(changed){restoreBackgrounds();epoch++;blurred=null;readyRadius=-1;prepare();refresh();}}
-    static void end(){restoreBackgrounds();style=LauncherStyle.STOCK;deadline=0;epoch++;blurred=null;readyRadius=-1;blurState="native";refresh();}
+    static void apply(LauncherStyle selected,long until){LauncherFolderSurface.apply(selected,until);boolean changed=!selected.equals(style);style=selected;deadline=until;if(changed){restoreBackgrounds();epoch++;blurred=null;readyRadius=-1;prepare();refresh();}}
+    static void end(){LauncherFolderSurface.end();restoreBackgrounds();style=LauncherStyle.STOCK;deadline=0;epoch++;blurred=null;readyRadius=-1;blurState="native";refresh();}
     private static synchronized void prepare(){
         if(!active()||style.folderBlur()<0)return;long ticket=epoch;
         // Worker serializes reads and computation; native cached wallpaper is never borrowed or recycled.
@@ -116,5 +116,5 @@ final class LauncherFolderBackend {
     }
     private static void restoreBackgrounds(){backgrounds.restore();}
     private static void refresh(){for(TextView text:new ArrayList<>(seen.keySet()))if(text!=null)text.invalidate();}
-    static String status(){return "Folders: "+(installed?"ready":"unavailable")+"; blur: "+blurState+".";}
+    static String status(){return "Folders: "+(installed?"ready":"unavailable")+"; "+LauncherFolderSurface.status()+" Cached fallback: "+blurState+".";}
 }

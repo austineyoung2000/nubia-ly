@@ -182,3 +182,41 @@ settings, native restoration without overwriting a later launcher background,
 blur bounds/input immutability/solid colors/edge smoothing, editor navigation,
 independent shared-picker commits and recreation. Physical folder behavior,
 wallpaper changes, live wallpaper and animation/restore behavior await user tests.
+
+
+## Live folder blur correction (version code 76)
+
+User phone testing of v75 confirmed folder app-label tinting, but blur stayed
+native at zero and the synthetic Add item was tinted. The first implementation
+covered only the cached-wallpaper branch; that was insufficient for this device.
+Native title color was selected in the screenshot, so its white output was
+expected; custom title output still needs a phone check.
+
+The pinned launcher's `BaseDepthController.setWallpaperBlur(int)` and
+`applyDepthAndBlur(boolean,boolean,boolean)` emit live SurfaceControl blur
+transactions. The latter can target either `mBaseSurface` or `mBlurSurface`.
+The setter intentionally rejects zero while a folder is open, so changing its
+input alone would leave the old blur. v76 keeps native arguments/state intact
+and scales only the emitted transaction radius during a scoped controller call
+whose launcher has a currently open Folder (`Folder.i1`). Zero reaches the
+surface transaction directly; 25 retains native strength, while intermediate
+values preserve native animation proportions. Other callers and surfaces pass
+through. No new layers are created and no zoom or native depth fields change.
+
+The last still-owned override records the native requested radius. A later
+native write retires ownership. Stop, expiry, screen-off and selection changes
+restore native radius only for the same open folder session and a valid surface,
+using the root's draw transaction queue where available. Scoped frames restore
+on exceptions. Unavailable live hooks report that explicitly; cached fallback
+remains independently available. Diagnostics now put live-surface status first.
+
+The synthetic Add item uses container Integer.MAX_VALUE, type 0 and the
+`theme.folder.add` intent. Container Integer.MAX_VALUE is now excluded from the
+folder-label scope regardless of locale.
+
+A host harness executes the production surface hook against controlled native
+controller/transaction calls. It covers zero, native maximum, animation ratios,
+unaltered native mBlurValue, unrelated native writes, missing/new folder
+sessions, callback failure cleanup, expiry and ownership-aware restoration.
+Android tests additionally cover synthetic Add exclusion and surface restore
+state. Actual v76 live blur and restoration still require user phone validation.
