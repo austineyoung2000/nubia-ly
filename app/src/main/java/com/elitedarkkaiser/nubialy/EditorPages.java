@@ -13,7 +13,9 @@ final class EditorPages {
     private record Panel(String section,String page,String title,View view){}
     private final Activity activity;private final MaterialToolbar toolbar;
     private final ScrollView scroll;private final List<Panel> panels=new ArrayList<>();
-    private String section="status_bar",page="";
+    private String section="status_bar",page="",title="Status bar";private Runnable changed=()->{};
+    void onChange(Runnable callback){changed=callback;changed.run();}
+    String title(){return title;}
     EditorPages(AppCompatActivity activity,MaterialToolbar toolbar,ScrollView scroll){
         this.activity=activity;this.toolbar=toolbar;this.scroll=scroll;
         toolbar.setNavigationOnClickListener(v->back());
@@ -26,7 +28,7 @@ final class EditorPages {
         this.section=known?section:"status_bar";this.page=known?page:"";
         String title=this.section.equals("launcher")?"Launcher":this.section.equals("lock_screen")?"Lock screen":this.section.equals("quick_settings")?"Quick Settings":this.section.equals("volume")?"Volume":this.section.equals("notifications")?"Notifications":this.section.equals("power_menu")?"Power menu":"Status bar";
         for(Panel p:panels){boolean same=p.section.equals(this.section);p.view.setVisibility(same&&(p.page.equals(this.page)||p.page.equals("preview"))?View.VISIBLE:View.GONE);if(same&&p.page.equals(this.page)&&!this.page.isEmpty())title=p.title;}
-        toolbar.setTitle(title);
+        this.title=title;toolbar.setTitle(title);changed.run();
         scroll.post(()->scroll.scrollTo(0,0));
     }
     private void back(){if(page.isEmpty())activity.finish();else show(section,"");}

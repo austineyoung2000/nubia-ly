@@ -5,6 +5,12 @@ public record LauncherStyle(int iconScale,boolean hideLabels,int labelColor,int 
     public LauncherStyle(int scale,boolean hidden,int color){this(scale,hidden,color,-1,0,0);}
     public LauncherStyle(int scale,boolean hidden){this(scale,hidden,0);}
     public static final LauncherStyle STOCK=new LauncherStyle(100,false,0);
+    public static LauncherStyle merge(String page,LauncherStyle active,LauncherStyle draft){
+        boolean all=page.isEmpty(),icons=all||page.equals("icons"),folders=all||page.equals("folders"),art=all||page.equals("artwork");
+        return new LauncherStyle(icons?draft.iconScale():active.iconScale(),icons?draft.hideLabels():active.hideLabels(),icons?draft.labelColor():active.labelColor(),
+            folders?draft.folderBlur():active.folderBlur(),folders?draft.folderLabelColor():active.folderLabelColor(),folders?draft.folderTitleColor():active.folderTitleColor(),
+            art?draft.iconPack():active.iconPack(),art?draft.iconShape():active.iconShape());
+    }
     public boolean valid(){return iconScale>=70&&iconScale<=100&&validColor(labelColor)&&folderBlur>=-1&&folderBlur<=25&&validColor(folderLabelColor)&&validColor(folderTitleColor)&&validIconPack(iconPack)&&iconShape>=0&&iconShape<=4;}
     public boolean custom(){return iconScale!=100||hideLabels||labelColor!=0||folderCustom()||!iconPack.isEmpty()||iconShape!=0;}
     public boolean folderCustom(){return folderBlur!=-1||folderLabelColor!=0||folderTitleColor!=0;}

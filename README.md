@@ -17,7 +17,7 @@
 
 </div>
 
-**nubia-ly brings an Iconify-inspired customization experience to stock Nubia/REDMAGIC System UI**, with a RisingOS-inspired Material interface. Make the status bar, Quick Settings, lock screen, notifications, volume panel and power menu feel like yours—then finish with a systemless boot animation.
+**nubia-ly is a standalone NX809J/NX789J customization app inspired by Iconify, built for stock Nubia/REDMAGIC System UI with Vector integration**, with a RisingOS-inspired Material interface. Make the status bar, Quick Settings, lock screen, notifications, volume panel and power menu feel like yours—then finish with a systemless boot animation.
 
 Built and phone-tested on the **REDMAGIC 11 Pro (NX809J), running stock Android 16**, with a community port to the **REDMAGIC 10 Pro / 10S Pro (NX789J) on Android 15/16** by **Hammad Yasin**. Each area has its own dashboard entry and focused editor, with visual choices, saved drafts and explicit application.
 
@@ -207,3 +207,7 @@ Pinned boot assets are prepared by CI before Android compilation. See [asset pro
 - **Hammad Yasin** — REDMAGIC 10 Pro / 10S Pro (NX789J) port, Android 15/16: device & SDK gates, SELinux root-assisted guard read, dual-firmware live lock-screen clock host, and Pill / custom-roundness / One UI-style QS tiles. Phone-tested on NX789J.
 
 Upstream notices and asset provenance remain with their respective files in [`third_party/`](third_party/) and the app's bundled notices. Credits do not grant a blanket license to third-party artwork. Proprietary stock firmware/APKs supplied for inspection are not distributed in this repository.
+
+### Apply one page at a time
+
+Enable and Restore act on the current editor page. An area overview applies that area; a detail page applies only its own controls. Other applied pages remain unchanged, and drafts elsewhere stay unapplied. Status-bar and Quick Settings icon packs are independent. Launcher pages follow the same rule. Dashboard Emergency stop and global Restore remain available to stop all customization.

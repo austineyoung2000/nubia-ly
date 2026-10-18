@@ -14,6 +14,14 @@ import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=36)
 public final class AppearanceEditorNavigationTest {
+    @Test public void applyActionsFollowTheVisiblePage(){
+        ShadowBuild.setModel("NX809J");var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section","quick_settings")).setup();
+        var decor=controller.get().getWindow().getDecorView();var enable=(android.widget.TextView)decor.findViewWithTag("editor-enable");var restore=(android.widget.TextView)decor.findViewWithTag("editor-restore");
+        assertEquals("Enable Quick Settings",enable.getText().toString());
+        decor.findViewWithTag("editor-route:quick_settings:tiles").performClick();assertEquals("Enable Tile shapes",enable.getText().toString());assertEquals("Restore Tile shapes",restore.getText().toString());
+        controller.get().getOnBackPressedDispatcher().onBackPressed();assertEquals("Enable Quick Settings",enable.getText().toString());
+        assertNotNull(decor.findViewWithTag("qs-iconpack-style:1"));assertNotNull(decor.findViewWithTag("iconpack-style:1"));controller.pause().stop().destroy();
+    }
     @Test public void everySectionOpensItsDetailPagesAndBackKeepsOverview(){
         ShadowBuild.setModel("NX809J");
         String[][] routes={{"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},{"quick_settings","grid","landscape","top_layout","label_layout","brightness_layout","style","brightness","tiles","labels"},{"volume","styles"},{"notifications","styles","appearance","behavior","icons"},{"power_menu","styles"},{"status_bar","typography","date","color","icons","battery","connectivity","inventory"}};
