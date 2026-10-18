@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory(prefix='nubialy-unlock-') as work:
  log.unlink();(module/'disable').touch();run('resume_app');assert not log.exists();(module/'disable').unlink()
  # Replayed receipt from another boot cannot wake the app.
  good=(guard/'enabled').read_text();(guard/'enabled').write_text(good.replace('clock-enabled','other'));run('resume_app',False);assert not log.exists();(guard/'enabled').write_text(good)
- run('resume',script='service.sh');assert log.read_text().count('RESUME_AFTER_UNLOCK')==1
- log.unlink();run('resume',script='service.sh',extra={'TEST_UNLOCK':'RUNNING_LOCKED'});assert 'RESUME_AFTER_UNLOCK' not in log.read_text();assert len((w/'waits').read_text().splitlines())==60
+ run('resume',script='service.sh');assert log.read_text().count('RESUME_AFTER_UNLOCK')==3
+ log.unlink();(w/'waits').unlink();run('resume',script='service.sh',extra={'TEST_UNLOCK':'RUNNING_LOCKED'});assert 'RESUME_AFTER_UNLOCK' not in log.read_text();assert len((w/'waits').read_text().splitlines())==180
  run('stop');log.unlink();run('resume_app');assert not log.exists();assert not (state/'clock_id').exists() and not (guard/'enabled').exists()
 print('Unlock resume shell passed: existing authority only, current boot/identity, disable/stop fences, unlock gate and bounded boot nudges')
