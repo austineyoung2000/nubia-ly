@@ -25,6 +25,15 @@ public final class LauncherActivityTest {
         info.applicationInfo=new ApplicationInfo();info.applicationInfo.packageName=info.packageName;info.applicationInfo.enabled=true;info.applicationInfo.targetSdkVersion=35;
         ActivityInfo settings=new ActivityInfo();settings.packageName=info.packageName;settings.name=LauncherActivity.SETTINGS;settings.applicationInfo=info.applicationInfo;settings.enabled=true;settings.exported=exported;settings.permission=permission;info.activities=new ActivityInfo[]{settings};pm.installPackage(info);
     }
+    @Test public void layoutPagesKeepIndependentDraftsAndRoutes() throws Exception {
+        var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();
+        org.robolectric.util.ReflectionHelpers.setField(a,"compatible",true);org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"controls");
+        View root=a.findViewById(android.R.id.content);root.findViewWithTag("launcher-folders").performClick();root.findViewWithTag("launcher-folder-rows:4").performClick();root.findViewWithTag("launcher-folder-columns:5").performClick();a.getOnBackPressedDispatcher().onBackPressed();
+        root.findViewWithTag("launcher-dock").performClick();root.findViewWithTag("launcher-dock-scale:75").performClick();a.getOnBackPressedDispatcher().onBackPressed();root.findViewWithTag("launcher-grid").performClick();((android.widget.CompoundButton)root.findViewWithTag("launcher-expanded-grid")).setChecked(true);
+        java.util.concurrent.ExecutorService worker=org.robolectric.util.ReflectionHelpers.getField(a,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);
+        var draft=LauncherPreferences.draft(a);assertEquals(4,draft.layout().folderRows());assertEquals(5,draft.layout().folderColumns());assertEquals(75,draft.layout().dockScale());assertTrue(draft.layout().expandedGrid());assertEquals(LauncherStyle.STOCK,LauncherPreferences.active(a));
+        controller.recreate();assertEquals("grid",((EditorPages)org.robolectric.util.ReflectionHelpers.getField(controller.get(),"pages")).page());controller.pause().stop().destroy();
+    }
     @Test public void opensOnlyVerifiedNativeSettingsComponent(){
         install(true,null);
         var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();

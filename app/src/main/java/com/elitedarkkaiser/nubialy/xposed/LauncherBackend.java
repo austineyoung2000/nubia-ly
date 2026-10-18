@@ -60,9 +60,9 @@ final class LauncherBackend {
             added.add(XposedBridge.hookMethod(shadow.getDeclaredMethod("onDraw",Canvas.class),viewDraw));
             added.add(XposedBridge.hookMethod(draw,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
-                    Frame f=drawing.get();if(f==null||f.icon!=p.thisObject||!active()||!f.home||style.iconScale()==100)return;
+                    Frame f=drawing.get();if(f==null||f.icon!=p.thisObject||!active()||!f.home||scaleFor(f.view)==100)return;
                     Canvas c=(Canvas)p.args[0];
-                    try{p.setObjectExtra("launcher_canvas",LauncherDrawState.scale(c,(Drawable)p.thisObject,style.iconScale()));}
+                    try{p.setObjectExtra("launcher_canvas",LauncherDrawState.scale(c,(Drawable)p.thisObject,scaleFor(f.view)));}
                     catch(Throwable unavailable){p.setObjectExtra("launcher_canvas",null);end();}
                 }
                 @Override protected void afterHookedMethod(MethodHookParam p){Object save=p.getObjectExtra("launcher_canvas");if(save instanceof Integer count)((Canvas)p.args[0]).restoreToCount(count);}
@@ -79,7 +79,7 @@ final class LauncherBackend {
             added.add(XposedBridge.hookMethod(bounds,new XC_MethodHook(){
                 @Override protected void afterHookedMethod(MethodHookParam p){
                     if(p.hasThrowable()||!active()||!(p.args[1] instanceof TextView icon)||!homeShortcut(icon))return;
-                    try{if(LauncherTransitionBounds.adjust((android.graphics.RectF)p.args[3],style.iconScale()))transitionCorrections++;}
+                    try{if(LauncherTransitionBounds.adjust((android.graphics.RectF)p.args[3],scaleFor(icon)))transitionCorrections++;}
                     catch(Throwable unavailable){end();}
                 }
             }));
@@ -99,7 +99,7 @@ final class LauncherBackend {
                     }
                 }));transitionArtworkReady=true;
             }catch(Throwable unavailable){transitionArtworkReady=false;}
-            LauncherFolderBackend.install(loader);installed=true;return true;
+            LauncherLayoutBackend.install(loader);LauncherFolderBackend.install(loader);installed=true;return true;
         }catch(Throwable unavailable){for(var hook:added)hook.unhook();end();return false;}
     }
     private static Drawable transitionIcon(TextView icon,Drawable original){
@@ -111,7 +111,7 @@ final class LauncherBackend {
             ()->active()&&style.iconsCustom()&&pack.equals(style.iconPack())&&shape==style.effectiveIconShape());
     }
     static void observe(View root){
-        LauncherFolderBackend.observe(root);
+        LauncherLayoutBackend.observe(root);LauncherFolderBackend.observe(root);
         if(root instanceof TextView label&&homeShortcut(label)){seen.put(label,true);if(active()&&style.iconsCustom())LauncherIconRuntime.image(label,appComponent(label));label.invalidate();}
         if(root instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++)observe(group.getChildAt(i));
     }
@@ -121,6 +121,7 @@ final class LauncherBackend {
             if(!location)return null;Object target=XposedHelpers.callMethod(info,"getTargetComponent");return target instanceof android.content.ComponentName component&&!component.getPackageName().equals("theme.folder.add")?component:null;
         }catch(Throwable unavailable){return null;}
     }
+    private static int scaleFor(TextView view){try{Object info=view.getTag();if(info!=null&&XposedHelpers.getIntField(info,"container")==-101&&style.layout().dockScale()!=0)return style.layout().dockScale();}catch(Throwable ignored){}return style.iconScale();}
     private static boolean homeShortcut(TextView view){
         try{
             Object info=view.getTag();if(info==null)return false;
@@ -139,8 +140,8 @@ final class LauncherBackend {
         finally{if(f.previous==null)drawing.remove();else drawing.set(f.previous);}
     }
     private static boolean active(){return installed&&style.custom()&&SystemClock.elapsedRealtime()<deadline;}
-    static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;LauncherFolderBackend.apply(selected,until);LauncherIconRuntime.apply(selected,until);if(changed)refresh();}
-    static void end(){LauncherIconRuntime.end();LauncherFolderBackend.end();boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
+    static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;LauncherLayoutBackend.apply(selected.layout(),until);LauncherFolderBackend.apply(selected,until);LauncherIconRuntime.apply(selected,until);if(changed)refresh();}
+    static void end(){LauncherIconRuntime.end();LauncherLayoutBackend.end();LauncherFolderBackend.end();boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
     private static void refresh(){for(TextView view:new ArrayList<>(seen.keySet()))if(view!=null)view.invalidate();}
-    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":LauncherStyle.labelName(style.labelColor())):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+"; animation artwork: "+(transitionArtworkReady?"ready":"native fallback")+" / "+artworkCorrections+". "+LauncherFolderBackend.status()+" "+LauncherIconRuntime.status();}
+    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":LauncherStyle.labelName(style.labelColor())):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+"; animation artwork: "+(transitionArtworkReady?"ready":"native fallback")+" / "+artworkCorrections+". "+LauncherFolderBackend.status()+" "+LauncherIconRuntime.status()+" "+LauncherLayoutBackend.status();}
 }
