@@ -35,9 +35,11 @@ final class LauncherFolderBackend {
     static void install(ClassLoader loader){
         List<XC_MethodHook.Unhook> hooks=new ArrayList<>();
         try{
-            Class<?> folder=XposedHelpers.findClass(FOLDER,loader),wallpaper=XposedHelpers.findClass("com.android.launcher3.resource.G1",loader);
-            Method background=folder.getDeclaredMethod("B0"),cache=wallpaper.getDeclaredMethod("k"),capture=wallpaper.getDeclaredMethod("v",Bitmap.class);
-            backgroundView=java.util.Arrays.stream(folder.getDeclaredFields()).filter(f->f.getType().getName().equals(FOLDER+"$l")).findFirst().orElseThrow();backgroundView.setAccessible(true);
+            Class<?> folder=XposedHelpers.findClass(FOLDER,loader),wallpaper;boolean stock=false;
+            try{wallpaper=XposedHelpers.findClass("com.android.launcher3.resource.G1",loader);}catch(Throwable modernMissing){wallpaper=XposedHelpers.findClass("com.android.launcher3.resource.u1",loader);stock=true;}
+            final String backgroundClass=FOLDER+(stock?"$m":"$l");
+            Method background=folder.getDeclaredMethod(stock?"A0":"B0"),cache=wallpaper.getDeclaredMethod("k"),capture=wallpaper.getDeclaredMethod("v",Bitmap.class);
+            backgroundView=java.util.Arrays.stream(folder.getDeclaredFields()).filter(f->f.getType().getName().equals(backgroundClass)).findFirst().orElseThrow();backgroundView.setAccessible(true);
             readWallpaper=wallpaper.getDeclaredMethod("r");readWallpaper.setAccessible(true);
             if(background.getReturnType()!=void.class||cache.getReturnType()!=Bitmap.class||readWallpaper.getReturnType()!=Bitmap.class)throw new IllegalStateException("Folder signatures changed");
             currentColor=XposedHelpers.findField(TextView.class,"mCurTextColor");

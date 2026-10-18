@@ -13,6 +13,7 @@ final class LauncherLayoutBackend {
  private static final LauncherGridCatalogue grids=new LauncherGridCatalogue();
  private static Class<?> desktopGrid,organizer;private static Field gridMap,folderOrganizer;
  private static boolean folderReady,indicatorReady,gridReady;
+ private static boolean stock;private static String rowArray="J0",columnArray="K0",capacity="U",organizerField="m",bindMethod="X",measureMethod="k0";
  private static final Map<Object,FolderProfile> profiles=new WeakHashMap<>();
  private static final Map<View,Object> folderOriginals=new WeakHashMap<>();
  private static final Set<View> indicators=Collections.newSetFromMap(new WeakHashMap<>());
@@ -24,23 +25,29 @@ final class LauncherLayoutBackend {
   if(!active()||!gridReady||!selected.expandedGrid()||!LauncherGridCatalogue.choice(rows,columns))return "Enable Home-screen grid before choosing a layout";
   try{
    if(!(gridMap.get(null) instanceof Map<?,?> choices)||!choices.containsKey((rows<<4)|columns))return "Expanded grid catalogue unavailable";
-   Object manager=XposedHelpers.callStaticMethod(XposedHelpers.findClass("com.android.launcher3.H5",context.getClassLoader()),"T",context);
-   Object controller=XposedHelpers.callMethod(manager,"H");
-   Object result=XposedHelpers.callMethod(controller,"e",context,(rows<<4)|columns);
-   Object saved=XposedHelpers.callMethod(controller,"j",context);
+   Object manager=XposedHelpers.callStaticMethod(XposedHelpers.findClass(stock?"com.android.launcher3.z5":"com.android.launcher3.H5",context.getClassLoader()),stock?"N":"T",context);
+   Object controller=XposedHelpers.callMethod(manager,stock?"C":"H");
+   Object result=XposedHelpers.callMethod(controller,stock?"d":"e",context,(rows<<4)|columns);
+   Object saved=XposedHelpers.callMethod(controller,stock?"i":"j",context);
    return Boolean.TRUE.equals(result)&&Integer.valueOf((rows<<4)|columns).equals(saved)?"Native grid change requested: "+columns+" × "+rows+". Return home to see the result":"Launcher rejected the grid change";
   }catch(Throwable unavailable){return "Native grid controller unavailable; existing layout retained";}
  }
  static void install(ClassLoader loader){
-  try{desktopGrid=XposedHelpers.findClass("com.android.launcher3.b0",loader);gridMap=desktopGrid.getDeclaredField("s");gridMap.setAccessible(true);if(!Modifier.isStatic(gridMap.getModifiers())||!Map.class.isAssignableFrom(gridMap.getType()))throw new IllegalStateException();gridReady=true;}catch(Throwable ignored){gridReady=false;}
+  gridReady=false;
+  for(boolean candidateStock:new boolean[]{false,true})try{
+   Class<?> candidate=XposedHelpers.findClass(candidateStock?"com.android.launcher3.Z":"com.android.launcher3.b0",loader);Field field=candidate.getDeclaredField("s");field.setAccessible(true);
+   if(!Modifier.isStatic(field.getModifiers())||!Map.class.isAssignableFrom(field.getType())||!(field.get(null) instanceof Map<?,?> choices)||!choices.containsKey(100)||!choices.containsKey(101))continue;
+   desktopGrid=candidate;gridMap=field;stock=candidateStock;gridReady=true;break;
+  }catch(Throwable ignored){}
+  if(stock){rowArray="A0";columnArray="B0";capacity="T";organizerField="j";bindMethod="S";measureMethod="f0";}
   try{
-   organizer=XposedHelpers.findClass("com.android.launcher3.folder.A",loader);organizer.getConstructor(int.class,int.class);
-   Class<?> paged=XposedHelpers.findClass("com.android.launcher3.folder.FolderPagedView",loader);folderOrganizer=paged.getDeclaredField("m");folderOrganizer.setAccessible(true);if(folderOrganizer.getType()!=organizer)throw new IllegalStateException();
-   XposedBridge.hookMethod(paged.getDeclaredMethod("X",List.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
+   organizer=XposedHelpers.findClass(stock?"com.android.launcher3.folder.B":"com.android.launcher3.folder.A",loader);organizer.getConstructor(int.class,int.class);
+   Class<?> paged=XposedHelpers.findClass("com.android.launcher3.folder.FolderPagedView",loader);folderOrganizer=paged.getDeclaredField(organizerField);folderOrganizer.setAccessible(true);if(folderOrganizer.getType()!=organizer)throw new IllegalStateException();
+   XposedBridge.hookMethod(paged.getDeclaredMethod(bindMethod,List.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
     try{View view=(View)p.thisObject;applyProfile(view);Object original=folderOriginals.computeIfAbsent(view,v->{try{return folderOrganizer.get(v);}catch(Exception e){return null;}});if(original==null)return;
      if(active()&&(selected.folderRows()!=0||selected.folderColumns()!=0)){
       int columns=selected.folderColumns()==0?XposedHelpers.getIntField(original,"b"):selected.folderColumns();int rows=selected.folderRows()==0?XposedHelpers.getIntField(original,"c"):selected.folderRows();
-      folderOrganizer.set(view,organizer.getConstructor(int.class,int.class).newInstance(columns,rows));XposedHelpers.callMethod(view,"k0");
+      folderOrganizer.set(view,organizer.getConstructor(int.class,int.class).newInstance(columns,rows));XposedHelpers.callMethod(view,measureMethod);
      }else folderOrganizer.set(view,original);
     }catch(Throwable ignored){}
    }});folderReady=true;
@@ -68,20 +75,21 @@ final class LauncherLayoutBackend {
    FolderProfile old=profiles.get(profile);int rows=old==null?XposedHelpers.getIntField(profile,"L1"):old.rows(),cols=old==null?XposedHelpers.getIntField(profile,"M1"):old.columns();
    int r=selected.folderRows()==0?rows:selected.folderRows(),c=selected.folderColumns()==0?cols:selected.folderColumns();
    if(old==null){FolderProfile shared=null;for(FolderProfile candidate:profiles.values())if(candidate.inv()==inv){shared=candidate;break;}
-    int[] nativeRows=shared==null?((int[])XposedHelpers.getObjectField(inv,"J0")).clone():shared.rowArray();int[] nativeColumns=shared==null?((int[])XposedHelpers.getObjectField(inv,"K0")).clone():shared.columnArray();
+    int[] nativeRows=shared==null?((int[])XposedHelpers.getObjectField(inv,rowArray)).clone():shared.rowArray();int[] nativeColumns=shared==null?((int[])XposedHelpers.getObjectField(inv,columnArray)).clone():shared.columnArray();
     if(shared!=null){rows=Math.min(rows,Arrays.stream(nativeRows).max().orElse(rows));cols=Math.min(cols,Arrays.stream(nativeColumns).max().orElse(cols));}
-    old=new FolderProfile(inv,rows,cols,shared==null?XposedHelpers.getIntField(inv,"U"):shared.capacity(),nativeRows,nativeColumns,r,c);
+    old=new FolderProfile(inv,rows,cols,shared==null?XposedHelpers.getIntField(inv,capacity):shared.capacity(),nativeRows,nativeColumns,r,c);
    }
    profiles.put(profile,new FolderProfile(inv,old.rows(),old.columns(),old.capacity(),old.rowArray(),old.columnArray(),r,c));
-   XposedHelpers.setIntField(profile,"L1",r);XposedHelpers.setIntField(profile,"M1",c);XposedHelpers.setIntField(inv,"U",r*c);XposedHelpers.setObjectField(inv,"J0",new int[]{r,r});XposedHelpers.setObjectField(inv,"K0",new int[]{c,c});
+   XposedHelpers.setIntField(profile,"L1",r);XposedHelpers.setIntField(profile,"M1",c);XposedHelpers.setIntField(inv,capacity,r*c);XposedHelpers.setObjectField(inv,rowArray,dimensions(old.rowArray().length,r));XposedHelpers.setObjectField(inv,columnArray,dimensions(old.columnArray().length,c));
   }catch(Throwable ignored){}
  }
+ private static int[] dimensions(int length,int value){int[] result=new int[length];Arrays.fill(result,value);return result;}
  private static void restoreProfiles(){for(var entry:new ArrayList<>(profiles.entrySet()))try{Object profile=entry.getKey();FolderProfile p=entry.getValue();if(profile==null)continue;
   if(XposedHelpers.getIntField(profile,"L1")==p.appliedRows())XposedHelpers.setIntField(profile,"L1",p.rows());
   if(XposedHelpers.getIntField(profile,"M1")==p.appliedColumns())XposedHelpers.setIntField(profile,"M1",p.columns());
-  if(XposedHelpers.getIntField(p.inv(),"U")==p.appliedRows()*p.appliedColumns())XposedHelpers.setIntField(p.inv(),"U",p.capacity());
-  if(Arrays.equals((int[])XposedHelpers.getObjectField(p.inv(),"J0"),new int[]{p.appliedRows(),p.appliedRows()}))XposedHelpers.setObjectField(p.inv(),"J0",p.rowArray());
-  if(Arrays.equals((int[])XposedHelpers.getObjectField(p.inv(),"K0"),new int[]{p.appliedColumns(),p.appliedColumns()}))XposedHelpers.setObjectField(p.inv(),"K0",p.columnArray());
+  if(XposedHelpers.getIntField(p.inv(),capacity)==p.appliedRows()*p.appliedColumns())XposedHelpers.setIntField(p.inv(),capacity,p.capacity());
+  if(Arrays.equals((int[])XposedHelpers.getObjectField(p.inv(),rowArray),dimensions(p.rowArray().length,p.appliedRows())))XposedHelpers.setObjectField(p.inv(),rowArray,p.rowArray());
+  if(Arrays.equals((int[])XposedHelpers.getObjectField(p.inv(),columnArray),dimensions(p.columnArray().length,p.appliedColumns())))XposedHelpers.setObjectField(p.inv(),columnArray,p.columnArray());
  }catch(Throwable ignored){}profiles.clear();}
  static void observe(View root){applyProfile(root);}
  @SuppressWarnings("unchecked") static void apply(LauncherStyle.Layout layout,long until){if(layout==null||!layout.valid()){end();return;}if(!layout.equals(selected))restoreProfiles();selected=layout;deadline=until;
@@ -89,5 +97,5 @@ final class LauncherLayoutBackend {
   if(layout.folderRows()==0&&layout.folderColumns()==0)restoreProfiles();for(View v:new ArrayList<>(indicators))v.invalidate();
  }
  static void end(){deadline=0;selected=LauncherStyle.Layout.STOCK;grids.restore();restoreProfiles();for(View v:new ArrayList<>(indicators))v.invalidate();}
- static String status(){return "Layout adapters: folders "+folderReady+", dots "+indicatorReady+", native grids "+gridReady+" / added "+grids.added()+". Reopen folders after layout changes.";}
+ static String status(){return "Layout adapters ("+(stock?"stock":"11.5")+"): folders "+folderReady+", dots "+indicatorReady+", native grids "+gridReady+" / added "+grids.added()+". Reopen folders after layout changes.";}
 }

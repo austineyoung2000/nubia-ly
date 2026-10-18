@@ -69,12 +69,14 @@ final class LauncherBackend {
             }));
             var inner=getter.getReturnType().getDeclaredMethod("c",Canvas.class,android.graphics.Rect.class);
             var paintField=java.util.Arrays.stream(getter.getReturnType().getDeclaredFields()).filter(field->field.getType()==Paint.class).findFirst().orElseThrow();paintField.setAccessible(true);
-            added.add(XposedBridge.hookMethod(inner,new XC_MethodHook(){
+            XC_MethodHook artworkDraw=new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){Frame f=drawing.get();if(f==null||f.icon!=p.thisObject||f.component==null||!active()||!style.iconsCustom())return;
                     android.graphics.Bitmap image=LauncherIconRuntime.image(f.view,f.component);if(image==null)return;
                     try{LauncherIconShapes.draw((Canvas)p.args[0],image,(android.graphics.Rect)p.args[1],(Paint)paintField.get(p.thisObject),style.effectiveIconShape());p.setResult(null);}catch(Throwable unavailable){end();}
                 }
-            }));
+            };added.add(XposedBridge.hookMethod(inner,artworkDraw));
+            // Themed drawables override c() and never invoke the base bitmap path.
+            for(var method:com.elitedarkkaiser.nubialy.LauncherArtworkMethods.themed(loader,getter.getReturnType()))added.add(XposedBridge.hookMethod(method,artworkDraw));
             var bounds=LauncherTransitionBounds.resolve(XposedHelpers.findClass("com.android.launcher3.views.FloatingIconView",loader));
             added.add(XposedBridge.hookMethod(bounds,new XC_MethodHook(){
                 @Override protected void afterHookedMethod(MethodHookParam p){
