@@ -23,7 +23,8 @@ final class LauncherFolderBackend {
     private static volatile int readyRadius=-1;
     private static volatile String blurState="native";
     private static volatile java.lang.ref.WeakReference<Object> manager=new java.lang.ref.WeakReference<>(null);
-    private static int[] raw;private static int width,height; // worker confined
+    private static final java.util.concurrent.atomic.AtomicLong sourceEpoch=new java.util.concurrent.atomic.AtomicLong();
+    private static long rawEpoch;private static int[] raw;private static int width,height; // worker confined
     private static Method readWallpaper;
     private static Field backgroundView;
     private static final ThreadLocal<Bitmap> nativeCopy=new ThreadLocal<>();
@@ -64,9 +65,9 @@ final class LauncherFolderBackend {
             }));
             hooks.add(XposedBridge.hookMethod(capture,new XC_MethodHook(){
                 protected void beforeHookedMethod(MethodHookParam p){
-                    manager=new java.lang.ref.WeakReference<>(p.thisObject);blurred=null;readyRadius=-1;
-                    Bitmap input=(Bitmap)p.args[0];if(input==null||input.isRecycled()||(long)input.getWidth()*input.getHeight()>524288)return;
-                    try{int w=input.getWidth(),h=input.getHeight();int[] copy=new int[w*h];input.getPixels(copy,0,w,0,0,w,h);worker.execute(()->{raw=copy;width=w;height=h;rebuild(epoch);});}catch(Throwable failure){blurState="native: wallpaper copy unavailable";}
+                    manager=new java.lang.ref.WeakReference<>(p.thisObject);long source=sourceEpoch.incrementAndGet();blurred=null;readyRadius=-1;
+                    Bitmap input=(Bitmap)p.args[0];if(input==null||input.isRecycled()||(long)input.getWidth()*input.getHeight()>524288){worker.execute(()->{if(source==sourceEpoch.get()){raw=null;rawEpoch=source;}});return;}
+                    try{int w=input.getWidth(),h=input.getHeight();int[] copy=new int[w*h];input.getPixels(copy,0,w,0,0,w,h);worker.execute(()->{if(source!=sourceEpoch.get())return;raw=copy;rawEpoch=source;width=w;height=h;rebuild(epoch);});}catch(Throwable failure){blurState="native: wallpaper copy unavailable";}
                 }
             }));
             hooks.add(XposedBridge.hookMethod(cache,new XC_MethodHook(){
@@ -99,18 +100,18 @@ final class LauncherFolderBackend {
         // Worker serializes reads and computation; native cached wallpaper is never borrowed or recycled.
         worker.execute(()->{
             if(ticket!=epoch||!active())return;
-            if(raw==null){Object owner=manager.get();if(owner==null){blurState="waiting for folder wallpaper";return;}
+            if(raw==null||rawEpoch!=sourceEpoch.get()){long source=sourceEpoch.get();Object owner=manager.get();if(owner==null){blurState="waiting for folder wallpaper";return;}
                 try{Bitmap bitmap=(Bitmap)readWallpaper.invoke(owner);if(bitmap==null||bitmap.isRecycled()||(long)bitmap.getWidth()*bitmap.getHeight()>524288){blurState="native: unsupported wallpaper copy";return;}
-                    width=bitmap.getWidth();height=bitmap.getHeight();raw=new int[width*height];bitmap.getPixels(raw,0,width,0,0,width,height);
+                    if(source!=sourceEpoch.get())return;width=bitmap.getWidth();height=bitmap.getHeight();raw=new int[width*height];bitmap.getPixels(raw,0,width,0,0,width,height);rawEpoch=source;
                     // Native may return a shared thumbnail. Do not recycle it.
                 }catch(Throwable failure){blurState="native: wallpaper unavailable";return;}}
             rebuild(ticket);
         });
     }
     private static void rebuild(long ticket){
-        if(ticket!=epoch||!active()||style.folderBlur()<0||raw==null)return;int radius=style.folderBlur();blurState="preparing; reopen folder when ready";
+        if(ticket!=epoch||!active()||style.folderBlur()<0||raw==null)return;long source=rawEpoch;if(source!=sourceEpoch.get())return;int radius=style.folderBlur();blurState="preparing; reopen folder when ready";
         try{int[] pixels=FolderBlur.pixels(raw,width,height,radius);Bitmap result=Bitmap.createBitmap(pixels,width,height,Bitmap.Config.ARGB_8888);
-            if(ticket!=epoch||!active()||radius!=style.folderBlur())return;readyRadius=radius;blurred=result;blurState="ready, radius "+radius+"; reopen folder to apply";
+            if(ticket!=epoch||!active()||radius!=style.folderBlur()||source!=sourceEpoch.get())return;readyRadius=radius;blurred=result;blurState="ready, radius "+radius+"; reopen folder to apply";
         }catch(Throwable failure){blurState="native: custom blur unavailable";}
     }
     private static void restoreBackgrounds(){backgrounds.restore();}
