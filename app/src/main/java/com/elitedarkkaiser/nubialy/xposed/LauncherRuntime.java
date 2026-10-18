@@ -48,7 +48,7 @@ final class LauncherRuntime {
             });
         }},new IntentFilter(GuardBrokerPolicy.LAUNCHER_ACTION),SystemUiGuardProtocol.PERMISSION,null,Context.RECEIVER_EXPORTED);
         worker.execute(()->{boolean match=LauncherCompatibility.supported(context);main.post(()->{
-            ready=match&&LauncherBackend.install(context.getClassLoader());authority=ready?(LauncherProbePolicy.ENABLED?"TEMP test: APK gate bypassed; icons/labels only":"APK verified"):"unsupported APK or hooks";
+            ready=match&&LauncherBackend.install(context.getClassLoader());authority=ready?(LauncherProbePolicy.ENABLED?"TEMP test: APK gate bypassed; full launcher test":"APK verified"):"unsupported APK or hooks";
             if(ready&&!resumed.isEmpty()&&!screenOff){for(Activity a:resumed)LauncherBackend.observe(a.getWindow().getDecorView());main.removeCallbacks(poll);main.post(poll);}
         });});
     }
@@ -71,7 +71,7 @@ final class LauncherRuntime {
                     LauncherStyle selected=new LauncherStyle(valid?result.getInt("launcher_scale",-1):-1,valid&&result.getBoolean("launcher_labels"),valid?result.getInt("launcher_label_color",0):0,valid?result.getInt("folder_blur",-1):-1,valid?result.getInt("folder_labels",0):0,valid?result.getInt("folder_title",0):0,valid?result.getString("icon_pack",""):"",valid?result.getInt("icon_shape",0):0,LauncherStyle.Layout.decode(valid?result.getString("launcher_layout",LauncherStyle.Layout.STOCK.encode()):LauncherStyle.Layout.STOCK.encode()));
                     valid=valid&&result.getInt("status",-1)==GuardBrokerPolicy.READABLE&&PreviewPolicy.uuid(result.getString("permit_id"))&&until>now&&until-now<=ClockEnabledPolicy.HEALTH_MS&&selected.valid();
                     if(!valid||screenOff){authority=valid?"screen off":"guard blocked";revoke();}
-                    else{authority="guard readable";needsPolling=selected.custom();LauncherBackend.apply(LauncherProbePolicy.restrict(selected),until);if(operation!=null)operationResult[0]=operation.get();if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="guard expired";revoke();}};main.postDelayed(expiry,until-now);}
+                    else{authority="guard readable";needsPolling=selected.custom();LauncherBackend.apply(selected,until);if(operation!=null)operationResult[0]=operation.get();if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="guard expired";revoke();}};main.postDelayed(expiry,until-now);}
                 }catch(Throwable unavailable){authority="guard unavailable";revoke();}
                 finally{scheduleRefresh();if(reply!=null)reply.accept(operation==null?status():operationResult[0]+". "+status());}
             });

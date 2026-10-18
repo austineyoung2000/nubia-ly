@@ -25,6 +25,14 @@ public final class LauncherActivityTest {
         info.applicationInfo=new ApplicationInfo();info.applicationInfo.packageName=info.packageName;info.applicationInfo.enabled=true;info.applicationInfo.targetSdkVersion=35;
         ActivityInfo settings=new ActivityInfo();settings.packageName=info.packageName;settings.name=LauncherActivity.SETTINGS;settings.applicationInfo=info.applicationInfo;settings.enabled=true;settings.exported=exported;settings.permission=permission;info.activities=new ActivityInfo[]{settings};pm.installPackage(info);
     }
+    @Test public void fullCompatibilityTestAllowsEveryLauncherPage() throws Exception {
+        var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();
+        java.util.concurrent.ExecutorService worker=org.robolectric.util.ReflectionHelpers.getField(a,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+        org.robolectric.util.ReflectionHelpers.setField(a,"compatible",true);
+        EditorPages pages=org.robolectric.util.ReflectionHelpers.getField(a,"pages");
+        for(String page:new String[]{"","icons","folders","grid","indicator","dock","artwork"}){pages.show("launcher",page);assertTrue(page,a.findViewById(android.R.id.content).findViewWithTag("launcher-enable").isEnabled());}
+        controller.pause().stop().destroy();
+    }
     @Test public void layoutPagesKeepIndependentDraftsAndRoutes() throws Exception {
         var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();
         java.util.concurrent.ExecutorService worker=org.robolectric.util.ReflectionHelpers.getField(a,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
