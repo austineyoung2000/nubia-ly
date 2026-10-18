@@ -13,8 +13,11 @@ public final class LauncherDrawState {
         public void restore() throws IllegalAccessException {field.setInt(view,color);view.getPaint().set(paint);if(radius>0)view.getPaint().setShadowLayer(radius,dx,dy,shadowColor);else view.getPaint().clearShadowLayer();}
     }
     public static TextState hide(TextView view,Field currentColor) throws IllegalAccessException{
+        return tint(view,currentColor,0);
+    }
+    public static TextState tint(TextView view,Field currentColor,int color) throws IllegalAccessException{
         TextState state=new TextState(view,currentColor);
-        try{currentColor.setInt(view,0);view.getPaint().setColor(0);return state;}
+        try{currentColor.setInt(view,color);view.getPaint().setColor(color);return state;}
         catch(RuntimeException|IllegalAccessException error){state.restore();throw error;}
     }
     public static int scale(Canvas canvas,Drawable drawable,int percentage){

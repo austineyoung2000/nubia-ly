@@ -52,6 +52,11 @@ public final class LauncherActivityTest {
         assertTrue(((com.google.android.material.materialswitch.MaterialSwitch)controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-hide-labels")).isChecked());
         controller.pause().stop().destroy();
     }
+    @Test public void invalidHexIsVisibleAndSurvivesRecreation(){
+        var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();View root=a.findViewById(android.R.id.content);root.findViewWithTag("launcher-icons").performClick();
+        com.google.android.material.materialswitch.MaterialSwitch nativeColor=root.findViewWithTag("launcher-native-label-color");nativeColor.setChecked(false);android.widget.EditText hex=root.findViewWithTag("launcher-label-hex");hex.setText("#12");assertNotNull(hex.getError());controller.recreate();
+        hex=controller.get().findViewById(android.R.id.content).findViewWithTag("launcher-label-hex");assertEquals("#12",hex.getText().toString());assertNotNull(hex.getError());hex.setText("#D3CBEF");assertNull(hex.getError());controller.pause().stop().destroy();
+    }
     @Test public void dashboardLauncherTileHasItsOwnRoute(){
         var controller=Robolectric.buildActivity(androidx.appcompat.app.AppCompatActivity.class);var a=controller.get();a.setTheme(R.style.Theme_NubiaLy);controller.setup();
         String[] route={null};ViewGroup dashboard=PersonalizationUi.dashboard(a,value->route[0]=value);View launcher=find(dashboard,"Launcher. Home screen & launcher settings");assertNotNull(launcher);launcher.performClick();assertEquals("launcher",route[0]);controller.pause().stop().destroy();

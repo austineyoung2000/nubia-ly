@@ -44,8 +44,9 @@ final class LauncherBackend {
                     p.setObjectExtra("launcher_frame",f);
                     try{
                         f.icon=(Drawable)getter.invoke(view);
-                        if(style.hideLabels()){
-                            f.text=LauncherDrawState.hide(view,currentTextColor);
+                        if(style.hideLabels()||style.labelColor()!=0){
+                            int color=style.hideLabels()?0:LauncherStyle.labelTint(style.labelColor(),currentTextColor.getInt(view));
+                            f.text=LauncherDrawState.tint(view,currentTextColor,color);
                         }
                         drawing.set(f);
                     }catch(Throwable unavailable){restore(f);p.setObjectExtra("launcher_frame",null);end();}
@@ -100,5 +101,5 @@ final class LauncherBackend {
     static void apply(LauncherStyle selected,long until){if(!installed||selected==null||!selected.valid()||until<=SystemClock.elapsedRealtime()){end();return;}boolean changed=!selected.equals(style);style=selected;deadline=until;if(changed)refresh();}
     static void end(){boolean changed=style.custom();style=LauncherStyle.STOCK;deadline=0;if(changed)refresh();}
     private static void refresh(){for(TextView view:new ArrayList<>(seen.keySet()))if(view!=null)view.invalidate();}
-    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":"native"):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+".";}
+    static String status(){return "Launcher hooks: "+(installed?"ready":"unavailable")+"; appearance: "+(active()?style.iconScale()+"% / labels "+(style.hideLabels()?"hidden":LauncherStyle.labelName(style.labelColor())):"native")+"; observed shortcuts: "+seen.size()+"; animation bounds: "+transitionCorrections+".";}
 }

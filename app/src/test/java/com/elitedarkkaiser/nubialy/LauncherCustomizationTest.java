@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public final class LauncherCustomizationTest {
     @Test public void draftsDoNotChangeActiveAppearanceAndRestoreRetainsDraft(){
-        var c=org.robolectric.RuntimeEnvironment.getApplication();LauncherStyle s=new LauncherStyle(80,true);
+        var c=org.robolectric.RuntimeEnvironment.getApplication();LauncherStyle s=new LauncherStyle(80,true,0xffd3cbef);
         assertTrue(LauncherPreferences.save(c,s));assertEquals(LauncherStyle.STOCK,LauncherPreferences.active(c));
         assertTrue(LauncherPreferences.activate(c,s));assertTrue(LauncherPreferences.save(c,new LauncherStyle(90,false)));assertEquals(s,LauncherPreferences.active(c));
         assertTrue(LauncherPreferences.stop(c));assertEquals(LauncherStyle.STOCK,LauncherPreferences.active(c));assertEquals(90,LauncherPreferences.draft(c).iconScale());
@@ -31,6 +31,14 @@ public final class LauncherCustomizationTest {
         Canvas c=new Canvas(Bitmap.createBitmap(100,100,Bitmap.Config.ARGB_8888));ColorDrawable icon=new ColorDrawable(0xffffffff);icon.setBounds(10,20,50,60);Rect before=new Rect(icon.getBounds());int count=c.getSaveCount();
         int token=LauncherDrawState.scale(c,icon,70);assertTrue(c.getSaveCount()>count);assertEquals(before,icon.getBounds());c.restoreToCount(token);assertEquals(count,c.getSaveCount());assertEquals(before,icon.getBounds());
         try{LauncherDrawState.scale(c,icon,120);fail();}catch(IllegalArgumentException expected){}assertEquals(count,c.getSaveCount());
+    }
+    @Test public void hexColorsAreStrictAndPreserveNativeLabelAlpha() throws Exception {
+        assertEquals(Integer.valueOf(0xffd3cbef),LauncherStyle.parseLabelHex("#D3CBEF"));assertEquals(Integer.valueOf(0xff000000),LauncherStyle.parseLabelHex("000000"));
+        for(String invalid:new String[]{"#123","#11223344","#GGGGGG","red","12;3456"})assertNull(LauncherStyle.parseLabelHex(invalid));
+        assertEquals(0x33d3cbef,LauncherStyle.labelTint(0xffd3cbef,0x33112233));assertEquals(0x00d3cbef,LauncherStyle.labelTint(0xffd3cbef,0x00112233));assertEquals(0x33112233,LauncherStyle.labelTint(0,0x33112233));
+        assertFalse(new LauncherStyle(70,false,0x33d3cbef).valid());assertTrue(new LauncherStyle(70,false,0xff000000).valid());
+        TextView view=new TextView(org.robolectric.RuntimeEnvironment.getApplication());view.setText("App");view.setTextColor(0x33112233);int paint=view.getPaint().getColor();var f=TextView.class.getDeclaredField("mCurTextColor");f.setAccessible(true);
+        var frame=LauncherDrawState.tint(view,f,LauncherStyle.labelTint(0xffd3cbef,view.getCurrentTextColor()));try{assertEquals(0x33d3cbef,view.getCurrentTextColor());}finally{frame.restore();}assertEquals(0x33112233,view.getCurrentTextColor());assertEquals(paint,view.getPaint().getColor());
     }
     public static class BoundsHelper {
         public static void target(android.app.Activity a,android.view.View v,boolean opening,android.graphics.RectF out,android.graphics.Rect local){}

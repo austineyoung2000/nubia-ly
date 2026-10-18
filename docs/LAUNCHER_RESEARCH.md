@@ -1,7 +1,8 @@
 # Launcher page and OS11.5 research
 
 The user has this launcher installed and requested a separate Launcher dashboard
-tile and page. The page includes an Icons & labels detail editor, a saved draft, explicit Enable
+tile and page. The page includes an Icons & labels detail editor with a native/custom label-color
+switch and six-digit RGB hex input, a saved draft, explicit Enable
 and Restore, and the native settings shortcut. The test build adds the Launcher
 Vector scope (`com.zte.mifavor.launcher`); enable it and reboot after updating.
 Phone validation of the cosmetic hooks is still required.
@@ -62,6 +63,10 @@ regions, icon positions and databases are never mutated. Labels use a temporary
 TextView current-color override during that synchronous draw. Restore the color
 and full paint (including shadow state) in the after-hook, even when native draw
 throws. Text, accessibility labels and persistent launcher preferences stay intact.
+Label hex accepts six RGB digits (optional #), with opaque saved colors; invalid
+text cannot be applied. Color drawing preserves the native alpha so hidden/fading
+labels do not become opaque. Hex field state survives recreation; drafts, preview,
+active selection and restoration include the chosen label color.
 
 The launcher reads a separate authenticated broker method: resolved launcher UID
 plus framework-verified calling package, nonce/version checks, bounded latency,
@@ -116,7 +121,10 @@ editor navigation, recreation and native settings permission checks.
 7. Restore launcher appearance, go home and verify original native icons/labels.
 8. Re-enable and test global Restore/Emergency stop and guard Action separately.
 9. Check screen off/on and reboot/first unlock with saved enabled settings.
-10. With 70% enabled, open nubia-ly and return home immediately, then repeat
+10. Enter #D3CBEF or another six-digit label color, apply and check home-screen
+    app labels. Native color and launcher Restore should restore the original color.
+    Invalid hex should show an error and prevent applying. Hidden labels remain hidden.
+11. With 70% enabled, open nubia-ly and return home immediately, then repeat
     after staying in it or another app for at least 30 seconds. Icons should retain
     their chosen size during the return transition, without a stock-size flash.
 

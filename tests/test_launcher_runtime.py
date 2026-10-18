@@ -24,13 +24,13 @@ public class LauncherRuntimeTest {
 static void check(boolean b){if(!b)throw new AssertionError();}
 static Object field(Object o,String n)throws Exception{var f=o.getClass().getDeclaredField(n);f.setAccessible(true);return f.get(o);}
 static void flush(Object runtime)throws Exception{((ExecutorService)field(runtime,"worker")).submit(()->{}).get(3,TimeUnit.SECONDS);}
-static Bundle response(Bundle b,int status){Bundle r=new Bundle();r.putString("nonce",b.getString("nonce"));r.putInt("version",19);r.putInt("status",status);r.putString("permit_id","12345678-1234-4234-8234-123456789abc");r.putLong("deadline_ms",SystemClock.now+15000);r.putInt("launcher_scale",70);r.putBoolean("launcher_labels",true);return r;}
+static Bundle response(Bundle b,int status){Bundle r=new Bundle();r.putString("nonce",b.getString("nonce"));r.putInt("version",19);r.putInt("status",status);r.putString("permit_id","12345678-1234-4234-8234-123456789abc");r.putLong("deadline_ms",SystemClock.now+15000);r.putInt("launcher_scale",70);r.putInt("launcher_label_color",0xffd3cbef);r.putBoolean("launcher_labels",true);return r;}
 static CountDownLatch request(Object runtime)throws Exception{CountDownLatch done=new CountDownLatch(1);var m=runtime.getClass().getDeclaredMethod("read",Consumer.class);m.setAccessible(true);m.invoke(runtime,(Consumer<String>)s->done.countDown());return done;}
 static void await(CountDownLatch l)throws Exception{check(l.await(3,TimeUnit.SECONDS));}
 public static void main(String[] args)throws Exception{
 Application app=new Application();app.answer=b->response(b,2);var ctor=LauncherRuntime.class.getDeclaredConstructor(Application.class);ctor.setAccessible(true);Object runtime=ctor.newInstance(app);
 try{var start=runtime.getClass().getDeclaredMethod("start");start.setAccessible(true);start.invoke(runtime);flush(runtime);Activity home=new Activity();app.lifecycle.onActivityResumed(home);flush(runtime);
-check(LauncherBackend.style.iconScale()==70);int ends=LauncherBackend.ends;long deadline=LauncherBackend.deadline;Runnable poll=(Runnable)field(runtime,"poll");
+check(LauncherBackend.style.iconScale()==70&&LauncherBackend.style.labelColor()==0xffd3cbef);int ends=LauncherBackend.ends;long deadline=LauncherBackend.deadline;Runnable poll=(Runnable)field(runtime,"poll");
 app.lifecycle.onActivityPaused(home);check(LauncherBackend.ends==ends&&LauncherBackend.deadline==deadline&&LauncherBackend.style.iconScale()==70);
 for(int i=0;i<6;i++){SystemClock.now+=5000;poll.run();flush(runtime);check(LauncherBackend.style.iconScale()==70&&LauncherBackend.deadline>SystemClock.now);check(Handler.tasks.get(poll)==5000L);}
 CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);app.answer=b->{entered.countDown();try{release.await();}catch(Exception e){throw new RuntimeException(e);}return response(b,2);};app.lifecycle.onActivityResumed(home);await(entered);check(LauncherBackend.style.iconScale()==70&&LauncherBackend.ends==ends);release.countDown();flush(runtime);
