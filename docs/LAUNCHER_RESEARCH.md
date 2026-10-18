@@ -84,7 +84,9 @@ reads stay off the main thread. The launcher-only Restore leaves other areas alo
 Launcher Enable reuses current valid global guard authority when possible. If no
 valid authority exists it explicitly arms the existing guard; it does not apply
 unrelated editor drafts. Global stop also clears the launcher enabled preference.
-Drafts remain separate from active launcher selections.
+Drafts remain separate from active launcher selections. Apply and Launcher Restore
+request an authenticated runtime refresh immediately after saving so the next
+home transition can use the new selection before the launcher resumes.
 
 This does not enable themed app icons, folder styles, grid migration, gestures or
 animation changes. Those need separate work. No provider writes, launcher data
