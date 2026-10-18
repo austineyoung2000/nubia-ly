@@ -55,7 +55,11 @@ final class LauncherLayoutBackend {
   try{Object profile=XposedHelpers.callMethod(view.getContext(),"getDeviceProfile");Object inv=XposedHelpers.getObjectField(profile,"C0");
    FolderProfile old=profiles.get(profile);int rows=old==null?XposedHelpers.getIntField(profile,"L1"):old.rows(),cols=old==null?XposedHelpers.getIntField(profile,"M1"):old.columns();
    int r=selected.folderRows()==0?rows:selected.folderRows(),c=selected.folderColumns()==0?cols:selected.folderColumns();
-   if(old==null)old=new FolderProfile(inv,rows,cols,XposedHelpers.getIntField(inv,"U"),((int[])XposedHelpers.getObjectField(inv,"J0")).clone(),((int[])XposedHelpers.getObjectField(inv,"K0")).clone(),r,c);
+   if(old==null){FolderProfile shared=null;for(FolderProfile candidate:profiles.values())if(candidate.inv()==inv){shared=candidate;break;}
+    int[] nativeRows=shared==null?((int[])XposedHelpers.getObjectField(inv,"J0")).clone():shared.rowArray();int[] nativeColumns=shared==null?((int[])XposedHelpers.getObjectField(inv,"K0")).clone():shared.columnArray();
+    if(shared!=null){rows=Math.min(rows,Arrays.stream(nativeRows).max().orElse(rows));cols=Math.min(cols,Arrays.stream(nativeColumns).max().orElse(cols));}
+    old=new FolderProfile(inv,rows,cols,shared==null?XposedHelpers.getIntField(inv,"U"):shared.capacity(),nativeRows,nativeColumns,r,c);
+   }
    profiles.put(profile,new FolderProfile(inv,old.rows(),old.columns(),old.capacity(),old.rowArray(),old.columnArray(),r,c));
    XposedHelpers.setIntField(profile,"L1",r);XposedHelpers.setIntField(profile,"M1",c);XposedHelpers.setIntField(inv,"U",r*c);XposedHelpers.setObjectField(inv,"J0",new int[]{r,r});XposedHelpers.setObjectField(inv,"K0",new int[]{c,c});
   }catch(Throwable ignored){}
