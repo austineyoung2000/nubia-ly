@@ -12,6 +12,10 @@ public final class CompatibilityPolicy {
         if (isNx809j(model, device)) return true;
         return (model != null && model.startsWith("NX789J")) || "NX789J".equals(device);
     }
+    /** Launcher hooks use the inspected Android 16 APK on RM10 and RM11 only. */
+    public static boolean isLauncherPlatform(String model, String device, int sdk) {
+        return sdk == 36 && isSupportedDevice(model, device);
+    }
     /** Fork gate: Android 15 (35) or Android 16 (36). */
     public static boolean isSupportedSdk(int sdk) { return sdk == 35 || sdk == 36; }
     public static Status classify(String model, String device, int sdk, String fingerprint, String hash, String baselineFingerprint, String baselineHash) {

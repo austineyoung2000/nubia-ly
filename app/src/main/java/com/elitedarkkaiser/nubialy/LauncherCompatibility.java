@@ -9,7 +9,7 @@ public final class LauncherCompatibility {
     public static final String SHA256="cce32bcfa1fce5a4c208ea510594a1c7d0e6ad614588334a12753f2819cf3f7c";
     private LauncherCompatibility(){}
     public static boolean supported(Context c){
-        if(!CompatibilityPolicy.isNx809j(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36)return false;
+        if(!CompatibilityPolicy.isLauncherPlatform(Build.MODEL,Build.DEVICE,Build.VERSION.SDK_INT))return false;
         try{var p=c.getPackageManager().getPackageInfo(GuardBrokerPolicy.LAUNCHER_PACKAGE,0);
             if(p.getLongVersionCode()!=160000||!"16.0.010.000.2604151532".equals(p.versionName)||p.applicationInfo==null)return false;
             File f=new File(p.applicationInfo.sourceDir);if(f.length()<=0||f.length()>100*1024*1024)return false;
