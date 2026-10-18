@@ -21,7 +21,7 @@ final class LauncherPreview extends View {
         int[] colors={0xffd3cbef,0xffb8c9bf,0xffe8c4ac,0xffb9c5e5};
         for(int row=0;row<2;row++)for(int col=0;col<4;col++){
             float x=30+col*62,y=25+row*50;
-            float r=12*style.iconScale()/100f;p.setColor(colors[(col+row)%colors.length]);c.drawRoundRect(x-r,y-r,x+r,y+r,8,8,p);
+            float r=12*style.iconScale()/100f;p.setColor(colors[(col+row)%colors.length]);if(style.iconShape()==0)c.drawRoundRect(x-r,y-r,x+r,y+r,8,8,p);else c.drawPath(LauncherIconShapes.path(style.iconShape(),new android.graphics.RectF(x-r,y-r,x+r,y+r)),p);
             if(!style.hideLabels())p.setColor(LauncherStyle.labelTint(style.labelColor(),0xffc2bec9));else p.setColor(0x00000000);c.drawRoundRect(x-14,y+17,x+14,y+20,1.5f,1.5f,p);
         }
         c.restore();

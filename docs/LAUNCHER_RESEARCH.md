@@ -245,3 +245,49 @@ sequence and verifies progressive close radii, instant close, rejected close,
 new-folder precedence and native restoration during closing. Phone verification
 of the corrected transition is still needed. Native lifecycle signatures were
 checked against the uploaded launcher APK before building.
+
+## Icon packs and shapes (version code 78)
+
+This build includes the v77 folder-close animation fix, whose CI run
+39096516463 passed; the user chose to test it together with these new features.
+
+Launcher → Icon packs & shapes has Native, Circle, Rounded square, Squircle
+and Teardrop choices, installed icon-pack selection, static pack previews and
+Native reset. Drafts remain separate from applied configuration and survive
+recreation. Older profiles default to native pack/shape. Guard protocol validates
+the package string and shape range, and stop/expiry restore native artwork.
+
+ADW/Nova static appfilter mappings are read from res/xml, res/raw or assets.
+Discovery uses declared icon-pack intent queries, not QUERY_ALL_PACKAGES.
+Parsing has event/mapping/input bounds and rejects document declarations. All
+pack discovery, XML/resource loading and 192px rasterization run on workers.
+The launcher uses a 48-image LRU with at most 32 pending loads and bounded misses;
+missing/loading/unsupported assets draw native artwork. Adaptive background and
+foreground layers can be unmasked for the selected shape. Unmatched pack icons
+use native artwork (or original app artwork when a custom shape is selected).
+Dynamic pack calendars/clocks, iconback/iconupon generation, manual per-app icon
+replacement and material-themed metadata extensions are not implemented.
+
+The pinned BubbleTextView.getIcon() returns s1.o (FastBitmapDrawable). Its final
+draw(Canvas) performs native press scaling and draws its badge after c(Canvas,
+Rect), which draws the main bitmap with its native Paint. The new hook replaces
+only that inner artwork during verified BubbleTextView app-item draws. Badges,
+notification dots, alpha, disabled color filters, text, layout and hit targets
+remain native. Masks restore the canvas on every path. No launcher cache/database
+or stock files are modified. A miss cannot block drawing.
+
+Artwork covers real app items (type 0) within home, dock, open Folder or app
+drawer ancestry. Synthetic Add and deep shortcuts remain native. Existing home
+size/label settings stay home-only; folder title/labels keep independent controls.
+Floating app-transition artwork can remain native: it is outside the app-item
+draw scope. That limitation is visible in the editor and must be checked on the
+phone together with badge behavior, work profiles and drawer scrolling.
+
+Format reference (implementation is original):
+https://github.com/LawnchairLauncher/docs/blob/main/developers/concepts/icon-packs.md
+
+Tests cover static mapping normalization/filtering, DTD rejection, independent
+pack/shape persistence and migration, invalid protocol values, shape geometry and
+pixel clipping, adaptive-layer bounds restoration, native Paint/canvas restoration,
+editor recreation/native reset, and the production folder-close transition.
+Physical icon-pack/shape rendering awaits user validation.

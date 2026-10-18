@@ -3,7 +3,7 @@
         android:protectionLevel="signature" />
     <uses-permission android:name="com.elitedarkkaiser.nubialy.permission.GUARD_DIAGNOSTIC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <queries><package android:name="com.zte.mifavor.launcher" /><package android:name="com.android.systemui" /><package android:name="com.fingerprint.sensorservice" /></queries>
+    <queries><package android:name="com.zte.mifavor.launcher" /><package android:name="com.android.systemui" /><package android:name="com.fingerprint.sensorservice" /><intent><action android:name="org.adw.ActivityStarter.THEMES" /></intent><intent><action android:name="com.novalauncher.THEME" /></intent><intent><action android:name="com.gau.go.launcherex.theme" /></intent></queries>
     <application android:allowBackup="false" android:label="nubia-ly"
         android:icon="@drawable/ic_nubialy" android:theme="@style/Theme.NubiaLy"
         android:supportsRtl="true">
