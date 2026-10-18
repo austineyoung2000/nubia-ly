@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='nubialy-boot-overlay-') as directory:
  for fallback in ['/apex/com.android.bootanimation/etc','/oem/media','/product/media']:text=text.replace(fallback,str(w/fallback.strip('/')))
  script=module/'bootctl.sh';script.write_text(text)
  (bin/'getprop').write_text('''#!/bin/sh
-case "$1" in ro.product.model) echo "${MODEL:-NX809J}";;ro.build.version.sdk) echo 36;;ro.boot.theme) echo "${THEME:-}";;ro.product.bootanim.file) echo "${PRODUCT_FILE:-}";;sys.boot_completed) echo "${COMPLETE:-0}";;persist.vendor.custom.variant.id) echo "${VARIANT:-}";;persist.sys.customanim.boot) echo "${CUSTOM:-}";;persist.vendor.sys.fansanim.boot) echo "${FANS:-0}";;esac
+case "$1" in ro.product.model) echo "${MODEL:-NX809J}";;ro.build.version.sdk) echo "${SDK:-36}";;ro.boot.theme) echo "${THEME:-}";;ro.product.bootanim.file) echo "${PRODUCT_FILE:-}";;sys.boot_completed) echo "${COMPLETE:-0}";;persist.vendor.custom.variant.id) echo "${VARIANT:-}";;persist.sys.customanim.boot) echo "${CUSTOM:-}";;persist.vendor.sys.fansanim.boot) echo "${FANS:-0}";;esac
 ''')
  (bin/'id').write_text('#!/bin/sh\necho 0\n')
  realstat=shutil.which('stat')
@@ -84,6 +84,15 @@ with open(os.environ['CALLS'],'a') as f:f.write(args[3]+'\\n')
  run('mount');assert calls.read_text().splitlines()[-1]==str(variant_stock);assert variant_stock.read_bytes()==b'original-variant'
  run('restore');marker.unlink();run('stage_rising',False,extra={'VARIANT':'../other'});run('stage_rising',False,extra={'CUSTOM':str(stock)});run('stage_rising',False,extra={'FANS':'1'})
  player.write_bytes(b'changed-player');run('stage_rising',False);assert 'profile=blocked' in run('status');run('restore');player.write_bytes(b'known-player')
+ # Exact boot-player allowlists are scoped by model and SDK; wildcard files never bypass NX809J.
+ allowlist=module/'player_sha';player.write_bytes(b'new-player');new_hash=hashlib.sha256(player.read_bytes()).hexdigest()
+ for unsafe in ['ANY\n','NX809J 36 ANY\n',new_hash+'\n','NX789J 35 '+new_hash+'\n','NX809J 35 '+new_hash+'\n']:
+  allowlist.write_text(unsafe);allowlist.chmod(0o644);assert 'profile=blocked' in run('status')
+ allowlist.write_text('NX809J 36 '+new_hash+'\n');assert 'profile=ready' in run('status')
+ allowlist.chmod(0o666);assert 'profile=blocked' in run('status');allowlist.chmod(0o644)
+ allowlist.write_text('NX789J 35 '+new_hash+'\n');assert 'profile=ready' in run('status',extra={'MODEL':'NX789J','SDK':'35'});assert 'profile=blocked' in run('status',extra={'MODEL':'NX789J','SDK':'36'})
+ allowlist.write_text('NX789J 36 '+new_hash+'\n');assert 'profile=ready' in run('status',extra={'MODEL':'NX789J','SDK':'36'});assert 'profile=blocked' in run('status',extra={'MODEL':'NX789J','SDK':'35'})
+ allowlist.unlink();player.write_bytes(b'known-player');assert 'profile=ready' in run('status');assert 'profile=blocked' in run('status',extra={'SDK':'35'})
  # Corrupted metadata must remain independently removable.
  (state/'boot/selection').write_text('garbage\n');os.chmod(state/'boot/selection',0o600);run('restore');assert not (state/'boot/selection').exists()
  # Busy restore never claims success or races a writer; old clock stop still works.

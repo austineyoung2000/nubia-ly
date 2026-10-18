@@ -2,8 +2,10 @@
 # Single fixed namespace; never edit Vector internals, stock overlays or other modules.
 set -eu
 [ "$(id -u)" = 0 ] || { echo "STOP: root required"; exit 1; }
-[ "$(getprop ro.product.model)" = NX809J ] || { echo "STOP: NX809J only"; exit 1; }
-[ "$(getprop ro.build.version.sdk)" = 36 ] || { echo "STOP: Android 16 only"; exit 1; }
+gp() { if [ -x /system/bin/getprop ]; then /system/bin/getprop "$1" 2>/dev/null; else getprop "$1" 2>/dev/null; fi; }
+nx789j() { for p in ro.product.model ro.product.vendor.model ro.product.odm.model ro.product.system.model ro.product.product.model; do case "$(gp "$p")" in NX789J*|NX809J*) return 0 ;; esac; done; return 1; }
+nx789j || { echo "STOP: NX789J or NX809J model only"; exit 1; }
+case "$(gp ro.build.version.sdk)" in 35|36) ;; *) echo "STOP: Android 15 or 16 only"; exit 1 ;; esac
 guard_dir=/data/local/tmp/nubia-ly-guard
 state_dir=/data/adb/nubia_ly_guard
 # Private durable enable identity; Action and uninstall remove only this fixed entry.

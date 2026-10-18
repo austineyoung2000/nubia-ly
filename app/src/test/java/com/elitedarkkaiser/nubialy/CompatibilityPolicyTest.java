@@ -3,7 +3,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 public class CompatibilityPolicyTest {
     @Test public void rejectsOtherModelsEvenWithMatchingFirmware() {
-        assertEquals(CompatibilityPolicy.Status.UNSUPPORTED_DEVICE, CompatibilityPolicy.classify("NX789J", "NX789J", 36, "example/research:16/test", "synthetic-test-hash", "example/research:16/test", "synthetic-test-hash"));
+        assertEquals(CompatibilityPolicy.Status.UNSUPPORTED_DEVICE, CompatibilityPolicy.classify("NX769J", "NX769J", 36, "example/research:16/test", "synthetic-test-hash", "example/research:16/test", "synthetic-test-hash"));
     }
     @Test public void missingHashCannotMatch() {
         assertEquals(CompatibilityPolicy.Status.INSPECTION_UNAVAILABLE, CompatibilityPolicy.classify("NX809J", "NX809J", 36, "example/research:16/test", null, "example/research:16/test", "synthetic-test-hash"));

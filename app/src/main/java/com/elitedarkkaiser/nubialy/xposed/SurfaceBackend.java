@@ -17,15 +17,15 @@ final class SurfaceBackend {
     private static final String WIDE="com.zte.qs.tileimpl.QSTileViewWide",CIRCLE="com.zte.qs.tileimpl.QSTileViewCircle",LOCK="cn.nubia.lockscreen.NubiaKeyguardStatusView";
     private static final String CLIP="com.zte.mifavor.keyguard.settings.LockScreenClockClip";
     private static final Set<String> observedClockTypes=new TreeSet<>();
-    private static final String LIVE="com.zte.mifavor.keyguard.KeyguardStatusView",ITEM="com.zte.mifavor.keyguard.settings.LockScreenClockStyleItem",CONTENT="com.zte.mifavor.keyguard.personalclock.ClockContentView",BASE="com.zte.mifavor.keyguard.settings.BaseLockScreenClock",ART="com.zte.mifavor.keyguard.settings.LockScreenClockArtword",DEFAULT="com.zte.mifavor.keyguard.settings.LockScreenClockDefault";
+    private static final String LIVE="com.zte.mifavor.keyguard.KeyguardStatusView",LIVE_AOSP="com.android.keyguard.KeyguardStatusView",ITEM="com.zte.mifavor.keyguard.settings.LockScreenClockStyleItem",CONTENT="com.zte.mifavor.keyguard.personalclock.ClockContentView",BASE="com.zte.mifavor.keyguard.settings.BaseLockScreenClock",ART="com.zte.mifavor.keyguard.settings.LockScreenClockArtword",DEFAULT="com.zte.mifavor.keyguard.settings.LockScreenClockDefault";
     private static final String WIDGET="com.zte.feature.keyguardwidget.";
     private static final String[] WIDGET_TYPES={"WeatherWidgetViewTypeOne","WeatherWidgetViewTypeTwo","WeatherWidgetViewTypeThree","AlarmWidgetViewTypeOne","AlarmWidgetViewTypeTwo","BatteryWidgetView","BatteryWidgetViewTypeTwo"};
     private static int widgetGroup(String name){for(int i=0;i<WIDGET_TYPES.length;i++)if(name.equals(WIDGET+WIDGET_TYPES[i]))return i<3?4:i<5?5:6;return -1;}
-    private static boolean ownerName(String name){return widgetGroup(name)>=0||name.equals(WIDE)||name.equals(CIRCLE)||name.equals(LOCK)||name.equals(ART)||name.equals(DEFAULT)||name.equals(CLIP)||name.equals(CONTENT)||name.equals(LIVE)||name.equals(ITEM);}
+    private static boolean ownerName(String name){return widgetGroup(name)>=0||name.equals(WIDE)||name.equals(CIRCLE)||name.equals(LOCK)||name.equals(ART)||name.equals(DEFAULT)||name.equals(CLIP)||name.equals(CONTENT)||name.equals(liveHost)||name.equals(ITEM);}
     private static final Map<ViewGroup,Boolean> roots=new WeakHashMap<>();
     private static final Map<View,State> states=new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> hooks=new ArrayList<>();
-    private static boolean attempted,ready,active,writing;private static volatile boolean failed;private static long generation;
+    private static boolean attempted,ready,active,writing,liveKeyguard,liveViaAdapt;private static String liveHost;private static volatile boolean failed;private static long generation;
     private static SurfaceStyle style=SurfaceStyle.STOCK;private static int captured,restored;private static String message="Surface observers unavailable.";
     private record Target(ViewGroup owner,int group){}
     private record Frame(long generation,State state){}
@@ -35,6 +35,25 @@ final class SurfaceBackend {
         State(View v,Target target){owner=new WeakReference<>(target.owner());group=target.group();int appearance=style.appearance(group);scale=StatusBarStyle.indicatorScale(appearance);opacity=StatusBarStyle.indicatorOpacity(appearance);position=style.position(group);hide=style.hide(group);
             x=v.getScaleX();y=v.getScaleY();a=v.getAlpha();tx=v.getTranslationX();ty=v.getTranslationY();r=v.getRotation();visibility=v.getVisibility();if(group==2&&v instanceof TextView text&&style.clockFont()!=0){fontStock=text.getTypeface();textSize=text.getTextSize();fontPadding=text.getIncludeFontPadding();var face=LockClockFonts.FACES[style.clockFont()];fontSelected=Typeface.create(face.family(),face.style());}}
     }
+    /**
+     * The live lock-screen clock host differs by firmware. On NX809J (RM11) the ZTE
+     * host com.zte.mifavor.keyguard.KeyguardStatusView carries mClockLayout directly.
+     * On NX789J (RM10, Android 15) the host is AOSP com.android.keyguard.KeyguardStatusView
+     * and mClockLayout lives on its adapter (getAdapt().mClockLayout). Same clock item
+     * underneath; only the hop to reach it changes. Sets liveHost and liveViaAdapt.
+     */
+    private static Class<?> resolveLiveHost(ClassLoader loader,Class<?> item) throws Exception {
+        try{
+            Class<?> live=XposedHelpers.findClass(LIVE,loader);
+            if(live.getSuperclass()==GridLayout.class&&live.getDeclaredField("mClockLayout").getType()==item&&live.getDeclaredField("mDarkAmount").getType()==float.class){liveHost=LIVE;liveViaAdapt=false;return live;}
+        }catch(Throwable rm11Absent){/* fall through to the adapter-based host */}
+        Class<?> live=XposedHelpers.findClass(LIVE_AOSP,loader);
+        Class<?> adapt=live.getDeclaredMethod("getAdapt").getReturnType();
+        if(live.getSuperclass()!=GridLayout.class||live.getDeclaredField("mDarkAmount").getType()!=float.class||adapt.getDeclaredField("mClockLayout").getType()!=item)throw new IllegalStateException("Live keyguard signatures");
+        liveHost=LIVE_AOSP;liveViaAdapt=true;return live;
+    }
+    /** mClockLayout for a live host instance: direct field (RM11) or via getAdapt() (RM10). */
+    private static Object liveClockLayout(Object view){return liveViaAdapt?XposedHelpers.getObjectField(XposedHelpers.callMethod(view,"getAdapt"),"mClockLayout"):XposedHelpers.getObjectField(view,"mClockLayout");}
     static synchronized void install(ClassLoader loader){
         if(attempted)return;attempted=true;List<XC_MethodHook.Unhook> observers=new ArrayList<>();
         String stage="class lookup";
@@ -54,9 +73,17 @@ final class SurfaceBackend {
             if(clip.getSuperclass()!=base||!TextView.class.isAssignableFrom(clip.getDeclaredField("mDateView").getType()))throw new IllegalStateException("Clip date signature");
             for(String field:new String[]{"mClockHourView","mClockMinuteView","mClockMinuteMaskView"})if(!TextView.class.isAssignableFrom(clip.getDeclaredField(field).getType()))throw new IllegalStateException("Clip clock signature");
             stage="live keyguard host fields";
-            Class<?> live=XposedHelpers.findClass(LIVE,loader),item=XposedHelpers.findClass(ITEM,loader);
-            if(live.getSuperclass()!=GridLayout.class||live.getDeclaredField("mClockLayout").getType()!=item||live.getDeclaredField("mDarkAmount").getType()!=float.class||item.getSuperclass()!=LinearLayout.class||item.getDeclaredField("mScene").getType()!=int.class||!item.getDeclaredField("mClock").getType().getName().equals("com.zte.mifavor.keyguard.settings.LockScreenClockStyleInterface"))throw new IllegalStateException("Live keyguard signatures");
-            List<Class<?>> lifecycleOwners=new ArrayList<>(Arrays.asList(wide,circle,lock,content,art,normal,clip,live,item));
+            // resolveLiveHost handles both firmwares: NX809J's ZTE host (direct
+            // mClockLayout) and NX789J's AOSP KeyguardStatusView (mClockLayout via
+            // getAdapt()). If neither resolves, skip only the live-clock sub-feature;
+            // every other surface still installs and applies.
+            List<Class<?>> lifecycleOwners=new ArrayList<>(Arrays.asList(wide,circle,lock,content,art,normal,clip));
+            try{
+                Class<?> item=XposedHelpers.findClass(ITEM,loader);
+                if(item.getSuperclass()!=LinearLayout.class||item.getDeclaredField("mScene").getType()!=int.class||!item.getDeclaredField("mClock").getType().getName().equals("com.zte.mifavor.keyguard.settings.LockScreenClockStyleInterface"))throw new IllegalStateException("Live clock item signature");
+                Class<?> live=resolveLiveHost(loader,item);
+                lifecycleOwners.add(live);lifecycleOwners.add(item);liveKeyguard=true;
+            }catch(Throwable liveUnavailable){liveKeyguard=false;liveHost=null;}
             for(String name:WIDGET_TYPES){Class<?> widget=XposedHelpers.findClass(WIDGET+name,loader);if(!LinearLayout.class.isAssignableFrom(widget))throw new IllegalStateException("Widget signature");lifecycleOwners.add(widget);}
             stage="view lifecycle hooks";
             observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onAttachedToWindow"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(ready&&!p.hasThrowable()&&main()){try{NotificationIconBackend.observe((View)p.thisObject);ConnectivityBackend.observe((View)p.thisObject);SystemIconPackBackend.observe((View)p.thisObject);NotificationBackend.observe((View)p.thisObject);BrightnessBackend.observe((View)p.thisObject);target((View)p.thisObject);if(active)track((View)p.thisObject);}catch(Throwable unavailable){if(active)fail(unavailable);}}}}));
@@ -89,7 +116,7 @@ final class SurfaceBackend {
             if(current instanceof ViewGroup root&&ownerName(name)){
                 roots.put(root,true);
                 if(widgetGroup(name)>=0)return current==view&&liveWidget(root)?new Target(root,widgetGroup(name)):null;
-                if(name.equals(CONTENT)||name.equals(ITEM)||name.equals(LIVE))return null;
+                if(name.equals(CONTENT)||name.equals(ITEM)||name.equals(liveHost))return null;
                 if(name.equals(ART)||name.equals(DEFAULT)||name.equals(CLIP)){
                     if(!normalPersonalScene(root))return null;
                     if(XposedHelpers.getObjectField(root,"mDateView")==view)return new Target(root,3);
@@ -112,7 +139,7 @@ final class SurfaceBackend {
     }
     private static boolean liveWidget(ViewGroup widget){
         View current=widget;for(int depth=0;depth<24&&current!=null;depth++){
-            if(current.getClass().getName().equals(LIVE))return ((Number)XposedHelpers.getObjectField(current,"mDarkAmount")).floatValue()==0;
+            if(current.getClass().getName().equals(liveHost))return ((Number)XposedHelpers.getObjectField(current,"mDarkAmount")).floatValue()==0;
             if(current.getClass().getName().equals(CONTENT))return false;
             ViewParent parent=current.getParent();current=parent instanceof View v?v:null;
         }return false;
@@ -125,7 +152,7 @@ final class SurfaceBackend {
                 if(((Number)XposedHelpers.getObjectField(current,"mScene")).intValue()!=1||XposedHelpers.getObjectField(current,"mClock")!=root)return false;
                 item=(ViewGroup)current;
             }
-            if(name.equals(LIVE))return item!=null&&XposedHelpers.getObjectField(current,"mClockLayout")==item&&((Number)XposedHelpers.getObjectField(current,"mDarkAmount")).floatValue()==0;
+            if(name.equals(liveHost))return item!=null&&liveClockLayout(current)==item&&((Number)XposedHelpers.getObjectField(current,"mDarkAmount")).floatValue()==0;
             // ClockContentView belongs to the personal-clock chooser path. Do not
             // infer live ownership from its SCENE_NORMAL flag alone.
             if(name.equals(CONTENT))return false;
@@ -135,8 +162,8 @@ final class SurfaceBackend {
     }
     private static String liveClockStatus(){
         int hosts=0;Set<String> types=new TreeSet<>();
-        for(ViewGroup root:new ArrayList<>(roots.keySet()))if(root.isAttachedToWindow()&&root.getClass().getName().equals(LIVE)){
-            hosts++;Object item=XposedHelpers.getObjectField(root,"mClockLayout");if(item!=null){Object clock=XposedHelpers.getObjectField(item,"mClock");types.add(clock==null?"not created":clock.getClass().getSimpleName());if(clock!=null&&observedClockTypes.size()<8)observedClockTypes.add(clock.getClass().getSimpleName());}
+        for(ViewGroup root:new ArrayList<>(roots.keySet()))if(root.isAttachedToWindow()&&root.getClass().getName().equals(liveHost)){
+            hosts++;Object item=liveClockLayout(root);if(item!=null){Object clock=XposedHelpers.getObjectField(item,"mClock");types.add(clock==null?"not created":clock.getClass().getSimpleName());if(clock!=null&&observedClockTypes.size()<8)observedClockTypes.add(clock.getClass().getSimpleName());}
         }
         return " Live keyguard hosts: "+hosts+"; active clock types: "+(types.isEmpty()?"not observed":String.join(", ",types))+"; observed clock types: "+(observedClockTypes.isEmpty()?"none":String.join(", ",observedClockTypes))+".";
     }

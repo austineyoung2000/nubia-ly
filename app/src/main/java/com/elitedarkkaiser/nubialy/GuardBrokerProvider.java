@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class GuardBrokerProvider extends ContentProvider {
     private final AtomicBoolean busy = new AtomicBoolean();
     @Override public boolean onCreate() {
-        return CompatibilityPolicy.isNx809j(Build.MODEL, Build.DEVICE) && Build.VERSION.SDK_INT == 36;
+        return CompatibilityPolicy.isSupportedDevice(Build.MODEL, Build.DEVICE) && CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT);
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
         if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) enforceLauncher(); else if(GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method)) enforceFingerprint(); else enforceSystemUi();

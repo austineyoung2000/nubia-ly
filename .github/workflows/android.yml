@@ -59,6 +59,7 @@ jobs:
           python3 tests/test_inventory_client.py
           python3 tests/test_recovery_store.py
           python3 tests/test_root_guard.py
+          python3 tests/test_guard_root_process.py
       - name: Recovery guard tests and ZIP
         run: |
           sudo python3 tests/test_guard_shell.py

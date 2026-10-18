@@ -1,0 +1,7 @@
+# Explicit inspected boot-player profiles: MODEL SDK SHA256
+# Unknown firmware fails closed. Wildcards and unscoped hashes are never accepted.
+NX809J 36 8a254699242729e1af694850415b60a8c98201fae8f3aec5c17ff188d2e12d55
+# NX789J Android 15 hash supplied by the port author (2026-10-17).
+NX789J 35 e5242e6a702fa8971966448a7b6ebf359c6a6238fa79ac01331a9cb2fba223aa
+# NX789J Android 16 player inspected from tester archive, 2026-10-18.
+NX789J 36 58b9eec99405c00242ca10cf9bb40a40b386c3c219f875b91ac28f1860dd1761

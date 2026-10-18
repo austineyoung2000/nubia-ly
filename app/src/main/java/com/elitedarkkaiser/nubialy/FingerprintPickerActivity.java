@@ -14,7 +14,7 @@ public final class FingerprintPickerActivity extends AppCompatActivity {
     private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
-        if(!CompatibilityPolicy.isNx809j(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36){finish();return;}
+        if(!CompatibilityPolicy.isSupportedDevice(Build.MODEL,Build.DEVICE)||!CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT)){finish();return;}
         selected=getIntent().getIntExtra("selection",0);if(!FingerprintStyles.valid(selected))selected=0;
         FingerprintGlyphDrawable.artworkResources(getResources());
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
