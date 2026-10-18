@@ -2,6 +2,8 @@ package com.elitedarkkaiser.nubialy;
 
 /** Binder UID plus framework-verified package attribution; no caller-supplied identity. */
 public final class GuardBrokerPolicy {
+    public static final String LAUNCHER_PACKAGE="com.zte.mifavor.launcher", LAUNCHER_METHOD="inspect_launcher_enabled", LAUNCHER_ACTION="com.elitedarkkaiser.nubialy.LAUNCHER";
+    public static boolean permitsLauncher(int uid,int launcherUid,String verifiedPackage){return launcherUid>=0&&uid==launcherUid&&LAUNCHER_PACKAGE.equals(verifiedPackage);}
     public static final String SENSOR_PACKAGE="com.fingerprint.sensorservice";
     public static final String FINGERPRINT_METHOD="inspect_fingerprint_enabled", FINGERPRINT_ACTION="com.elitedarkkaiser.nubialy.FINGERPRINT";
     public static boolean permitsFingerprint(int uid,int sensorUid,String verifiedPackage){return sensorUid>=0&&uid==sensorUid&&SENSOR_PACKAGE.equals(verifiedPackage);}

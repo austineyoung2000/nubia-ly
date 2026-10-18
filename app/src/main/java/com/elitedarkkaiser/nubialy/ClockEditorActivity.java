@@ -330,50 +330,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private boolean alive() { return !closed && !isFinishing() && !isDestroyed(); }
     private void customColor(){customColor(false);}
     private void customColor(boolean forIcons) {
-        LinearLayout picker = new LinearLayout(this); picker.setOrientation(LinearLayout.VERTICAL); picker.setPadding(dp(24), dp(8), dp(24), dp(8));
-        TextView sample = text("12:34", 36, true); picker.addView(sample);
-        TextInputLayout field = new TextInputLayout(this); field.setHint("Hex color · RRGGBB");
-        TextInputEditText hex = new TextInputEditText(this); hex.setSingleLine(true); hex.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        field.addView(hex); picker.addView(field);
-        Slider[] sliders = new Slider[3]; String[] names = {"Red", "Green", "Blue"};
-        int[] draft = {forIcons?iconColor:selected}; boolean[] updating = {false};
-        for (int i=0;i<3;i++) {
-            picker.addView(text(names[i],14,true)); Slider slider = new Slider(this); sliders[i]=slider;
-            slider.setValueFrom(0); slider.setValueTo(255); slider.setStepSize(1); picker.addView(slider);
-        }
-        Runnable update = () -> {
-            updating[0]=true; sample.setTextColor(draft[0]); hex.setText(ClockColorPolicy.hex(draft[0]));
-            for(int i=0;i<3;i++) sliders[i].setValue((draft[0] >> (16-i*8)) & 255);
-            field.setError(null); updating[0]=false;
-        };
-        for(int i=0;i<3;i++) {
-            sliders[i].addOnChangeListener((slider,value,fromUser) -> {
-                if (!fromUser || updating[0]) return;
-                draft[0]=0xff000000 | ((int)sliders[0].getValue()<<16) | ((int)sliders[1].getValue()<<8) | (int)sliders[2].getValue(); update.run();
-            });
-        }
-        hex.addTextChangedListener(new TextWatcher() {
-            public void beforeTextChanged(CharSequence s,int start,int count,int after) {}
-            public void onTextChanged(CharSequence s,int start,int before,int count) {
-                if(updating[0])return;
-                Integer parsed=ClockColorPolicy.parse(s.toString());
-                field.setError(parsed==null ? "Enter six hex digits, such as C0A8FF." : null);
-                if(parsed!=null) {
-                    draft[0]=parsed; updating[0]=true; sample.setTextColor(parsed);
-                    for(int i=0;i<3;i++)sliders[i].setValue((parsed>>(16-i*8))&255); updating[0]=false;
-                }
-            }
-            public void afterTextChanged(Editable s) {}
-        });
-        update.run();
-        ScrollView pickerScroll = new ScrollView(this); pickerScroll.addView(picker);
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(forIcons?"Custom mobile service icon color":"Custom clock color")
-            .setView(pickerScroll).setNegativeButton("Cancel", null).setPositiveButton("Use color", null).create();
-        dialog.setOnShowListener(ignored -> dialog.getButton(-1).setOnClickListener(v -> {
-            Integer parsed=ClockColorPolicy.parse(hex.getText()==null ? null : hex.getText().toString());
-            if(parsed==null) {field.setError("Enter six hex digits.");return;}
-            if(forIcons)chooseIcon(parsed);else choose(parsed); dialog.dismiss();
-        })); dialog.show();
+        ColorPickerDialog.show(this,forIcons?"Custom mobile service icon color":"Custom clock color","12:34",forIcons?iconColor:selected,color->{if(alive()){if(forIcons)chooseIcon(color);else choose(color);}});
     }
     private LinearLayout detailGroup(LinearLayout parent,String title,String summary){
         LinearLayout group=new LinearLayout(this);group.setOrientation(LinearLayout.VERTICAL);group.setPadding(dp(12),dp(8),dp(12),dp(8));
