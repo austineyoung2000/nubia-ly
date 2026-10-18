@@ -13,7 +13,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import java.util.concurrent.*;
 
-/** One launcher draft, explicit apply and reversible drawing; no launcher settings writes. */
+/** One launcher draft, explicit apply and reversible drawing; native grid changes use the launcher’s own controller. */
 public final class LauncherActivity extends AppCompatActivity {
     static final String PACKAGE="com.zte.mifavor.launcher";
     static final String SETTINGS="com.android.launcher3.settings.SettingsActivityMFV";
@@ -26,7 +26,7 @@ public final class LauncherActivity extends AppCompatActivity {
     private EditorPages pages;
     private LauncherPreview preview;
     private LauncherServiceClient client;
-    private boolean closed,busy,compatible;
+    private boolean closed,busy,compatible,gridPending;
     private int draftScale=100;
     private boolean draftHide;
     private int draftColor;
@@ -152,7 +152,7 @@ public final class LauncherActivity extends AppCompatActivity {
         slider.addOnChangeListener((view,value,user)->{if(user)changeLayout(field,Math.round(value));});
     }
     private void chooseGrid(){if(busy)return;String[] labels=new String[25];for(int i=0;i<25;i++)labels[i]=(4+i%5)+" × "+(6+i/5);
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Home-screen grid · columns × rows").setItems(labels,(dialog,index)->{if(busy)return;busy=true;controls();status.setText("Requesting native grid change…");client.applyGrid(6+index/5,4+index%5,message->{if(closed)return;busy=false;controls();status.setText(message);});}).setNegativeButton("Cancel",null).show();
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Home-screen grid · columns × rows").setItems(labels,(dialog,index)->{if(busy)return;gridPending=true;busy=true;controls();status.setText("Requesting native grid change…");client.applyGrid(6+index/5,4+index%5,message->{if(closed)return;gridPending=false;busy=false;controls();status.setText(message);});}).setNegativeButton("Cancel",null).show();
     }
     private void layoutChoices(LinearLayout parent,String title,int field,int[] values,String tag){parent.addView(text(title,18));var group=new com.google.android.material.chip.ChipGroup(this);group.setSingleSelection(true);group.setSelectionRequired(true);parent.addView(group);for(int value:values){var chip=new com.google.android.material.chip.Chip(this);chip.setText(value==0?"Native":field>=4?value+"%":Integer.toString(value));chip.setCheckable(true);chip.setChecked(layoutValue(field)==value);chip.setTag(tag+":"+value);layoutControls.add(chip);group.addView(chip);chip.setOnClickListener(v->changeLayout(field,value));}}
     private final java.util.List<Runnable> sliderUpdates=new java.util.ArrayList<>();
@@ -171,7 +171,7 @@ public final class LauncherActivity extends AppCompatActivity {
     private void refreshLauncher(String message){status.setText(message+" Checking launcher…");client.check(reply->{if(!closed)status.setText(message+"\n"+reply);});}
     private void controls(){for(View view:layoutControls)view.setEnabled(!busy&&compatible);choosePack.setEnabled(!busy);refreshPacks.setEnabled(!busy);for(var choice:shapeChoices)choice.setEnabled(!busy&&draftPack.isEmpty());folderBlur.setEnabled(!busy);nativeBlur.setEnabled(!busy);folderLabels.controls();folderTitle.controls();enable.setEnabled(!busy&&compatible);restore.setEnabled(!busy);scale.setEnabled(!busy);hide.setEnabled(!busy);nativeColor.setEnabled(!busy);customColor.setEnabled(!busy);for(int i=0;i<labelPresets.getChildCount();i++)labelPresets.getChildAt(i).setEnabled(!busy);}
     @Override protected void onResume(){super.onResume();inspect();}
-    @Override protected void onStop(){client.cancel();super.onStop();}
+    @Override protected void onStop(){client.cancel();if(gridPending){gridPending=false;busy=false;controls();}super.onStop();}
     @Override protected void onDestroy(){closed=true;client.cancel();worker.shutdown();super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle out){out.putString("layout",draftLayout.encode());out.putBoolean("details",details.getVisibility()==View.VISIBLE);out.putInt("scale",draftScale);out.putBoolean("hide",draftHide);out.putInt("color",draftColor);out.putInt("custom_label_color",customLabelColor);out.putInt("folder_blur",draftFolderBlur);out.putInt("folder_labels",draftFolderLabels);out.putInt("folder_title",draftFolderTitle);out.putString("icon_pack",draftPack);out.putInt("icon_shape",draftShape);out.putString("page",pages.page());super.onSaveInstanceState(out);}
     private void inspect(){

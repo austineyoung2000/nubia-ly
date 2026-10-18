@@ -23,10 +23,12 @@ final class LauncherLayoutBackend {
  static String applyGrid(android.content.Context context,int rows,int columns){
   if(!active()||!gridReady||!selected.expandedGrid()||!LauncherGridCatalogue.choice(rows,columns))return "Enable Home-screen grid before choosing a layout";
   try{
+   if(!(gridMap.get(null) instanceof Map<?,?> choices)||!choices.containsKey((rows<<4)|columns))return "Expanded grid catalogue unavailable";
    Object manager=XposedHelpers.callStaticMethod(XposedHelpers.findClass("com.android.launcher3.H5",context.getClassLoader()),"T",context);
    Object controller=XposedHelpers.callMethod(manager,"H");
    Object result=XposedHelpers.callMethod(controller,"e",context,(rows<<4)|columns);
-   return Boolean.TRUE.equals(result)?"Native grid change requested: "+columns+" × "+rows+". Return home to see the result":"Launcher rejected the grid change";
+   Object saved=XposedHelpers.callMethod(controller,"j",context);
+   return Boolean.TRUE.equals(result)&&Integer.valueOf((rows<<4)|columns).equals(saved)?"Native grid change requested: "+columns+" × "+rows+". Return home to see the result":"Launcher rejected the grid change";
   }catch(Throwable unavailable){return "Native grid controller unavailable; existing layout retained";}
  }
  static void install(ClassLoader loader){
