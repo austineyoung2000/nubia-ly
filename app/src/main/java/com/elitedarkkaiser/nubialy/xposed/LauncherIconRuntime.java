@@ -19,7 +19,7 @@ final class LauncherIconRuntime {
     private static LauncherIconPacks.Loaded pack; // worker confined
     private static String packId="",packProblem="";private static String report="native icons";
     static void apply(LauncherStyle selected,long until){boolean changed=!selected.iconPack().equals(style.iconPack())||selected.iconShape()!=style.iconShape();style=selected;deadline=until;if(changed){generation++;images.evictAll();pending.clear();missing.clear();report=selected.iconsCustom()?"waiting for visible app icons":"native icons";refresh(null);}}
-    static void end(){generation++;style=LauncherStyle.STOCK;deadline=0;images.evictAll();pending.clear();missing.clear();report="native icons";refresh(null);}
+    static void end(){worker.execute(()->{pack=null;packId="";packProblem="";});generation++;style=LauncherStyle.STOCK;deadline=0;images.evictAll();pending.clear();missing.clear();report="native icons";refresh(null);}
     static Bitmap image(TextView view,ComponentName component){
         if(component==null||!style.iconsCustom()||SystemClock.elapsedRealtime()>=deadline)return null;seen.put(view,component);String key=component.flattenToString();Bitmap ready=images.get(key);if(ready!=null)return ready;
         if(missing.contains(key)||pending.contains(key)||pending.size()>=32)return null;
