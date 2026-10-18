@@ -291,3 +291,22 @@ pack/shape persistence and migration, invalid protocol values, shape geometry an
 pixel clipping, adaptive-layer bounds restoration, native Paint/canvas restoration,
 editor recreation/native reset, and the production folder-close transition.
 Physical icon-pack/shape rendering awaits user validation.
+
+## Preserve icon-pack artwork (version code 79)
+
+Phone testing confirmed third-party pack artwork renders in folders. The user
+requested that pack selection disable shape overrides. LauncherStyle now exposes
+an effective icon shape: Native whenever an icon pack is selected, otherwise the
+remembered native-icon shape. The stored preference remains available when the
+user returns to Native icons. Old profiles containing both pack and custom shape
+are valid but cannot clip or unmask pack artwork.
+
+The same policy governs shape-button availability/highlighting, hero and pack
+previews, asynchronous source selection/rasterization, and the actual inner icon
+draw hook. Unmatched or unavailable pack icons retain native artwork. All shape
+buttons (including Native) are disabled while a pack is selected, with a visible
+explanation. Busy-state refresh cannot accidentally re-enable them.
+
+Coverage includes old combined profiles, effective applied policy, disabled
+buttons and ignored clicks, activity recreation, and restoration of the remembered
+shape when Native icons are selected. Existing runtime and folder-close tests pass.

@@ -71,7 +71,7 @@ final class LauncherBackend {
             added.add(XposedBridge.hookMethod(inner,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){Frame f=drawing.get();if(f==null||f.icon!=p.thisObject||f.component==null||!active()||!style.iconsCustom())return;
                     android.graphics.Bitmap image=LauncherIconRuntime.image(f.view,f.component);if(image==null)return;
-                    try{LauncherIconShapes.draw((Canvas)p.args[0],image,(android.graphics.Rect)p.args[1],(Paint)paintField.get(p.thisObject),style.iconShape());p.setResult(null);}catch(Throwable unavailable){end();}
+                    try{LauncherIconShapes.draw((Canvas)p.args[0],image,(android.graphics.Rect)p.args[1],(Paint)paintField.get(p.thisObject),style.effectiveIconShape());p.setResult(null);}catch(Throwable unavailable){end();}
                 }
             }));
             var bounds=LauncherTransitionBounds.resolve(XposedHelpers.findClass("com.android.launcher3.views.FloatingIconView",loader));

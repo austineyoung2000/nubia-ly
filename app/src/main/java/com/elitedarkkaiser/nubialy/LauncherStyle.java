@@ -8,6 +8,7 @@ public record LauncherStyle(int iconScale,boolean hideLabels,int labelColor,int 
     public boolean valid(){return iconScale>=70&&iconScale<=100&&validColor(labelColor)&&folderBlur>=-1&&folderBlur<=25&&validColor(folderLabelColor)&&validColor(folderTitleColor)&&validIconPack(iconPack)&&iconShape>=0&&iconShape<=4;}
     public boolean custom(){return iconScale!=100||hideLabels||labelColor!=0||folderCustom()||!iconPack.isEmpty()||iconShape!=0;}
     public boolean folderCustom(){return folderBlur!=-1||folderLabelColor!=0||folderTitleColor!=0;}
+    public int effectiveIconShape(){return iconPack.isEmpty()?iconShape:0;}
     public boolean iconsCustom(){return !iconPack.isEmpty()||iconShape!=0;}
     private static boolean validIconPack(String id){return id!=null&&(id.isEmpty()||(id.length()<=200&&id.matches("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")));}
     private static boolean validColor(int color){return color==0||(color>>>24)==255;}

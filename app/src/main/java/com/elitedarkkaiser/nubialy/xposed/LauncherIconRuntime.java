@@ -18,7 +18,7 @@ final class LauncherIconRuntime {
     private static volatile LauncherStyle style=LauncherStyle.STOCK;private static volatile long generation,deadline;
     private static LauncherIconPacks.Loaded pack; // worker confined
     private static String packId="",packProblem="";private static String report="native icons";
-    static void apply(LauncherStyle selected,long until){boolean changed=!selected.iconPack().equals(style.iconPack())||selected.iconShape()!=style.iconShape();style=selected;deadline=until;if(changed){generation++;images.evictAll();pending.clear();missing.clear();report=selected.iconsCustom()?"waiting for visible app icons":"native icons";refresh(null);}}
+    static void apply(LauncherStyle selected,long until){boolean changed=!selected.iconPack().equals(style.iconPack())||selected.effectiveIconShape()!=style.effectiveIconShape();style=selected;deadline=until;if(changed){generation++;images.evictAll();pending.clear();missing.clear();report=selected.iconsCustom()?"waiting for visible app icons":"native icons";refresh(null);}}
     static void end(){worker.execute(()->{pack=null;packId="";packProblem="";});generation++;style=LauncherStyle.STOCK;deadline=0;images.evictAll();pending.clear();missing.clear();report="native icons";refresh(null);}
     static Bitmap image(TextView view,ComponentName component){
         if(component==null||!style.iconsCustom()||SystemClock.elapsedRealtime()>=deadline)return null;seen.put(view,component);String key=component.flattenToString();Bitmap ready=images.get(key);if(ready!=null)return ready;
@@ -27,8 +27,8 @@ final class LauncherIconRuntime {
         worker.execute(()->{if(ticket!=generation||SystemClock.elapsedRealtime()>=deadline)return;Bitmap result=null;String message="";try{
             if(!selection.iconPack().equals(packId)){pack=null;packProblem="";packId=selection.iconPack();if(!packId.isEmpty())try{pack=LauncherIconPacks.load(context,packId);}catch(Exception unavailable){packProblem="icon pack unavailable; native fallback";}}
             android.graphics.drawable.Drawable source=pack==null?null:pack.icon(component);
-            if(source==null&&selection.iconShape()!=0)source=context.getPackageManager().getActivityIcon(component);
-            if(source!=null)result=LauncherIconShapes.raster(source,selection.iconShape()!=0);
+            if(source==null&&selection.effectiveIconShape()!=0)source=context.getPackageManager().getActivityIcon(component);
+            if(source!=null)result=LauncherIconShapes.raster(source,selection.effectiveIconShape()!=0);
             message=!packProblem.isEmpty()?packProblem:selection.iconPack().isEmpty()?"custom shapes":"icon pack: "+selection.iconPack()+" (unmatched apps stay native)";
         }catch(Throwable unavailable){message="icon pack/source unavailable; native fallback";}
             Bitmap image=result;String status=message;main.post(()->{if(ticket!=generation||SystemClock.elapsedRealtime()>=deadline)return;pending.remove(key);if(image==null){missing.add(key);while(missing.size()>128)missing.remove(missing.iterator().next());}else images.put(key,image);report=status;refresh(component);});
