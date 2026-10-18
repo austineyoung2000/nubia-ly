@@ -1,13 +1,6 @@
-# Boot-animation player acceptance for the nubia-ly guard.
-#
-# Put the single word  ANY  on a line to accept any legitimate stock player
-# (root-owned, real file, not a symlink) WITHOUT an exact hash. Set it once and
-# you never need to re-capture after a firmware/Android update.
-ANY
-#
-# --- Stricter mode (optional) ---
-# Instead of ANY, list one sha256 of /system/lib64/libbootanimation.so per line.
-# Capture on the phone:  su -c 'sha256sum /system/lib64/libbootanimation.so'
-# (A15 and A16 differ, so you'd add a new line after each update.)
-# NX789J / Android 15 example, captured 2026-10-17:
-# e5242e6a702fa8971966448a7b6ebf359c6a6238fa79ac01331a9cb2fba223aa
+# Explicit inspected boot-player profiles: MODEL SDK SHA256
+# Unknown firmware fails closed. Wildcards and unscoped hashes are never accepted.
+NX809J 36 8a254699242729e1af694850415b60a8c98201fae8f3aec5c17ff188d2e12d55
+# NX789J Android 15 hash supplied by the port author (2026-10-17).
+NX789J 35 e5242e6a702fa8971966448a7b6ebf359c6a6238fa79ac01331a9cb2fba223aa
+# NX789J Android 16 boot-animation support stays disabled until its player is inspected.

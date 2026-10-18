@@ -1,7 +1,7 @@
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 root = Path(__file__).resolve().parents[1]
-files = ["module.prop", "skip_mount", "bootctl.sh", "post-fs-data.sh", "customize.sh", "guardctl.sh", "action.sh", "service.sh", "uninstall.sh"]
+files = ["player_sha", "module.prop", "skip_mount", "bootctl.sh", "post-fs-data.sh", "customize.sh", "guardctl.sh", "action.sh", "service.sh", "uninstall.sh"]
 out = root / "build" / "nubia-ly-guard-test.zip"
 out.parent.mkdir(exist_ok=True)
 with ZipFile(out, "w", ZIP_DEFLATED) as archive:

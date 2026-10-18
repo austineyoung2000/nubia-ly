@@ -10,9 +10,10 @@ target=/system/media/bootanimation.zip
 player_sha=8a254699242729e1af694850415b60a8c98201fae8f3aec5c17ff188d2e12d55
 [ "$(id -u)" = 0 ] || exit 1
 gp() { if [ -x /system/bin/getprop ]; then /system/bin/getprop "$1" 2>/dev/null; else getprop "$1" 2>/dev/null; fi; }
-nx789j() { for p in ro.product.model ro.product.vendor.model ro.product.odm.model ro.product.system.model ro.product.product.model; do case "$(gp "$p")" in NX789J*|NX809J*) return 0 ;; esac; done; return 1; }
+nx789j() { for p in ro.product.model ro.product.vendor.model ro.product.odm.model ro.product.system.model ro.product.product.model; do case "$(gp "$p")" in NX789J*) profile_model=NX789J; return 0 ;; NX809J*) profile_model=NX809J; return 0 ;; esac; done; return 1; }
 nx789j || exit 1
-case "$(gp ro.build.version.sdk)" in 35|36) ;; *) exit 1 ;; esac
+profile_sdk=$(gp ro.build.version.sdk)
+case "$profile_sdk" in 35|36) ;; *) exit 1 ;; esac
 command=${1:-status}
 case "$command" in status|restore|mount|confirm|stage_rising|stage_cyberpunk|stage_valorant|stage_google|stage_google_monet) ;; *) exit 1 ;; esac
 safe_dir() { [ ! -L "$1" ] && [ -d "$1" ] && [ "$(stat -c %u:%a "$1")" = 0:700 ]; }
@@ -45,12 +46,14 @@ profile() {
     [ -f "$player" ] && [ ! -L "$player" ] || return 1
     live_sha=$(sha256sum "/proc/1/root$player" | cut -d ' ' -f 1)
     sha_ok=false
-    [ "$live_sha" = "$player_sha" ] && sha_ok=true
-    if [ "$sha_ok" = false ] && [ -f "$MODDIR/player_sha" ] && [ ! -L "$MODDIR/player_sha" ]; then
-        while IFS= read -r allow; do
-            allow=$(printf '%s' "$allow" | tr -d ' \t\r')
-            case "$allow" in ""|\#*) continue ;; esac
-            case "$allow" in ANY|any) sha_ok=true; break ;; esac
+    # Preserve the inspected NX809J/A16 baseline, independently of the port list.
+    [ "$profile_model:$profile_sdk:$live_sha" = "NX809J:36:$player_sha" ] && sha_ok=true
+    if [ "$sha_ok" = false ] && safe_file "$MODDIR/player_sha" 644; then
+        while read -r model sdk allow extra; do
+            case "$model" in ""|\#*) continue ;; esac
+            [ -z "$extra" ] && [ "$model" = "$profile_model" ] && [ "$sdk" = "$profile_sdk" ] || continue
+            [ "${#allow}" -eq 64 ] || continue
+            case "$allow" in *[!0-9a-f]*) continue ;; esac
             [ "$live_sha" = "$allow" ] && { sha_ok=true; break; }
         done < "$MODDIR/player_sha"
     fi

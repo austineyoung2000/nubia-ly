@@ -12,7 +12,7 @@ public final class BootResumeReceiver extends BroadcastReceiver {
   PendingResult pending=goAsync();Context app=context.getApplicationContext();Handler main=new Handler(Looper.getMainLooper());
   // File reads and private preference access never block a broadcast's main thread.
   new Thread(()->{boolean allowed=false;try{allowed=RecoveryStore.enabledAllowed(app,GuardReader.inspectEnabled());}catch(RuntimeException unavailable){}final boolean resume=allowed;main.post(()->{if(!resume){busy.set(false);pending.finish();return;}
-   try{SystemUiGuardClient client=new SystemUiGuardClient(app);client.preview("clock_resume",result->{try{new FingerprintServiceClient(app).check(ignored->{});}finally{busy.set(false);pending.finish();}});}catch(RuntimeException unavailable){busy.set(false);pending.finish();}
+   try{SystemUiGuardClient client=new SystemUiGuardClient(app);client.preview("clock_resume",result->{try{new FingerprintServiceClient(app).check(ignored->{});new LauncherServiceClient(app).check(ignored->{});}finally{busy.set(false);pending.finish();}});}catch(RuntimeException unavailable){busy.set(false);pending.finish();}
   });},"nubia-ly-unlock-resume").start();
  }
 }

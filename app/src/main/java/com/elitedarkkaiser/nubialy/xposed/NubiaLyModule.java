@@ -29,6 +29,12 @@ public final class NubiaLyModule implements IXposedHookLoadPackage, de.robv.andr
             }
             return;
         }
+        if("com.zte.mifavor.launcher".equals(param.packageName)&&param.packageName.equals(param.processName)){
+            if(!CompatibilityPolicy.isNx809j(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36)return;
+            try{XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
+                @Override protected void afterHookedMethod(MethodHookParam hook){if(hook.hasThrowable())return;try{Application app=(Application)hook.thisObject;if("com.zte.mifavor.launcher".equals(app.getPackageName()))LauncherRuntime.install(app);}catch(Throwable unavailable){XposedBridge.log("nubia-ly: launcher hooks unavailable; native appearance retained.");}}
+            });}catch(Throwable unavailable){XposedBridge.log("nubia-ly: launcher attachment unavailable; native appearance retained.");}return;
+        }
         if("com.fingerprint.sensorservice".equals(param.packageName)&&param.packageName.equals(param.processName)){
             if(!CompatibilityPolicy.isSupportedDevice(Build.MODEL,Build.DEVICE)||!CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT))return;
             try{XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){

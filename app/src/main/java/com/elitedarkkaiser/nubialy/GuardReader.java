@@ -76,10 +76,9 @@ public final class GuardReader {
             + "stat -c '%u %a %F' \"$d\" || exit 3; stat -c '%u %a %F' \"$f\" || exit 3; "
             + "readlink -f \"$d\"; readlink -f \"$f\"; echo __NUBIALY_BODY__; head -c " + (maximum + 1) + " \"$f\"";
         Process process = new ProcessBuilder("su", "-c", script).redirectErrorStream(true).start();
-        byte[] out;
-        try (java.io.InputStream in = process.getInputStream()) { out = in.readNBytes(4096); }
-        if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) { process.destroyForcibly(); throw new java.io.IOException("root read timeout"); }
-        if (process.exitValue() != 0) return null;
+        GuardRootProcess.Result result=GuardRootProcess.capture(process,5000,4096);
+        if(result.exitCode()!=0)return null;
+        byte[] out=result.output();
         String text = new String(out, StandardCharsets.US_ASCII);
         int marker = text.indexOf("__NUBIALY_BODY__\n");
         if (marker < 0) return null;
