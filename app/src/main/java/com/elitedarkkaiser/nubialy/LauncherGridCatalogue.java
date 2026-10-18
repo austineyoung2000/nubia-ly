@@ -7,10 +7,10 @@ public final class LauncherGridCatalogue {
   if(target==null||target.get(100)==null||target.get(101)==null)return false;
   if(map!=target){restore();map=target;}
   Object nativeProfile=target.get(101);
-  for(int rows=6;rows<=10;rows++)for(int columns=4;columns<=8;columns++){int key=(rows<<4)|columns;if(!target.containsKey(key)){target.put(key,nativeProfile);owned.put(key,nativeProfile);}}
+  for(int rows=6;rows<=8;rows++)for(int columns=4;columns<=8;columns++){int key=(rows<<4)|columns;if(!target.containsKey(key)){target.put(key,nativeProfile);owned.put(key,nativeProfile);}}
   return true;
  }
  public void restore(){if(map!=null)for(var entry:owned.entrySet())if(map.get(entry.getKey())==entry.getValue())map.remove(entry.getKey());owned.clear();map=null;}
- public static boolean choice(int rows,int columns){return rows>=6&&rows<=10&&columns>=4&&columns<=8;}
+ public static boolean choice(int rows,int columns){return rows>=6&&rows<=8&&columns>=4&&columns<=8;}
  public int added(){return owned.size();}
 }

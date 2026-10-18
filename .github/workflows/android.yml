@@ -42,6 +42,7 @@ jobs:
           python3 tests/test_battery_backend.py
           python3 tests/test_icon_controls_backend.py
           python3 tests/test_boot_resume_receiver.py
+          python3 tests/test_guard_resume_service.py
           python3 tests/test_boot_animation_contract.py
           python3 tests/test_fingerprint_catalog.py
           python3 tests/test_fingerprint_backend.py

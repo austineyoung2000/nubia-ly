@@ -2,11 +2,11 @@
 
 Exact launcher APK gate remains required. The native DesktopGrid class is
 `com.android.launcher3.b0`; its static catalogue `s` initially contains rows/cols
-6/4 and 6/5. Twenty-three additional entries provide a total of 25 choices,
-columns 4..8 and rows 6..10, using its native spacing profile. Nubia-ly changes
+6/4 and 6/5. Thirteen additional entries provide a total of 15 choices,
+columns 4..8 and rows 6..8, using its native spacing profile. Nubia-ly changes
 the in-memory choice catalogue. The native DesktopGridActivity fragment has
 two hard-coded radio rows, so catalogue expansion alone cannot add visible
-choices there. Nubia-ly now exposes all 25 choices in its own grid picker.
+choices there. Nubia-ly now exposes all 15 choices through row/column sliders (maximum 8×8).
 An explicit signature-protected, bounded request performs a fresh guard read
 and invokes H5.T(context).H().e(context, encodedRowsColumns) in the launcher
 process. Polling never calls this operation; expired, duplicate, unsupported,
@@ -43,3 +43,23 @@ placeholder is shipped as a working feature.
 
 This branch requires phone testing of grid selection/reflow, widgets, folder
 paging/order, gesture return, sleep/reboot and explicit restoration.
+
+## Widget geometry
+
+The native DesktopGrid.r method changes DeviceProfile workspace row/column
+counts. Its model reflow retains widget spanX/spanY. More rows/columns therefore
+allocate fewer physical pixels to a widget with unchanged spans; RemoteViews
+with fixed internal dimensions can clip (as seen in the clock/date screenshot).
+This is independent of nubia-ly icon drawing scale. The 8×8 cap does not promise
+unchanged widget size: use native resize handles after switching grids. This
+build does not rewrite widget database spans or apply a blanket widget scale.
+
+## Saved effects at boot/unlock
+
+Recovery Guard 0.1.17/code22 retains the existing explicit enabled identity.
+The first-unlock watcher now waits up to 30 minutes, checking every 10 seconds,
+then issues up to three bounded resume nudges 10 seconds apart. Stop, disable
+or removal terminate it. The app also accepts USER_UNLOCKED and independently
+nudges System UI, fingerprint and launcher runtimes after validating existing
+authority. Draft/disabled pages remain disabled; grid reflow is never replayed.
+The boot-animation incomplete-boot rollback timeout remains unchanged.
