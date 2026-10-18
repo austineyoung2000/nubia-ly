@@ -6,9 +6,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=35)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 public final class LauncherCustomizationTest {
     @Test public void draftsDoNotChangeActiveAppearanceAndRestoreRetainsDraft(){
         var c=org.robolectric.RuntimeEnvironment.getApplication();LauncherStyle s=new LauncherStyle(80,true);
