@@ -48,6 +48,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private final int[] surfaceAppearance=new int[4],surfacePosition=new int[4];
     private TextView lockFontPreview;
     private MaterialButton lockFontPicker;
+    private int qsIconPack;
     private int surfaceHidden,tileShape,largeTileShape,widgetsHidden,fingerprintStyle,fingerprintHidden,lockClockFont;
     private final java.util.Set<String> hiddenSlots=new java.util.TreeSet<>();
     private LinearLayout iconSlots;
@@ -68,7 +69,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         selected = ClockColorPreferences.read(this);
         sizePercent = ClockColorPreferences.size(this); bold = ClockColorPreferences.bold(this); seconds = ClockColorPreferences.seconds(this); italic = ClockColorPreferences.italic(this); spacing = ClockColorPreferences.spacing(this); fontFamily = ClockColorPreferences.family(this); hidden = ClockColorPreferences.hidden(this);
         StatusBarStyle bar = StatusBarPreferences.read(this); statusMask = bar.mask(); systemScale = bar.systemScale(); notificationScale = bar.notificationScale(); batteryScale = bar.batteryScale();systemOpacity=bar.systemOpacity();notificationOpacity=bar.notificationOpacity();batteryOpacity=bar.batteryOpacity();systemTransform=bar.systemTransform();notificationTransform=bar.notificationTransform();batteryTransform=bar.batteryTransform();fanAppearance=bar.fanAppearance();pumpAppearance=bar.pumpAppearance();refreshAppearance=bar.refreshAppearance();hiddenSlots.addAll(bar.hiddenSlots());iconColor=StatusBarPreferences.color(this);dateMode=StatusBarPreferences.date(this);
-        iconPack=bar.surfaces().iconPack();qsOptions=bar.surfaces().qsOptions();qsColumns=bar.surfaces().qsColumns()==4?0:bar.surfaces().qsColumns();qsRows=bar.surfaces().qsRows()==3?0:bar.surfaces().qsRows();batteryPercent=bar.surfaces().batteryPercent();batteryCharge=bar.surfaces().batteryCharge();notificationCount=bar.surfaces().notificationCount();notificationLimit=bar.surfaces().notificationLimit();batteryStyle=bar.surfaces().batteryStyle();wifiStyle=bar.surfaces().wifiStyle();signalStyle=bar.surfaces().signalStyle();powerStyle=bar.surfaces().powerStyle();notificationAppearance=bar.surfaces().notificationAppearance();notificationBehavior=bar.surfaces().notificationBehavior();chargingInfo=bar.surfaces().chargingInfo();notificationStyle=bar.surfaces().notificationStyle();volumeStyle=bar.surfaces().volumeStyle();brightnessStyle=bar.surfaces().brightnessStyle();qsStyle=bar.surfaces().qsStyle();widgetsHidden=bar.surfaces().widgetsHidden();fingerprintAnimation=bar.surfaces().fingerprintAnimation();fingerprintStyle=bar.surfaces().fingerprintStyle();fingerprintHidden=bar.surfaces().fingerprintHidden();lockClockFont=bar.surfaces().clockFont();tileShape=bar.surfaces().tileShape();largeTileShape=bar.surfaces().largeTileShape();surfaceHidden=bar.surfaces().hidden();for(int i=0;i<4;i++){surfaceAppearance[i]=bar.surfaces().appearance(i);surfacePosition[i]=bar.surfaces().position(i);}
+        qsIconPack=bar.surfaces().qsIconPack();iconPack=bar.surfaces().iconPack();qsOptions=bar.surfaces().qsOptions();qsColumns=bar.surfaces().qsColumns()==4?0:bar.surfaces().qsColumns();qsRows=bar.surfaces().qsRows()==3?0:bar.surfaces().qsRows();batteryPercent=bar.surfaces().batteryPercent();batteryCharge=bar.surfaces().batteryCharge();notificationCount=bar.surfaces().notificationCount();notificationLimit=bar.surfaces().notificationLimit();batteryStyle=bar.surfaces().batteryStyle();wifiStyle=bar.surfaces().wifiStyle();signalStyle=bar.surfaces().signalStyle();powerStyle=bar.surfaces().powerStyle();notificationAppearance=bar.surfaces().notificationAppearance();notificationBehavior=bar.surfaces().notificationBehavior();chargingInfo=bar.surfaces().chargingInfo();notificationStyle=bar.surfaces().notificationStyle();volumeStyle=bar.surfaces().volumeStyle();brightnessStyle=bar.surfaces().brightnessStyle();qsStyle=bar.surfaces().qsStyle();widgetsHidden=bar.surfaces().widgetsHidden();fingerprintAnimation=bar.surfaces().fingerprintAnimation();fingerprintStyle=bar.surfaces().fingerprintStyle();fingerprintHidden=bar.surfaces().fingerprintHidden();lockClockFont=bar.surfaces().clockFont();tileShape=bar.surfaces().tileShape();largeTileShape=bar.surfaces().largeTileShape();surfaceHidden=bar.surfaces().hidden();for(int i=0;i<4;i++){surfaceAppearance[i]=bar.surfaces().appearance(i);surfacePosition[i]=bar.surfaces().position(i);}
         if (state != null && ClockColorPolicy.valid(state.getInt("selection", 0))) selected = state.getInt("selection");
         client = new SystemUiGuardClient(this);fingerprintClient=new FingerprintServiceClient(this);
         ScrollView scroll = new ScrollView(this);
@@ -81,11 +82,11 @@ public final class ClockEditorActivity extends AppCompatActivity {
         var editorToolbar=PersonalizationUi.toolbar(this,"Personalizations");content.addView(editorToolbar);
         pages=new EditorPages(this,editorToolbar,scroll);
         editorOverview("lock_screen","Lock screen",new String[][]{{"clock","Clock","Size, opacity & position"},{"date","Date","Visibility & placement"},{"fonts","Clock font styles","Preview your typography"},{"fingerprint","Fingerprint","Icons & animations"},{"widgets","Widgets","Weather, alarm & battery"},{"charging","Charging information","Battery voltage, current & temperature"}});
-        editorOverview("quick_settings","Quick Settings",new String[][]{{"grid","Portrait grid","Small tiles per page"},{"landscape","Landscape grid","Independent rows & columns"},{"top_layout","Large tile layout","Count & arrangement"},{"label_layout","Label layout","Position, lines & icons only"},{"brightness_layout","Brightness placement","Position & sun icons"},{"style","Tile style","Outline, depth & layered effects"},{"brightness","Brightness slider","Outline, depth & a slim track"},{"tiles","Tile shapes","Large & small tiles"},{"labels","Label styles","Main & secondary text"}});
+        editorOverview("quick_settings","Quick Settings",new String[][]{{"grid","Portrait grid","Small tiles per page"},{"landscape","Landscape grid","Independent rows & columns"},{"top_layout","Large tile layout","Count & arrangement"},{"label_layout","Label layout","Position, lines & icons only"},{"brightness_layout","Brightness placement","Position & sun icons"},{"style","Tile style","Outline, depth & layered effects"},{"brightness","Brightness slider","Outline, depth & a slim track"},{"tiles","Tile shapes","Large & small tiles"},{"labels","Label styles","Main & secondary text"},{"iconpacks","Icon packs","Quick Settings artwork"}});
         editorOverview("notifications","Notifications",new String[][]{{"styles","Notification styles","Card backgrounds & layers"},{"appearance","Appearance controls","Background opacity & rounded corners"},{"behavior","Notification controls","Heads-up, history & app settings"},{"icons","Counts & icon limits","Status-bar overflow & icon slots"}});
         editorOverview("power_menu","Power menu",new String[][]{{"styles","Power-menu styles","Duoline, CyberPunk, Fluid & layers"}});
         editorOverview("volume","Volume",new String[][]{{"styles","Volume styles","Outline, gradients & layered effects"}});
-        editorOverview("status_bar","Status bar",new String[][]{{"typography","Clock style","Font, size & seconds"},{"date","Date format","Format, position & letter case"},{"color","Clock color","Presets & custom colors"},{"icons","Icons & battery","Colors, size & placement"},{"battery","Battery styles & controls","Design, percentage, charging & size"},{"iconpacks","Icon packs","Status bar & Quick Settings"},{"connectivity","Wi-Fi & mobile signal","Choose independent icon styles"},{"inventory","Individual icons","Visibility & vendor indicators"}});
+        editorOverview("status_bar","Status bar",new String[][]{{"typography","Clock style","Font, size & seconds"},{"date","Date format","Format, position & letter case"},{"color","Clock color","Presets & custom colors"},{"icons","Icons & battery","Colors, size & placement"},{"battery","Battery styles & controls","Design, percentage, charging & size"},{"iconpacks","Icon packs","Status-bar artwork"},{"connectivity","Wi-Fi & mobile signal","Choose independent icon styles"},{"inventory","Individual icons","Visibility & vendor indicators"}});
         LinearLayout colors = editorPanel("status_bar","color","Clock color");
         swatch = text("12:34", 44, true); colors.addView(swatch);
         selection = text("", 16, true); colors.addView(selection);
@@ -133,9 +134,10 @@ public final class ClockEditorActivity extends AppCompatActivity {
             enabled(false);worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),StatusBarStyle.STOCK.withSurfaces(currentSurfaces().withBatteryStyle(0).withBatteryControls(0,0)));runOnUiThread(()->{if(alive()){if(saved){finish();startActivity(new android.content.Intent(this,ClockEditorActivity.class));}else {enabled(true);saveStatus.setText("Reset could not be saved.");}}});});
         });
         icons.addView(text("Reset clears draft icon/battery controls; press Enable afterward to apply stock icon/battery appearance while keeping your clock choices.",14,false));
-        icons.addView(text("100% uses stock size. These controls apply to recognized top-status-bar views; other icons may keep their stock appearance. Press Enable to apply the entire saved style.",14,false));
+        icons.addView(text("100% uses stock size. These controls apply to recognized top-status-bar views; other icons may keep their stock appearance. Press Enable to apply this page.",14,false));
         LinearLayout batteries=editorPanel("status_bar","battery","Battery styles & controls");batteryControls(batteries);batteryStyleControls(batteries);
-        iconPackControls(editorPanel("status_bar","iconpacks","Icon packs"));
+        iconPackControls(editorPanel("status_bar","iconpacks","Icon packs"),false);
+        iconPackControls(editorPanel("quick_settings","iconpacks","Icon packs"),true);
         connectivityControls(editorPanel("status_bar","connectivity","Wi-Fi & mobile signal"));
         visualStyleChoices(editorPanel("power_menu","styles","Power-menu styles"),"power");
         notificationAppearanceControls(editorPanel("notifications","appearance","Appearance controls"));
@@ -211,30 +213,19 @@ public final class ClockEditorActivity extends AppCompatActivity {
         pages.show(initial,state==null?"":state.getString("editor_page",""));
         LinearLayout controls = card("Apply your style");
         ((android.view.ViewGroup)saveStatus.getParent()).removeView(saveStatus);controls.addView(saveStatus);
-        controls.addView(text("Enable applies saved choices across all personalization areas. Restore stock removes the applied style.", 15, false));
+        controls.addView(text("Enable applies only this page. Other applied areas stay as they are; their drafts wait until you enable them. Restore resets only this page.", 15, false));
         controls.addView(text("Requires root and the updated recovery guard. Your enabled color resumes after wake or reboot. The guard Action independently turns it off.", 14, false));
         previewStatus = text(getSharedPreferences("recovery", MODE_PRIVATE).getBoolean("restart_recovery_stopped", false)
             ? "Clock color was stopped after repeated System UI restarts. Enable again only after checking recovery."
             : "Check customization to read the current state. Restore stock turns off enabled customization.", 14, false);
         MaterialButton details=button("Show technical details");controls.addView(details);previewStatus.setVisibility(View.GONE);controls.addView(previewStatus);details.setOnClickListener(v->{boolean show=previewStatus.getVisibility()!=View.VISIBLE;previewStatus.setVisibility(show?View.VISIBLE:View.GONE);details.setText(show?"Hide technical details":"Show technical details");});
-        enable = button("Enable customization"); controls.addView(enable);
+        enable = button("Enable customization");enable.setTag("editor-enable"); controls.addView(enable);
         check = button("Check customization"); controls.addView(check);
-        restore = button("Restore stock appearance"); controls.addView(restore);
-        enable.setOnClickListener(v -> enableColor());
+        restore = button("Restore stock appearance");restore.setTag("editor-restore"); controls.addView(restore);
+        enable.setOnClickListener(v -> applyScope(false));
         check.setOnClickListener(v -> request("status"));
-        restore.setOnClickListener(v -> {
-            long stopDeadline = android.os.SystemClock.elapsedRealtime() + 8000;
-            enabled(false);
-            worker.execute(() -> {
-                boolean saved = RecoveryStore.stop(getApplicationContext());
-                boolean rootStopped = RootGuardCommand.stopClock(stopDeadline);
-                runOnUiThread(() -> {
-                    if (!alive()) return;
-                    request("stop");
-                    if (!saved || !rootStopped) previewStatus.setText("Persistent disarm could not be saved. Restoration requested; check preview.");
-                });
-            });
-        });
+        restore.setOnClickListener(v -> applyScope(true));
+        pages.onChange(()->{enable.setText("Enable "+pages.title());restore.setText("Restore "+pages.title());});
         redraw();
         swatch.setLetterSpacing(spacing / 100f);
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
@@ -311,17 +302,25 @@ public final class ClockEditorActivity extends AppCompatActivity {
             Chip chip = (Chip)presets.getChildAt(i); chip.setChecked(((Integer)chip.getTag()) == selected);
         }
     }
-    private void enableColor() {
-        enabled(false); final int requested = selected, requestedSize = sizePercent, requestedSpacing = spacing, requestedFamily = fontFamily; final boolean requestedBold = bold, requestedSeconds = seconds, requestedItalic = italic, requestedHidden = hidden;
-        final StatusBarStyle requestedBar = currentStatusBar(); final int requestedIconColor=iconColor,requestedDate=dateMode;
-        long deadline = android.os.SystemClock.elapsedRealtime() + 8000;
-        previewStatus.setText("Enabling clock color… Grant root access if asked.");
-        worker.execute(() -> {
-            boolean allowed = StatusBarPreferences.saveColor(getApplicationContext(),requestedIconColor) && StatusBarPreferences.saveDate(getApplicationContext(),requestedDate) && StatusBarPreferences.save(getApplicationContext(), requestedBar) && ClockColorPreferences.saveHidden(getApplicationContext(), requestedHidden) && ClockColorPreferences.saveExtras(getApplicationContext(), requestedItalic, requestedSpacing, requestedFamily) && ClockColorPreferences.saveSeconds(getApplicationContext(), requestedSeconds) && ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold) && RootGuardCommand.enableClock(deadline) && StatusBarPreferences.activate(getApplicationContext(), GuardReader.inspectEnabled(), requestedBar, requestedIconColor,requestedDate,new ClockSnapshot(requested,requestedSize,requestedBold,requestedSeconds,requestedItalic,requestedSpacing,requestedFamily,requestedHidden)) && RecoveryStore.allowEnabled(getApplicationContext());
-            runOnUiThread(() -> {
-                if (!alive()) return;
-                if (!allowed) { enabled(true); previewStatus.setText("Could not enable. Check root access, updated guard module and Vector activation."); return; }
-                client.enableColor(requested, result -> { if (alive()) { enabled(true); previewStatus.setText(result); } });
+    private void applyScope(boolean restoring) {
+        final String section=pages.section(),page=pages.page(),title=pages.title();
+        final var draft=new AppearanceScope.Snapshot(currentStatusBar(),iconColor,dateMode,
+            new ClockSnapshot(selected,sizePercent,bold,seconds,italic,spacing,fontFamily,hidden));
+        enabled(false);previewStatus.setVisibility(View.VISIBLE);previewStatus.setText((restoring?"Restoring ":"Enabling ")+title+"…");
+        worker.execute(()->{
+            boolean allowed=false;try{
+                String id=GuardReader.inspectEnabled();boolean authority=RecoveryStore.enabledAllowed(getApplicationContext(),id);
+                var active=authority?new AppearanceScope.Snapshot(StatusBarPreferences.active(getApplicationContext(),id),
+                    StatusBarPreferences.activeColor(getApplicationContext(),id),StatusBarPreferences.activeDate(getApplicationContext(),id),
+                    StatusBarPreferences.activeClock(getApplicationContext(),id)):AppearanceScope.Snapshot.STOCK;
+                var result=AppearanceScope.merge(section,page,active,restoring?AppearanceScope.Snapshot.STOCK:draft);
+                if(restoring&&!authority)allowed=true;
+                else allowed=(authority||RootGuardCommand.enableClock(android.os.SystemClock.elapsedRealtime()+8000))
+                    &&StatusBarPreferences.activate(getApplicationContext(),GuardReader.inspectEnabled(),result.bar(),result.color(),result.date(),result.clock())
+                    &&RecoveryStore.allowEnabled(getApplicationContext());
+            }catch(RuntimeException unavailable){}
+            final boolean done=allowed;runOnUiThread(()->{if(!alive())return;if(!done){enabled(true);previewStatus.setText("Could not apply this page. Check root, Recovery Guard and Vector.");return;}
+                client.enableSavedAppearance(result->{if(alive()){enabled(true);previewStatus.setText(title+(restoring?" restored. ":" enabled. ")+"Other pages unchanged.\n"+result);}});
             });
         });
     }
@@ -527,21 +526,21 @@ public final class ClockEditorActivity extends AppCompatActivity {
         }
         for(int n=0;n<choices.size();n++){MaterialCardView option=choices.get(n);option.setStrokeWidth(dp(n==batteryStyle?3:0));option.setStrokeColor(getColor(R.color.primary));option.setSelected(n==batteryStyle);option.setContentDescription(BatteryStyles.NAMES[n]+(n==batteryStyle?", selected":""));}
     }
-    private void iconPackControls(LinearLayout parent){
+    private void iconPackControls(LinearLayout parent,boolean quickSettings){
         SystemIconPacks.resources(getResources());
-        parent.addView(text("Choose coordinated icons for Status bar and Quick Settings. Your separate Wi-Fi and mobile-signal styles take priority in the Status bar. Android keeps control of state and tint; unsupported icons stay stock. Press Enable to apply.",14,false));
+        parent.addView(text("Choose icons for this area only. Your separate Wi-Fi and mobile-signal styles take priority in the Status bar. Android keeps control of state and tint; unsupported icons stay stock. Press Enable to apply.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();LinearLayout row=null;
         boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<SystemIconPacks.NAMES.length;i++){final int value=i;
             if(stacked||i%2==0){row=new LinearLayout(this);parent.addView(row);}
-            MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag("iconpack-style:"+i);statusControls.add(card);choices.add(card);
+            MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag((quickSettings?"qs-iconpack-style:":"iconpack-style:")+i);statusControls.add(card);choices.add(card);
             LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setGravity(Gravity.CENTER);body.setPadding(dp(12),dp(12),dp(12),dp(12));body.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
             body.addView(new SystemIconPackPreview(this,i),new LinearLayout.LayoutParams(-1,dp(100)));
             TextView title=text(SystemIconPacks.NAMES[i],16,true);title.setGravity(Gravity.CENTER);body.addView(title);card.addView(body);
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(stacked?-1:0,-2,stacked?0:1);cp.setMargins(dp(4),dp(4),dp(4),dp(4));row.addView(card,cp);
-            card.setOnClickListener(v->{iconPack=value;for(int n=0;n<choices.size();n++){MaterialCardView c=choices.get(n);c.setStrokeWidth(dp(n==value?3:0));c.setStrokeColor(getColor(R.color.primary));c.setSelected(n==value);c.setContentDescription(SystemIconPacks.NAMES[n]+(n==value?", selected":""));}saveStatusBar();});
+            card.setOnClickListener(v->{if(quickSettings)qsIconPack=value;else iconPack=value;for(int n=0;n<choices.size();n++){MaterialCardView c=choices.get(n);c.setStrokeWidth(dp(n==value?3:0));c.setStrokeColor(getColor(R.color.primary));c.setSelected(n==value);c.setContentDescription(SystemIconPacks.NAMES[n]+(n==value?", selected":""));}saveStatusBar();});
         }
-        for(int n=0;n<choices.size();n++){MaterialCardView c=choices.get(n);c.setStrokeWidth(dp(n==iconPack?3:0));c.setStrokeColor(getColor(R.color.primary));c.setSelected(n==iconPack);c.setContentDescription(SystemIconPacks.NAMES[n]+(n==iconPack?", selected":""));}
+        for(int n=0;n<choices.size();n++){MaterialCardView c=choices.get(n);c.setStrokeWidth(dp(n==(quickSettings?qsIconPack:iconPack)?3:0));c.setStrokeColor(getColor(R.color.primary));c.setSelected(n==(quickSettings?qsIconPack:iconPack));c.setContentDescription(SystemIconPacks.NAMES[n]+(n==(quickSettings?qsIconPack:iconPack)?", selected":""));}
     }
     private void connectivityControls(LinearLayout parent){
         ConnectivityStyles.resources(getResources());
@@ -618,7 +617,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
             else{if(large)largeTileShape=0;else tileShape=0;for(int n=0;n<cards.size();n++){MaterialCardView c=cards.get(n);boolean ck=n==0;c.setStrokeWidth(dp(ck?3:0));c.setStrokeColor(getColor(R.color.primary));c.setSelected(ck);}}
             roundLabel.setText(v==0?"Custom roundness: off":"Custom roundness: "+v+"%");saveStatusBar();});
     }
-    private SurfaceStyle currentSurfaces(){return new SurfaceStyle(surfaceHidden,surfaceAppearance[0],surfaceAppearance[1],surfaceAppearance[2],surfaceAppearance[3],surfacePosition[0],surfacePosition[1],surfacePosition[2],surfacePosition[3],tileShape,largeTileShape,widgetsHidden,fingerprintStyle,fingerprintHidden,lockClockFont,fingerprintAnimation,qsStyle,brightnessStyle,volumeStyle,notificationStyle,wifiStyle,signalStyle,powerStyle,notificationAppearance,notificationBehavior,chargingInfo,batteryStyle,batteryPercent,batteryCharge,notificationCount,notificationLimit,qsColumns,qsRows,qsOptions,iconPack);}
+    private SurfaceStyle currentSurfaces(){return new SurfaceStyle(surfaceHidden,surfaceAppearance[0],surfaceAppearance[1],surfaceAppearance[2],surfaceAppearance[3],surfacePosition[0],surfacePosition[1],surfacePosition[2],surfacePosition[3],tileShape,largeTileShape,widgetsHidden,fingerprintStyle,fingerprintHidden,lockClockFont,fingerprintAnimation,qsStyle,brightnessStyle,volumeStyle,notificationStyle,wifiStyle,signalStyle,powerStyle,notificationAppearance,notificationBehavior,chargingInfo,batteryStyle,batteryPercent,batteryCharge,notificationCount,notificationLimit,qsColumns,qsRows,qsOptions,iconPack,qsIconPack);}
     private void surfaceControls(LinearLayout parent,String title,int group){
         parent.addView(text(title,18,true));
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);parent.addView(box);

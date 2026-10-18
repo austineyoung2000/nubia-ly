@@ -25,6 +25,7 @@ public final class SystemUiGuardClient {
         if (!ClockColorPolicy.valid(color)) { result.accept("Preview blocked: choose an opaque RGB color."); return; }
         request(true, "clock_start", color, result);
     }
+    public void enableSavedAppearance(Consumer<String> result){request(true,"clock_enable",null,result);}
     public void enableColor(int color, Consumer<String> result) {
         if (!ClockColorPolicy.valid(color)) { result.accept("Enable blocked: choose an opaque color."); return; }
         request(true, "clock_enable", color, result);

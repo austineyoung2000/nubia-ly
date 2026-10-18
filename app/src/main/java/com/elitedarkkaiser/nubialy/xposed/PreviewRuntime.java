@@ -95,7 +95,7 @@ final class PreviewRuntime {
             } else if (!session.activate(ticket, permit, now())) {
                 reason = "Start blocked: lifecycle permit or broker unavailable.";
             } else {
-                if (!(visual ? ClockColorBackend.begin(session.deadline(), startup ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0) : ClockCaptureBackend.begin())) {
+                if (!(visual ? ClockColorBackend.begin(session.deadline(), enabledMode ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0) : ClockCaptureBackend.begin())) {
                     stop(visual ? "Clock preview unavailable; check restoration result." : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
                 }
                 reason = visual ? "Temporary selected-color clock preview started." : "Clock capture rehearsal started; no appearance changes.";
@@ -159,7 +159,7 @@ final class PreviewRuntime {
                         receivedDate=response.getInt("clock_date",0);
                         receivedBarColor = response.getInt("statusbar_color",ClockColorPolicy.DEFAULT);
                         receivedBar = new StatusBarStyle(response.getInt("statusbar_mask",0),response.getInt("statusbar_system_scale",100),response.getInt("statusbar_notification_scale",100),response.getInt("statusbar_battery_scale",100),response.getInt("statusbar_system_opacity",100),response.getInt("statusbar_notification_opacity",100),response.getInt("statusbar_battery_opacity",100),StatusBarStyle.decodeSlots(response.getString("statusbar_hidden_slots","")),response.getInt("statusbar_system_transform",0),response.getInt("statusbar_notification_transform",0),response.getInt("statusbar_battery_transform",0),response.getInt("statusbar_fan_appearance",0),response.getInt("statusbar_pump_appearance",0),response.getInt("statusbar_refresh_appearance",0),com.elitedarkkaiser.nubialy.SurfaceStyle.decode(response.getString("surface_style",com.elitedarkkaiser.nubialy.SurfaceStyle.STOCK.encode())));
-                        if (!ClockColorPolicy.valid(receivedColor) || !ClockStylePolicy.valid(receivedSize) || !ClockStylePolicy.validSpacing(receivedSpacing) || !ClockStylePolicy.validFamily(receivedFamily) || !receivedBar.valid() || !ClockColorPolicy.valid(receivedBarColor) || !ClockDatePolicy.valid(receivedDate)) permit = null;
+                        if ((receivedColor!=0&&!ClockColorPolicy.valid(receivedColor)) || !ClockStylePolicy.valid(receivedSize) || !ClockStylePolicy.validSpacing(receivedSpacing) || !ClockStylePolicy.validFamily(receivedFamily) || !receivedBar.valid() || !ClockColorPolicy.valid(receivedBarColor) || !ClockDatePolicy.valid(receivedDate)) permit = null;
                     }
                 } catch (Throwable unavailable) { /* No permit on any failure. */ }
                 finally { busy.set(false); }

@@ -108,6 +108,7 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  a.setVisibility(0);check(ClockColorBackend.begin(175000,0xff112233,0,false,false,false,0,0,true));a.setVisibility(0);check(a.getVisibility()==8);unrelated.setVisibility(4);check(unrelated.getVisibility()==4);ClockColorBackend.detach(a);check(a.getVisibility()==0);ClockColorBackend.end();check(XposedHelpers.hooks.isEmpty());
  check(ClockColorBackend.begin(175000,0xff112233,0,false,false,false,0,0,true));a.allowVisible=false;a.setVisibility(0);ClockColorBackend.end();check(a.getVisibility()==8);a.allowVisible=true;a.setVisibility(0);
  check(!ClockColorBackend.begin(175000,0xff112233,0,false,false,false,0,4,false));
+ check(ClockColorBackend.begin(175000,0,0,false,false,false,0,0,false,com.elitedarkkaiser.nubialy.StatusBarStyle.STOCK,0xff123456));check(a.getTextColors().color()==10);a.setTextColor(123);check(a.getTextColors().color()==123);ClockColorBackend.track(a);check(a.getTextColors().color()==123);ClockColorBackend.end();check(a.getTextColors().color()==123);a.setTextColor(10);
  a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, hooked/bypassed dark updates, tracked-view reassertion, latest-stock restore, stale dark frames, detach, health and failure fences");}}
 '''
