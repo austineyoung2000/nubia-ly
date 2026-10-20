@@ -9,6 +9,8 @@ import java.util.*;
 
 /** Typography authority belongs to the existing guarded clock session. Main thread only. */
 final class ClockStyleBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private record Stock(float pixels, Typeface face, boolean fakeBold, float skew, float spacing) {}
     private static final Map<TextView, Stock> states = new WeakHashMap<>();
     private static final Map<TextView, Long> revisions = new WeakHashMap<>();
@@ -24,14 +26,14 @@ final class ClockStyleBackend {
         XC_MethodHook callback = new XC_MethodHook() {
             @Override protected void beforeHookedMethod(MethodHookParam p) {
                 if (!eligible(p.thisObject) || writing) return;
-                if (Looper.myLooper() != Looper.getMainLooper()) { failed = true; return; }
+                if (Looper.myLooper() != Looper.getMainLooper()) { failed=true;hardFailed=true; return; }
                 p.setObjectExtra("nubia-ly:style", Boolean.TRUE); depth++;
             }
             @Override protected void afterHookedMethod(MethodHookParam p) {
                 if (p.getObjectExtra("nubia-ly:style") == null) return;
                 depth--;
                 if (depth != 0 || !active || writing) return;
-                if (p.hasThrowable()) { failed = true; return; }
+                if (p.hasThrowable()) { failed=true;hardFailed=true; return; }
                 TextView view = (TextView)p.thisObject;
                 Stock old = states.get(view); if (old == null) return;
                 Stock current = capture(view);
@@ -40,7 +42,7 @@ final class ClockStyleBackend {
                 states.put(view, method.equals("setTextSize") ? new Stock(current.pixels, old.face, old.fakeBold, old.skew, old.spacing)
                     : method.equals("setLetterSpacing") ? new Stock(old.pixels, old.face, old.fakeBold, old.skew, current.spacing)
                     : new Stock(old.pixels, current.face, current.fakeBold, current.skew, old.spacing));
-                try { paint(view); } catch (Throwable unavailable) { failed = true; }
+                try { paint(view); } catch (Throwable unavailable) { failed=true;hardFailed=true; }
             }
         };
         try {
@@ -49,7 +51,7 @@ final class ClockStyleBackend {
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTypeface", Typeface.class, callback));
             hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setTypeface", Typeface.class, int.class, callback));
             if (spacing != 0) hooks.add(XposedHelpers.findAndHookMethod(TextView.class, "setLetterSpacing", float.class, callback));
-        } catch (Throwable unavailable) { failed = true; end(); throw new IllegalStateException("Typography hook unavailable", unavailable); }
+        } catch (Throwable unavailable) { failed=true;hardFailed=true; end(); throw new IllegalStateException("Typography hook unavailable", unavailable); }
     }
     record DimensionFrame(long generation, Stock stock, long revision) {}
     static DimensionFrame beforeDimensions(TextView view) {
@@ -64,7 +66,7 @@ final class ClockStyleBackend {
             Stock old = states.get(view);
             states.put(view, new Stock(view.getTextSize(), old.face, old.fakeBold, old.skew, old.spacing));
         }
-        try { paint(view); } catch (Throwable unavailable) { failed = true; }
+        try { paint(view); } catch (Throwable unavailable) { failed=true;hardFailed=true; }
     }
     private static boolean eligible(Object object) {
         return active && object instanceof TextView view && states.containsKey(view)
@@ -118,18 +120,17 @@ final class ClockStyleBackend {
             if ((percent != 0 && Math.abs(actual.pixels - stock.pixels) > 0.01f)
                 || (spacing != 0 && Math.abs(actual.spacing - stock.spacing) > 0.00001f)
                 || ((bold || italic || family != 0) && (!Objects.equals(actual.face, stock.face) || actual.fakeBold != stock.fakeBold || actual.skew != stock.skew))) {
-                failed = true; return false;
+                failed=true; return false;
             }
             states.remove(view); revisions.remove(view); return true;
-        } catch (Throwable unavailable) { failed = true; return false; }
+        } catch (Throwable unavailable) { failed=true; return false; }
         finally { writing = false; }
     }
     static boolean end() {
         generation++; active = false;
         for (TextView view : new ArrayList<>(states.keySet())) restore(view);
-        for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
-        hooks.clear(); depth = 0;
-        return !failed && states.isEmpty();
+        for(XC_MethodHook.Unhook hook :new ArrayList<>(hooks))try{hook.unhook();hooks.remove(hook);}catch(Throwable unavailable){ failed=true;hardFailed=true; } depth = 0;
+        if(!hardFailed&&states.isEmpty()&&hooks.isEmpty())failed=false;return !failed && states.isEmpty();
     }
     static boolean healthy() { return !failed; }
     static String status() { return "Size: " + (percent == 0 ? "stock" : percent + "%") + "; bold: " + bold + "; italic: " + italic + "; spacing offset: " + spacing / 100f + " em; typography remaining: " + states.size() + "."; }

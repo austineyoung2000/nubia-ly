@@ -11,6 +11,8 @@ import java.util.*;
 
 /** Main-thread, temporary override. Setter hooks exist only during the explicit session. */
 final class ClockColorBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private static final Map<TextView, ColorRestore<ColorStateList>> states = new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> hooks = new ArrayList<>();
     private static final Handler main = new Handler(Looper.getMainLooper());
@@ -27,6 +29,7 @@ final class ClockColorBackend {
     private static int applied, restored, darkReapplications;
     private static String startupFailure = "none";
     static String startupFailure(){return startupFailure;}
+    static boolean cleanupRetryable(){return !hardFailed&&ClockCaptureBackend.available();}
     private static String message = "No clock color preview started.";
     private static int selectedColor = ClockColorPolicy.DEFAULT;
     static int color() { return selectedColor; }
@@ -145,25 +148,25 @@ final class ClockColorBackend {
             if (!ClockStyleBackend.restore(view) || !ClockSecondsBackend.restore(view) || !ClockVisibilityBackend.restore(view) || !ClockDateBackend.restore(view)) throw new IllegalStateException();
             if (!view.getTextColors().equals(state.target())) throw new IllegalStateException();
             state.restored(); states.remove(view); restored++;
-        } catch (Throwable unavailable) { failed = true; message = "Clock restoration incomplete. Disable nubia-ly in Vector and reboot."; }
+        } catch (Throwable unavailable) { failed=true; message = "Clock restoration incomplete. Disable nubia-ly in Vector and reboot."; }
         finally { writing = false; }
     }
     static void end() {
         generation++; active = false;
         for (TextView view : new ArrayList<>(states.keySet())) restore(view);
-        for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
-        hooks.clear();String incomplete="";
+        for(XC_MethodHook.Unhook hook :new ArrayList<>(hooks))try{hook.unhook();hooks.remove(hook);}catch(Throwable unavailable){ failed=true;hardFailed=true; }String incomplete="";
         if(!ClockStyleBackend.end())incomplete+=" typography";
         if(!ClockSecondsBackend.end())incomplete+=" seconds";
         if(!ClockVisibilityBackend.end())incomplete+=" visibility";
         if(!StatusBarBackend.end())incomplete+=" status-bar/surfaces";
         if(!ClockDateBackend.end())incomplete+=" date";
         if(!incomplete.isEmpty()){failed=true;message="Restoration blocked:"+incomplete+". "+StatusBarBackend.status();}deadline=0;
+        if(!hardFailed&&states.isEmpty()&&hooks.isEmpty()&&incomplete.isEmpty())failed=false;
         if (!failed && applied > 0) message = "Latest stock clock colors restored and read back.";
     }
     private static void abort(String reason) {
         if (Looper.myLooper() != Looper.getMainLooper()) { main.post(() -> abort(reason)); return; }
-        end(); failed = true; message = reason + " Preview blocked; check restored count. Disable nubia-ly in Vector and reboot if incomplete.";
+        end(); failed=true;hardFailed=true; message = reason + " Preview blocked; check restored count. Disable nubia-ly in Vector and reboot if incomplete.";
     }
     static boolean healthy() { return active && !failed && ClockStyleBackend.healthy() && ClockSecondsBackend.healthy() && ClockVisibilityBackend.healthy() && StatusBarBackend.healthy() && ClockDateBackend.healthy() && ClockCaptureBackend.available(); }
     static String status() { return message + " Applied: " + applied + "; restored: " + restored + "; remaining: " + states.size() + "; dark updates kept: " + darkReapplications + ". " + ClockStyleBackend.status() + " " + ClockSecondsBackend.status() + " " + ClockVisibilityBackend.status() + " " + StatusBarBackend.status() + " " + ClockDateBackend.status(); }

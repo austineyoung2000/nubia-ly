@@ -111,7 +111,11 @@ final class PreviewRuntime {
                 resumeWanted=false;reason = "Start blocked: "+answer.detail();
             } else {
                 if (!(visual ? ClockColorBackend.begin(session.deadline(), enabledMode ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0, enabledMode) : ClockCaptureBackend.begin())) {
-                    stop(visual ? "Styling activation failed: "+ClockColorBackend.startupFailure() : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
+                    String failure=visual?"Styling activation failed: "+ClockColorBackend.startupFailure():"Clock capture rehearsal unavailable.";
+                    if(visual&&enabledMode&&resumeWanted&&ClockColorBackend.cleanupRetryable()){
+                        enabledIdentity=permit.id();session.stop();cancelTimers();reason=failure;recover();
+                    }else stop(failure);
+                    reply.accept(snapshot());return;
                 }
                 reason = visual ? (enabledMode?"Enabled styling started; attached clocks follow their lifecycle.":"Temporary selected-color clock preview started.") : "Clock capture rehearsal started; no appearance changes.";
                 startup = false;
@@ -150,7 +154,10 @@ final class PreviewRuntime {
                 reply.accept(snapshot());return;
             }
             if(visual&&!ClockColorBackend.healthy()){
-                String failure=ClockColorBackend.status();stop("Styling backend stopped: "+failure);
+                String failure=ClockColorBackend.status();
+                if(enabledMode&&resumeWanted&&ClockColorBackend.cleanupRetryable()){
+                    session.stop();cancelTimers();reason="Styling cleanup required: "+failure;recover();
+                }else stop("Styling backend stopped: "+failure);
             } else if (!session.validate(ticket, permit, now())) {
                 stop("Lifecycle ended: "+answer.detail()+"; permit removed, replaced or invalid.");
             } else {

@@ -29,6 +29,11 @@ var entered=new CountDownLatch(1);var release=new CountDownLatch(1);Context.answ
 r.request("status",SystemClock.time+8000,b->{});check(entered.await(3,TimeUnit.SECONDS));check(request(r,"status").getString("phase").equals("ACTIVE"));release.countDown();flush(r);
 SystemClock.time=session.deadline();run(r,"expiry");check(session.state(SystemClock.time)!=PreviewLifecycle.Phase.ACTIVE);check(get(r,"recovery")!=null);
 Context.answer=q->response(q,GuardBrokerPolicy.READABLE);run(r,"recovery");check(session.state(SystemClock.time)==PreviewLifecycle.Phase.ACTIVE&&session.deadline()>deadline);
+// Cleanup-only activation failure gets fresh authorized retry, while hard failure stays stopped.
+ClockColorBackend.beginAllowed=false;ClockColorBackend.retryCleanup=true;request(r,"clock_enable");check(get(r,"recovery")!=null&&session.state(SystemClock.time)!=PreviewLifecycle.Phase.ACTIVE);
+ClockColorBackend.beginAllowed=true;run(r,"recovery");check(session.state(SystemClock.time)==PreviewLifecycle.Phase.ACTIVE);
+ClockColorBackend.beginAllowed=false;ClockColorBackend.retryCleanup=false;request(r,"clock_enable");check(get(r,"recovery")==null&&session.state(SystemClock.time)==PreviewLifecycle.Phase.STOPPED);
+ClockColorBackend.beginAllowed=true;request(r,"clock_enable");
 // Explicit denial cannot trigger recovery.
 Context.answer=q->response(q,GuardBrokerPolicy.BLOCKED);check(request(r,"status").getString("phase").equals("STOPPED"));check(get(r,"recovery")==null);
 Context.answer=q->response(q,GuardBrokerPolicy.READABLE);request(r,"clock_enable");Context.answer=q->{var b=response(q,GuardBrokerPolicy.READABLE);b.putString("nonce","wrong");return b;};check(request(r,"status").getString("phase").equals("STOPPED"));check(get(r,"recovery")==null);
