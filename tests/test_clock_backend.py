@@ -75,6 +75,13 @@ import android.os.SystemClock;import android.widget.TextView;import android.cont
 public class BackendTest {static void check(boolean b){if(!b)throw new AssertionError(ClockColorBackend.status());}
  public static void main(String[] args){Clock a=new Clock(1),b=new Clock(2); ClockCaptureBackend.views.add(a);ClockCaptureBackend.views.add(b);
  if(args.length>0){a.failSpacing=true;check(!ClockColorBackend.begin(130000,0xff112233,0,false,false,false,10));check(a.getLetterSpacing()==0);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(130000,0xff112233));System.out.println("Letter-spacing failure rollback and activation fence passed");return;}
+ ClockCaptureBackend.views.clear();
+ check(!ClockColorBackend.begin(130000,0xffc0a8ff));check(ClockColorBackend.startupFailure().contains("No eligible"));
+ check(ClockColorBackend.begin(115000,0xffc0a8ff,0,false,false,false,0,0,false,com.elitedarkkaiser.nubialy.StatusBarStyle.STOCK,0xffc0a8ff,0,true));
+ check(ClockColorBackend.healthy());ClockColorBackend.track(a);check(a.getCurrentTextColor()==0xffc0a8ff);ClockColorBackend.end();check(a.getCurrentTextColor()==1);check(XposedHelpers.hooks.isEmpty());
+ check(ClockColorBackend.begin(115000,0xffc0a8ff,0,false,false,false,0,0,false,com.elitedarkkaiser.nubialy.StatusBarStyle.STOCK,0xffc0a8ff,0,true));
+ SystemClock.time=115000;ClockColorBackend.track(a);check(a.getCurrentTextColor()==1&&!ClockColorBackend.healthy());check(XposedHelpers.hooks.isEmpty());SystemClock.time=100000;
+ ClockCaptureBackend.views.add(a);ClockCaptureBackend.views.add(b);
  check(ClockColorBackend.begin(130000,0xffc0a8ff));check(a.getTextColors().color()==0xffc0a8ff);
  TextView unrelated=new TextView(3);unrelated.setTextColor(4);check(unrelated.getTextColors().color()==4);
  ColorStateList dark=new ColorStateList(5);var hookedFrame=ClockColorBackend.beforeDark(a);a.setTextColor(dark);ClockColorBackend.afterDark(a,hookedFrame);check(a.getTextColors().color()==0xffc0a8ff);
@@ -109,7 +116,7 @@ public class BackendTest {static void check(boolean b){if(!b)throw new Assertion
  check(ClockColorBackend.begin(175000,0xff112233,0,false,false,false,0,0,true));a.allowVisible=false;a.setVisibility(0);ClockColorBackend.end();check(a.getVisibility()==8);a.allowVisible=true;a.setVisibility(0);
  check(!ClockColorBackend.begin(175000,0xff112233,0,false,false,false,0,4,false));
  check(ClockColorBackend.begin(175000,0,0,false,false,false,0,0,false,com.elitedarkkaiser.nubialy.StatusBarStyle.STOCK,0xff123456));check(a.getTextColors().color()==10);a.setTextColor(123);check(a.getTextColors().color()==123);ClockColorBackend.track(a);check(a.getTextColors().color()==123);ClockColorBackend.end();check(a.getTextColors().color()==123);a.setTextColor(10);
- a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
+ a.failPaint=true;check(!ClockColorBackend.begin(170000,0xffc0a8ff));check(!ClockColorBackend.startupFailure().equals("none"));check(a.getTextColors().color()==10);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(170000,0xffc0a8ff));
  System.out.println("Production clock backend checks passed: apply, hooked/bypassed dark updates, tracked-view reassertion, latest-stock restore, stale dark frames, detach, health and failure fences");}}
 '''
 }

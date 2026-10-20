@@ -110,10 +110,10 @@ final class PreviewRuntime {
             } else if (!session.activate(ticket, permit, now())) {
                 resumeWanted=false;reason = "Start blocked: "+answer.detail();
             } else {
-                if (!(visual ? ClockColorBackend.begin(session.deadline(), enabledMode ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0) : ClockCaptureBackend.begin())) {
-                    stop(visual ? "Clock preview unavailable; check restoration result." : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
+                if (!(visual ? ClockColorBackend.begin(session.deadline(), enabledMode ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0, enabledMode) : ClockCaptureBackend.begin())) {
+                    stop(visual ? "Styling activation failed: "+ClockColorBackend.startupFailure() : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
                 }
-                reason = visual ? "Temporary selected-color clock preview started." : "Clock capture rehearsal started; no appearance changes.";
+                reason = visual ? (enabledMode?"Enabled styling started; attached clocks follow their lifecycle.":"Temporary selected-color clock preview started.") : "Clock capture rehearsal started; no appearance changes.";
                 startup = false;
                 if(enabledMode){enabledIdentity=permit.id();recoveryAttempts=0;}
                 armExpiry();
@@ -149,7 +149,9 @@ final class PreviewRuntime {
                 else{session.stop();cancelTimers();recover();}
                 reply.accept(snapshot());return;
             }
-            if ((visual && !ClockColorBackend.healthy()) || !session.validate(ticket, permit, now())) {
+            if(visual&&!ClockColorBackend.healthy()){
+                String failure=ClockColorBackend.status();stop("Styling backend stopped: "+failure);
+            } else if (!session.validate(ticket, permit, now())) {
                 stop("Lifecycle ended: "+answer.detail()+"; permit removed, replaced or invalid.");
             } else {
                 if (enabledMode) {

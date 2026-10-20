@@ -11,3 +11,9 @@ Explicit stop cancels retries and fences late callbacks. A blocked, malformed, m
 `tests/test_preview_recovery.py` executes production PreviewRuntime with deterministic Android fixtures: shared BUSY, overlapping reads, unavailable broker, unchanged deadline, expiry restoration, fresh resume, blocked/bad-nonce responses, bounded retries and explicit-stop cancellation. Existing sleep tests cover temporary previews and surface failures.
 
 This is a phone-test build on the existing temporary launcher compatibility branch. The launcher APK identity bypass remains a test-only change and this branch must not be merged as-is. Recovery guard 0.1.17 is unchanged. Device confirmation of this reported failure remains pending.
+
+## APK 92 — detached-clock startup
+
+A later phone report showed activation failure, rather than a user Stop or broker failure. The screenshot cannot establish which backend originally refused activation. Production ClockColorBackend did require an attached clock on every activation, including persistent resume during view replacement. Persistent activation now keeps its authorized session and hooks while waiting for the inspected clock attach/update callbacks. Those callbacks apply the saved appearance automatically. No additional polling or unbounded authority is added. Temporary previews still reject absent clocks; observer, installation and restoration failures still stop.
+
+Backend tests reproduce absent clocks, late attachment and restoration, expiry before attachment, temporary-preview rejection and failure latches. Runtime reports the specific activation stage, exception, or restoration component instead of a generic unavailable message. Surface restoration diagnostics identify individual rejecting backends. Genuine backend-health failures are no longer described as missing permits. Phone confirmation remains pending.
