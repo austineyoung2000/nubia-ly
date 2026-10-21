@@ -30,6 +30,7 @@ jobs:
           python3 tests/test_clock_backend.py
           python3 tests/test_statusbar_backend.py
           python3 tests/test_surface_backend.py
+          python3 tests/test_qs_appearance_backend.py
           python3 tests/test_qs_grid_inspection.py
           python3 tests/test_qs_grid_backend.py
           python3 tests/test_qs_layout_backend.py

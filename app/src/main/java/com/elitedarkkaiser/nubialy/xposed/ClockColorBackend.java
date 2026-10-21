@@ -18,6 +18,7 @@ final class ClockColorBackend {
     private static final Handler main = new Handler(Looper.getMainLooper());
     private static boolean active, writing, failed;
     private static long deadline;
+    static boolean authorized(){return active&&!failed&&SystemClock.elapsedRealtime()<deadline;}
     static boolean refreshHealth(long until) {
         long now = SystemClock.elapsedRealtime();
         if (!active || failed || now >= deadline || until <= now || until - now > ClockEnabledPolicy.HEALTH_MS) return false;

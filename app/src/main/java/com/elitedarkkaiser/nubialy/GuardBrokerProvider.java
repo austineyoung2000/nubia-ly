@@ -118,7 +118,19 @@ public final class GuardBrokerProvider extends ContentProvider {
     @Override public int delete(Uri uri, String selection, String[] selectionArgs) { throw unsupported(); }
     @Override public String getType(Uri uri) { return null; }
     @Override public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
-        throw new FileNotFoundException("No guard files exported");
+        enforceSystemUi();
+        var segments=uri.getPathSegments();
+        if(!"r".equals(mode)||segments.size()!=2||!"qs-image".equals(segments.get(0))||!QsImageStore.hash(segments.get(1)))throw new FileNotFoundException("Unknown image");
+        long identity=Binder.clearCallingIdentity();
+        try{
+            String id=GuardReader.inspectEnabled();
+            if(!RecoveryStore.enabledAllowed(getContext(),id))throw new FileNotFoundException("Image authority unavailable");
+            var theme=StatusBarPreferences.active(getContext(),id).surfaces().qsTheme();
+            if(theme.header()==0||!segments.get(1).equals(theme.image()))throw new FileNotFoundException("Image not active");
+            java.io.File file=QsImageStore.file(getContext(),theme.image());
+            if(!file.isFile()||file.length()<=0||file.length()>QsImageStore.MAX_BYTES)throw new FileNotFoundException("Image unavailable");
+            return ParcelFileDescriptor.open(file,ParcelFileDescriptor.MODE_READ_ONLY);
+        }finally{Binder.restoreCallingIdentity(identity);}
     }
     private static UnsupportedOperationException unsupported() {
         return new UnsupportedOperationException("Only fixed guard inspection is supported");

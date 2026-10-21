@@ -53,6 +53,8 @@ nubia-ly is a standalone app. [Redmagic 11 Toolbox](https://github.com/austineyo
 | **Launcher** | Icon packs and shapes, icon sizing and label colors, folder blur/title/labels/grid/icon size, home-screen grids up to 7 × 8, dock icon sizing and page indicators; independent page Enable/Restore. |
 | **Boot animations** | Rising, Cyberpunk, Valorant, Google and Google Monet, with source-frame previews and explicit next-boot application. |
 
+For the QS colors/background test build, see [the feature and phone-test notes](docs/QS_COLORS_BACKGROUND.md).
+
 ### Designed around your phone
 
 - **One consistent interface:** dark tonal surfaces, rounded cards, visual pickers and dedicated detail pages.

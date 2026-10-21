@@ -3,6 +3,8 @@ from pathlib import Path
 import subprocess,tempfile
 root=Path(__file__).resolve().parents[1]
 sources={
+'com/elitedarkkaiser/nubialy/xposed/QsAppearanceBackend.java': 'package com.elitedarkkaiser.nubialy.xposed;class QsAppearanceBackend {static void prepare(Object a,Object b){}static void install(ClassLoader l){}static void observe(android.view.View v){}static void begin(com.elitedarkkaiser.nubialy.SurfaceStyle.QsTheme t){}static boolean end(){return true;}static boolean healthy(){return true;}static boolean twoTone(){return false;}static String status(){return "";}}',
+
 'com/elitedarkkaiser/nubialy/xposed/SurfaceBackend.java':'package com.elitedarkkaiser.nubialy.xposed;final class SurfaceBackend {static void install(ClassLoader l){}static void begin(com.elitedarkkaiser.nubialy.SurfaceStyle s){}static void refresh(){}static boolean end(){return true;}static boolean healthy(){return true;}static String status(){return "";}}',
 'android/content/res/ColorStateList.java': 'package android.content.res;public record ColorStateList(int color){public static ColorStateList valueOf(int c){return new ColorStateList(c);}public int getDefaultColor(){return color;}}',
 'android/util/DisplayMetrics.java':'package android.util;public class DisplayMetrics {public float density=2;} ',
