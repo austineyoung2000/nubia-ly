@@ -48,7 +48,7 @@ final class LauncherRuntime {
             });
         }},new IntentFilter(GuardBrokerPolicy.LAUNCHER_ACTION),SystemUiGuardProtocol.PERMISSION,null,Context.RECEIVER_EXPORTED);
         worker.execute(()->{boolean match=LauncherCompatibility.supported(context);main.post(()->{
-            ready=match&&LauncherBackend.install(context.getClassLoader());authority=ready?(LauncherProbePolicy.ENABLED?"TEMP test: APK gate bypassed; full launcher test":"APK verified"):"unsupported APK or hooks";
+            ready=match&&LauncherBackend.install(context.getClassLoader());authority=ready?"Launcher hooks available; version open":"launcher unavailable or hooks missing";
             if(ready&&!resumed.isEmpty()&&!screenOff){for(Activity a:resumed)LauncherBackend.observe(a.getWindow().getDecorView());main.removeCallbacks(poll);main.post(poll);}
         });});
     }

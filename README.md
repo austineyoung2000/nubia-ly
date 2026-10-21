@@ -50,6 +50,7 @@ nubia-ly is a standalone app. [Redmagic 11 Toolbox](https://github.com/austineyo
 | **Notifications** | Notification surface styles, corners and opacity, automatic heads-up suppression, overflow counts and notification-icon limits. |
 | **Volume** | A dedicated page with visual slider styles, including outline, gradient, neumorphic and layered treatments. |
 | **Power menu** | Duoline, CyberPunk, Fluid, iOS and Layers treatments around the native power/restart controls. |
+| **Launcher** | Icon packs and shapes, icon sizing and label colors, folder blur/title/labels/grid/icon size, home-screen grids up to 7 × 8, dock icon sizing and page indicators; independent page Enable/Restore. |
 | **Boot animations** | Rising, Cyberpunk, Valorant, Google and Google Monet, with source-frame previews and explicit next-boot application. |
 
 ### Designed around your phone
@@ -198,9 +199,11 @@ Pinned boot assets are prepared by CI before Android compilation. See [asset pro
 
 ## Launcher compatibility and reporting
 
+Launcher tweaks are open to installed launcher versions on supported devices, without an APK version or hash allowlist. The two inspected versions are `16.0.010.000.2604151532` and `16.0.020.000.2603171131`; features can differ on other versions. Runtime hook checks still apply.
+
 Launcher tweaks depend on the installed launcher APK, not only the phone model or REDMAGIC OS version. Firmware updates can change internal classes and methods even when the launcher looks the same or keeps the same version code.
 
-If a launcher feature is blocked or does not work, export **your currently installed launcher** and share the resulting archive with **EliteDarkKaiser / Austin Young** so that version can be inspected and support added. Include your nubia-ly version, the affected feature, reproduction steps, and screenshots of the result and **Check launcher runtime**. Sharing an APK enables investigation; it does not guarantee immediate compatibility.
+If a launcher feature does not work, report your launcher version and exactly which feature failed. Export **your currently installed launcher** and share the resulting archive with **EliteDarkKaiser / Austin Young** so that version can be inspected and support added. Include your nubia-ly version, the affected feature, reproduction steps, and screenshots of the result and **Check launcher runtime**. Sharing an APK enables investigation; it does not guarantee immediate compatibility.
 
 Run this entire command in **Termux**, approve root access, then upload `nubia-ly-launcher-report.tar.gz` from your **Download** folder. It copies the launcher APK and any split APKs, records their SHA-256 hashes and device/firmware/package details, and packages them together. It does not export launcher databases, home-screen contents, or app data. Running it again replaces the previous report archive.
 
