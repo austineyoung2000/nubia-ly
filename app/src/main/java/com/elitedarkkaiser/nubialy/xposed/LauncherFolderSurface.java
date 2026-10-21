@@ -20,7 +20,8 @@ final class LauncherFolderSurface {
         List<XC_MethodHook.Unhook> hooks=new ArrayList<>();
         try{
             Class<?> depth=XposedHelpers.findClass("com.android.quickstep.util.BaseDepthController",loader),folder=XposedHelpers.findClass("com.android.launcher3.folder.Folder",loader);
-            openFolder=Arrays.stream(folder.getDeclaredMethods()).filter(m->m.getName().equals("i1")&&Modifier.isStatic(m.getModifiers())&&m.getParameterCount()==1&&m.getReturnType()==folder).findFirst().orElseThrow();openFolder.setAccessible(true);
+            for(String name:new String[]{"i1","g1"}){openFolder=Arrays.stream(folder.getDeclaredMethods()).filter(m->m.getName().equals(name)&&Modifier.isStatic(m.getModifiers())&&m.getParameterCount()==1&&m.getReturnType()==folder).findFirst().orElse(null);if(openFolder!=null)break;}
+            if(openFolder==null)throw new IllegalStateException("Folder getter unavailable");openFolder.setAccessible(true);
             launcher=XposedHelpers.findField(depth,"mLauncher");baseSurface=XposedHelpers.findField(depth,"mBaseSurface");blurSurface=XposedHelpers.findField(depth,"mBlurSurface");
             // This lookup executes only in the verified launcher process through the Xposed module.
             setRadius=XposedHelpers.findMethodExact(SurfaceControl.Transaction.class,"setBackgroundBlurRadius",SurfaceControl.class,int.class);

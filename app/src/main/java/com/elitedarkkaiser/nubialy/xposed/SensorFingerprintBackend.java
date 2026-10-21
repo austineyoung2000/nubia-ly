@@ -12,6 +12,8 @@ import java.util.*;
 
 /** SensorService idle keyguard background only. No authentication, window or touch writes. */
 final class SensorFingerprintBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private static final String BASE="com.fingerprint.sensorservice.",OWNER=BASE+"view.FloatWindowSensorView",SERVICE=BASE+"UdfpsMessageService";
     private static WeakReference<Object> service=new WeakReference<>(null);
     private static final Map<ImageView,State> states=new WeakHashMap<>();
@@ -95,8 +97,8 @@ final class SensorFingerprintBackend {
         if(current==null||!current.isAttachedToWindow()||!allowed)return;
         State state=states.get(current);if(state==null){state=new State(current);states.put(current,state);captured++;if(state.stock!=null)knownGraphics.put(current,true);}paint(current,state);
     }catch(Throwable failure){fail(failure);}}
-    private static void fail(Throwable failure){failed=true;message="Fingerprint appearance stopped: "+failure.getClass().getSimpleName();if(main())end();else new Handler(Looper.getMainLooper()).post(()->end());}
+    private static void fail(Throwable failure){failed=true;hardFailed=true;message="Fingerprint appearance stopped: "+failure.getClass().getSimpleName();if(main())end();else new Handler(Looper.getMainLooper()).post(()->end());}
     private static boolean restore(ImageView view){State state=states.get(view);if(state==null)return true;writing=true;try{background(view,state.stock);if(view.getBackground()!=state.stock)throw new IllegalStateException();states.remove(view);restored++;return true;}catch(Throwable unavailable){failed=true;message="Fingerprint restoration incomplete; disable nubia-ly for SensorService in Vector and reboot";return false;}finally{writing=false;}}
-    static boolean end(){generation++;active=false;for(ImageView view:new ArrayList<>(states.keySet()))restore(view);for(var hook:activeHooks)try{hook.unhook();}catch(Throwable unavailable){failed=true;}activeHooks.clear();return !failed&&states.isEmpty();}
+    static boolean end(){generation++;active=false;for(ImageView view:new ArrayList<>(states.keySet()))restore(view);for(var hook:new ArrayList<>(activeHooks))try{hook.unhook();activeHooks.remove(hook);}catch(Throwable unavailable){failed=true;hardFailed=true;}if(!hardFailed&&states.isEmpty()&&activeHooks.isEmpty())failed=false;return !failed&&states.isEmpty();}
     static String status(){String visual="";try{ImageView current=image();if(current!=null){float alpha=1;boolean visible=true;View node=current;for(int depth=0;node!=null&&depth<6;depth++){alpha*=node.getAlpha();visible&=node.getVisibility()==View.VISIBLE;node=node.getParent() instanceof View parent?parent:null;}visual=" View: attached="+current.isAttachedToWindow()+", visible="+visible+", tree alpha="+alpha+", background="+(current.getBackground() instanceof FingerprintGlyphDrawable?"custom":current.getBackground()==null?"null":"stock")+".";}}catch(Throwable ignored){}return message+". Requested: "+(hidden?"Hidden":FingerprintGlyphDrawable.NAMES[style])+"; service observed: "+(service.get()!=null)+"; captured: "+captured+"; restored: "+restored+"; remaining: "+states.size()+"; gate: "+gate+"."+visual+" Recent: "+String.join(" → ",events)+".";}
 }

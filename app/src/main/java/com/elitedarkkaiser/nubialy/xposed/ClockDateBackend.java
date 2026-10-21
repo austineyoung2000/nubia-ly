@@ -8,6 +8,8 @@ import de.robv.android.xposed.*;
 import java.util.*;
 /** Append to the inspected stock formatter; retain its spans, locale/timezone and tick lifecycle. */
 final class ClockDateBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private static final Map<TextView,State> states=new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> hooks=new ArrayList<>();
     private static long generation;
@@ -29,7 +31,7 @@ final class ClockDateBackend {
                 try {
                     if(Looper.myLooper()!=Looper.getMainLooper()||p.hasThrowable()||!(p.getResult() instanceof CharSequence text))throw new IllegalStateException();
                     State s=states.get(view);s.stockText=text;s.appliedText=compose(text,date(view,s));p.setResult(s.appliedText);
-                }catch(Throwable unavailable){failed=true;}
+                }catch(Throwable unavailable){failed=true;hardFailed=true;}
             }
         }));installed=clock;
     }
@@ -51,7 +53,7 @@ final class ClockDateBackend {
         if(!active||writing||states.containsKey(view))return;
         if(failed||Looper.myLooper()!=Looper.getMainLooper())throw new IllegalStateException("Clock date unavailable");
         try{install(view.getClass());State s=new State();s.stockText=view.getText();s.stockDescription=view.getContentDescription();states.put(view,s);captured++;writing=true;XposedHelpers.callMethod(view,"updateClock");}
-        catch(Throwable unavailable){failed=true;throw new IllegalStateException("Clock date unavailable",unavailable);}finally{writing=false;}
+        catch(Throwable unavailable){failed=true;hardFailed=true;throw new IllegalStateException("Clock date unavailable",unavailable);}finally{writing=false;}
     }
     static void afterUpdate(TextView view){
         if(!active||failed||Looper.myLooper()!=Looper.getMainLooper())return;State s=states.get(view);if(s==null)return;
@@ -59,7 +61,7 @@ final class ClockDateBackend {
             CharSequence description=view.getContentDescription();if(description==null)return;
             if(!TextUtils.equals(description,s.appliedDescription))s.stockDescription=description;
             s.appliedDescription=compose(s.stockDescription,date(view,s));view.setContentDescription(s.appliedDescription);
-        }catch(Throwable unavailable){failed=true;}
+        }catch(Throwable unavailable){failed=true;hardFailed=true;}
     }
     static boolean restore(TextView view){
         State s=states.get(view);if(s==null)return true;writing=true;
@@ -70,7 +72,7 @@ final class ClockDateBackend {
             XposedHelpers.callMethod(view,"updateClock");restored++;return true;
         }catch(Throwable unavailable){states.put(view,s);failed=true;return false;}finally{writing=false;}
     }
-    static boolean end(){generation++;active=false;for(TextView v:new ArrayList<>(states.keySet()))restore(v);for(var h:hooks)try{h.unhook();}catch(Throwable unavailable){failed=true;}hooks.clear();installed=null;return !failed&&states.isEmpty();}
+    static boolean end(){generation++;active=false;for(TextView v:new ArrayList<>(states.keySet()))restore(v);for(var h:new ArrayList<>(hooks))try{h.unhook();hooks.remove(h);}catch(Throwable unavailable){failed=true;hardFailed=true;}installed=null;if(!hardFailed&&states.isEmpty()&&hooks.isEmpty())failed=false;return !failed&&states.isEmpty();}
     static boolean healthy(){return !failed;}
     static String status(){return (failed?"Clock date blocked; check remaining state and disable nubia-ly in Vector/reboot if incomplete. ":"")+"Clock date: "+ClockDatePolicy.LABELS[ClockDatePolicy.base(mode)]+"; captured: "+captured+"; restored: "+restored+"; date remaining: "+states.size()+".";}
 }

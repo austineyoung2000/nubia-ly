@@ -12,6 +12,8 @@ import java.util.*;
 
 /** NX809J PhoneStatusBarView subtree only; temporary transforms/tint, no stock model changes. */
 final class StatusBarBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private static final String ROOT="com.android.systemui.statusbar.phone.PhoneStatusBarView";
     private static final String ICON="com.android.systemui.statusbar.StatusBarIconView";
     private static final String BATTERY="com.android.systemui.battery.BatteryMeterView";
@@ -78,7 +80,7 @@ final class StatusBarBackend {
                         reconcileTint((View)p.thisObject,s,accepts);
                         if(accepts)
                             p.setObjectExtra("nubia-ly:icon-dark",new DarkFrame(generation,s,s.tintRevision));
-                    }catch(Throwable unavailable){failed=true;}
+                    }catch(Throwable unavailable){failed=true;hardFailed=true;}
                 }
                 @Override protected void afterHookedMethod(MethodHookParam p){
                     Object extra=p.getObjectExtra("nubia-ly:icon-dark");if(!(extra instanceof DarkFrame f))return;
@@ -88,7 +90,7 @@ final class StatusBarBackend {
                         if(p.hasThrowable())throw new IllegalStateException();
                         if(f.revision==f.state.tintRevision)f.state.colors=((ImageView)v).getImageTintList();
                         paint(v,f.state);
-                    }catch(Throwable unavailable){failed=true;}
+                    }catch(Throwable unavailable){failed=true;hardFailed=true;}
                 }
             }));
             ready=true;message="Status-bar observer ready.";
@@ -107,7 +109,7 @@ final class StatusBarBackend {
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!active||writing)return;
                 State s=states.get(p.thisObject);if(s==null)return;
-                if(Looper.myLooper()!=Looper.getMainLooper()){failed=true;return;}
+                if(Looper.myLooper()!=Looper.getMainLooper()){failed=true;hardFailed=true;return;}
                 p.setObjectExtra("nubia-ly:status-write",new Frame(generation,s));
             }
             @Override protected void afterHookedMethod(MethodHookParam p){
@@ -127,7 +129,7 @@ final class StatusBarBackend {
                         case "setImageTintList" -> {if(f.state.tint){f.state.colors=((ImageView)v).getImageTintList();f.state.tintRevision++;}}
                     }
                     paint(v,f.state);
-                }catch(Throwable unavailable){failed=true;}
+                }catch(Throwable unavailable){failed=true;hardFailed=true;}
             }
         };
         try {
@@ -212,7 +214,7 @@ final class StatusBarBackend {
                 reconcileTint(v,s,Boolean.FALSE.equals(XposedHelpers.callMethod(adapt,"donotSetIconColor")));
             }
             paint(v,s);
-        }catch(Throwable unavailable){failed=true;message="Status-bar callback failed ("+unavailable.getClass().getSimpleName()+"); restoration required.";}
+        }catch(Throwable unavailable){failed=true;hardFailed=true;message="Status-bar callback failed ("+unavailable.getClass().getSimpleName()+"); restoration required.";}
     }
     private static void reconcileTint(View v,State s,boolean wanted){
         if(s.tint==wanted)return;
@@ -256,8 +258,7 @@ final class StatusBarBackend {
     static boolean end(){
         generation++;active=false;
         for(View v:new ArrayList<>(states.keySet()))restore(v);
-        for(var h:activeHooks)try{h.unhook();}catch(Throwable unavailable){failed=true;}
-        activeHooks.clear();boolean surfaceRestored=SurfaceBackend.end();if(!failed&&captured>0)message="Latest stock status-bar properties restored.";return !failed&&states.isEmpty()&&surfaceRestored;
+        for(var h:new ArrayList<>(activeHooks))try{h.unhook();activeHooks.remove(h);}catch(Throwable unavailable){failed=true;hardFailed=true;}boolean surfaceRestored=SurfaceBackend.end();if(!failed&&captured>0)message="Latest stock status-bar properties restored.";if(!hardFailed&&states.isEmpty()&&activeHooks.isEmpty())failed=false;return !failed&&states.isEmpty()&&surfaceRestored;
     }
     static ArrayList<String> inventory(){
         TreeSet<String> slots=new TreeSet<>();if(!ready||Looper.myLooper()!=Looper.getMainLooper())return new ArrayList<>();

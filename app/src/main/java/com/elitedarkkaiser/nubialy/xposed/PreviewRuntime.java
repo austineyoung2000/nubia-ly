@@ -27,7 +27,11 @@ final class PreviewRuntime {
     private int brokerBarColor = ClockColorPolicy.DEFAULT;
     private StatusBarStyle brokerBar = StatusBarStyle.STOCK;
     private String reason = "No lifecycle test started.";
-    private Runnable tick, expiry;
+    private Runnable tick, expiry, recovery;
+    private boolean resumeWanted;
+    private int recoveryAttempts;
+    private String enabledIdentity;
+    private record ReadResult(PreviewPolicy.Permit permit,boolean retryable,String detail) {}
     PreviewRuntime(Context context) { this.context = context; }
     void request(String operation, long requestDeadline, Consumer<Bundle> reply) {
         request(operation, requestDeadline, ClockColorPolicy.DEFAULT, reply);
@@ -58,7 +62,7 @@ final class PreviewRuntime {
                     }
                     case "status" -> {
                         if (session.state(now()) == PreviewLifecycle.Phase.ACTIVE) validate(session.generation(), reply);
-                        else { cancelTimers(); reply.accept(snapshot()); }
+                        else { cancelTimers(); if(enabledMode&&resumeWanted&&session.state(now())==PreviewLifecycle.Phase.EXPIRED) recover(); reply.accept(snapshot()); }
                     }
                     case "screen_off" -> {
                         // Persistent styles retain their existing, bounded authority across
@@ -68,7 +72,8 @@ final class PreviewRuntime {
                         if (enabledMode && session.state(now()) == PreviewLifecycle.Phase.ACTIVE) {
                             SurfaceBackend.refresh();
                             if (!SurfaceBackend.healthy()) stop("Surface sleep transition failed.");
-                        } else stop("Screen off; temporary preview restored.");
+                        } else if(enabledMode&&resumeWanted){cancelTimers();recover();}
+                        else stop("Screen off; temporary preview restored.");
                         reply.accept(snapshot());
                     }
                     case "stop" -> { resumeSuppressed = true; stop("Stopped by request."); reply.accept(snapshot()); }
@@ -78,6 +83,12 @@ final class PreviewRuntime {
         });
     }
     private void start(boolean colorPreview, boolean enabled, boolean resume, long requestDeadline, int color, Consumer<Bundle> reply) {
+        cancelRecovery();recoveryAttempts=0;resumeWanted=enabled;
+        if(!resume)enabledIdentity=null;
+        startAttempt(colorPreview,enabled,resume,requestDeadline,color,resume?enabledIdentity:null,reply);
+    }
+    private void startAttempt(boolean colorPreview,boolean enabled,boolean resume,long requestDeadline,int color,String expectedIdentity,Consumer<Bundle> reply){
+        cancelRecovery();
         if ((colorPreview && !ClockColorPolicy.valid(color)) || !SystemUiGuardProtocol.admitted(requestDeadline, now())) {
             Bundle rejected = snapshot(); rejected.putString("phase", "REJECTED");
             rejected.putString("reason", "Start admission deadline passed; no new session started.");
@@ -88,18 +99,27 @@ final class PreviewRuntime {
         visual = colorPreview; enabledMode = enabled; startup = resume;
         long ticket = session.begin(enabledMode);
         reason = "Checking fresh lifecycle-only permit.";
-        read(ticket, permit -> {
+        read(ticket, answer -> {
+            PreviewPolicy.Permit permit=answer.permit();
             if (!session.current(ticket)) { reply.accept(snapshot()); return; }
+            if(answer.retryable()&&enabledMode&&resumeWanted){session.stop();cancelTimers();reason="Resume delayed: "+answer.detail();recover();reply.accept(snapshot());return;}
             if (!SystemUiGuardProtocol.admitted(requestDeadline, now())) {
-                session.stop(); reason = "Start expired before activation; no session started.";
+                session.stop(); reason = "Start expired before activation; no session started.";if(enabledMode&&resumeWanted)recover();
+            } else if (expectedIdentity!=null&&(permit==null||!expectedIdentity.equals(permit.id()))) {
+                stop("Resume blocked: enabled identity changed or guard denied access.");
             } else if (!session.activate(ticket, permit, now())) {
-                reason = "Start blocked: lifecycle permit or broker unavailable.";
+                resumeWanted=false;reason = "Start blocked: "+answer.detail();
             } else {
-                if (!(visual ? ClockColorBackend.begin(session.deadline(), enabledMode ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0) : ClockCaptureBackend.begin())) {
-                    stop(visual ? "Clock preview unavailable; check restoration result." : "Clock capture rehearsal unavailable."); reply.accept(snapshot()); return;
+                if (!(visual ? ClockColorBackend.begin(session.deadline(), enabledMode ? brokerColor : color, enabledMode ? brokerSize : 0, enabledMode && brokerBold, enabledMode && brokerSeconds, enabledMode && brokerItalic, enabledMode ? brokerSpacing : 0, enabledMode ? brokerFamily : 0, enabledMode && brokerHidden, enabledMode ? brokerBar : StatusBarStyle.STOCK, enabledMode ? brokerBarColor : color, enabledMode ? brokerDate : 0, enabledMode) : ClockCaptureBackend.begin())) {
+                    String failure=visual?"Styling activation failed: "+ClockColorBackend.startupFailure():"Clock capture rehearsal unavailable.";
+                    if(visual&&enabledMode&&resumeWanted&&ClockColorBackend.cleanupRetryable()){
+                        enabledIdentity=permit.id();session.stop();cancelTimers();reason=failure;recover();
+                    }else stop(failure);
+                    reply.accept(snapshot());return;
                 }
-                reason = visual ? "Temporary selected-color clock preview started." : "Clock capture rehearsal started; no appearance changes.";
+                reason = visual ? (enabledMode?"Enabled styling started; attached clocks follow their lifecycle.":"Temporary selected-color clock preview started.") : "Clock capture rehearsal started; no appearance changes.";
                 startup = false;
+                if(enabledMode){enabledIdentity=permit.id();recoveryAttempts=0;}
                 armExpiry();
                 schedule(ticket);
             }
@@ -108,24 +128,38 @@ final class PreviewRuntime {
     }
     private void armExpiry() {
         if (expiry != null) actor.removeCallbacks(expiry);
-        expiry = () -> { session.state(now()); cancelTimers(); };
+        long epoch=session.generation();
+        expiry = () -> { if(!session.current(epoch))return;session.state(now());cancelTimers();if(enabledMode&&resumeWanted){reason="Health deadline expired; stock restored.";recover();} };
         actor.postDelayed(expiry, Math.max(0, session.deadline() - now()));
     }
     private void schedule(long ticket) {
-        tick = () -> validate(ticket, ignored -> {});
-        actor.postDelayed(tick, enabledMode ? 5000 : 2000);
+        schedule(ticket,enabledMode?5000:2000);
+    }
+    private void schedule(long ticket,long delay){
+        if(tick!=null)actor.removeCallbacks(tick);
+        tick=()->validate(ticket,ignored->{});actor.postDelayed(tick,delay);
     }
     private void validate(long ticket, Consumer<Bundle> reply) {
         if (!session.current(ticket)) { reply.accept(snapshot()); return; }
         if (session.state(now()) != PreviewLifecycle.Phase.ACTIVE) {
-            cancelTimers(); reply.accept(snapshot()); return;
+            cancelTimers();if(enabledMode&&resumeWanted)recover();reply.accept(snapshot());return;
         }
-        read(ticket, permit -> {
+        read(ticket, answer -> {
+            PreviewPolicy.Permit permit=answer.permit();
             if (!session.current(ticket)) { reply.accept(snapshot()); return; }
-            if ((visual && !ClockColorBackend.healthy()) || !session.validate(ticket, permit, now())) {
-                session.stop();
-                reason = "Lifecycle ended: permit removed, replaced, expired or broker unavailable.";
-                cancelTimers();
+            if(answer.retryable()&&enabledMode&&resumeWanted){
+                reason="Guard temporarily unavailable: "+answer.detail()+"; existing deadline retained.";
+                if(session.state(now())==PreviewLifecycle.Phase.ACTIVE&&ClockColorBackend.healthy())schedule(ticket,1000);
+                else{session.stop();cancelTimers();recover();}
+                reply.accept(snapshot());return;
+            }
+            if(visual&&!ClockColorBackend.healthy()){
+                String failure=ClockColorBackend.status();
+                if(enabledMode&&resumeWanted&&ClockColorBackend.cleanupRetryable()){
+                    session.stop();cancelTimers();reason="Styling cleanup required: "+failure;recover();
+                }else stop("Styling backend stopped: "+failure);
+            } else if (!session.validate(ticket, permit, now())) {
+                stop("Lifecycle ended: "+answer.detail()+"; permit removed, replaced or invalid.");
             } else {
                 if (enabledMode) {
                     if (!ClockColorBackend.refreshHealth(session.deadline())) { stop("Clock health unavailable; stock restoration requested."); reply.accept(snapshot()); return; }
@@ -137,39 +171,43 @@ final class PreviewRuntime {
             reply.accept(snapshot());
         });
     }
-    private void read(long ticket, Consumer<PreviewPolicy.Permit> result) {
-        if (!busy.compareAndSet(false, true)) { result.accept(null); return; }
+    private void read(long ticket, Consumer<ReadResult> result) {
+        if (!busy.compareAndSet(false, true)) { result.accept(new ReadResult(null,true,"another guard read is in flight")); return; }
         boolean readVisual = visual; boolean readEnabled = enabledMode; boolean readStartup = startup;
         long started = now();
         String nonce = UUID.randomUUID().toString();
         try {
             worker.execute(() -> {
-                PreviewPolicy.Permit permit = null; int receivedColor = ClockColorPolicy.DEFAULT; int receivedSize = 0, receivedSpacing = 0, receivedFamily = 0; boolean receivedBold = false, receivedSeconds = false, receivedItalic = false, receivedHidden = false; StatusBarStyle receivedBar = StatusBarStyle.STOCK; int receivedBarColor = ClockColorPolicy.DEFAULT; int receivedDate=0;
+                PreviewPolicy.Permit permit = null; boolean retryable=false;String detail="invalid guard response"; int receivedColor = ClockColorPolicy.DEFAULT; int receivedSize = 0, receivedSpacing = 0, receivedFamily = 0; boolean receivedBold = false, receivedSeconds = false, receivedItalic = false, receivedHidden = false; StatusBarStyle receivedBar = StatusBarStyle.STOCK; int receivedBarColor = ClockColorPolicy.DEFAULT; int receivedDate=0;
                 try {
                     Bundle request = new Bundle(); request.putString("nonce", nonce);
                     request.putInt("version", BuildConfig.VERSION_CODE);
                     Bundle response = context.getContentResolver().call(Uri.parse("content://" + GuardBrokerPolicy.AUTHORITY),
                         (readEnabled ? (readStartup ? GuardBrokerPolicy.STARTUP_METHOD : GuardBrokerPolicy.ENABLED_METHOD) : readVisual ? GuardBrokerPolicy.CLOCK_METHOD : GuardBrokerPolicy.PREVIEW_METHOD), null, request);
+                    if(response==null){retryable=true;detail="broker unavailable";}
+                    else if(SystemUiGuardProtocol.accepts(nonce,response.getString("nonce"),BuildConfig.VERSION_CODE,response.getInt("version",-1),now()-started)&&response.getInt("status",-1)==GuardBrokerPolicy.BUSY){retryable=true;detail="broker busy";}
                     if (response != null && SystemUiGuardProtocol.accepts(nonce, response.getString("nonce"),
                             BuildConfig.VERSION_CODE, response.getInt("version", -1), now() - started)
                             && response.getInt("status", -1) == GuardBrokerPolicy.READABLE) {
+                        detail="fresh guard response";
                         permit = new PreviewPolicy.Permit(response.getString("permit_id"), response.getLong("deadline_ms", 0));
                         receivedColor = response.getInt("clock_color", ClockColorPolicy.DEFAULT);
                         receivedSize = response.getInt("clock_size", 0); receivedBold = response.getBoolean("clock_bold", false); receivedSeconds = response.getBoolean("clock_seconds", false); receivedItalic = response.getBoolean("clock_italic", false); receivedSpacing = response.getInt("clock_spacing", 0); receivedFamily = response.getInt("clock_family", 0); receivedHidden = response.getBoolean("clock_hidden", false);
                         receivedDate=response.getInt("clock_date",0);
                         receivedBarColor = response.getInt("statusbar_color",ClockColorPolicy.DEFAULT);
                         receivedBar = new StatusBarStyle(response.getInt("statusbar_mask",0),response.getInt("statusbar_system_scale",100),response.getInt("statusbar_notification_scale",100),response.getInt("statusbar_battery_scale",100),response.getInt("statusbar_system_opacity",100),response.getInt("statusbar_notification_opacity",100),response.getInt("statusbar_battery_opacity",100),StatusBarStyle.decodeSlots(response.getString("statusbar_hidden_slots","")),response.getInt("statusbar_system_transform",0),response.getInt("statusbar_notification_transform",0),response.getInt("statusbar_battery_transform",0),response.getInt("statusbar_fan_appearance",0),response.getInt("statusbar_pump_appearance",0),response.getInt("statusbar_refresh_appearance",0),com.elitedarkkaiser.nubialy.SurfaceStyle.decode(response.getString("surface_style",com.elitedarkkaiser.nubialy.SurfaceStyle.STOCK.encode())));
-                        if ((receivedColor!=0&&!ClockColorPolicy.valid(receivedColor)) || !ClockStylePolicy.valid(receivedSize) || !ClockStylePolicy.validSpacing(receivedSpacing) || !ClockStylePolicy.validFamily(receivedFamily) || !receivedBar.valid() || !ClockColorPolicy.valid(receivedBarColor) || !ClockDatePolicy.valid(receivedDate)) permit = null;
-                    }
-                } catch (Throwable unavailable) { /* No permit on any failure. */ }
+                        if ((receivedColor!=0&&!ClockColorPolicy.valid(receivedColor)) || !ClockStylePolicy.valid(receivedSize) || !ClockStylePolicy.validSpacing(receivedSpacing) || !ClockStylePolicy.validFamily(receivedFamily) || !receivedBar.valid() || !ClockColorPolicy.valid(receivedBarColor) || !ClockDatePolicy.valid(receivedDate)) {permit=null;detail="invalid guard style payload";}
+                    }else if(response!=null&&!retryable&&response.getInt("status",-1)==GuardBrokerPolicy.BLOCKED)detail="guard blocked";
+                } catch (SecurityException|IllegalArgumentException|ClassCastException denied){detail="guard access rejected";}
+                catch (Throwable unavailable) { retryable=true;detail="guard IPC unavailable"; }
                 finally { busy.set(false); }
-                PreviewPolicy.Permit captured = permit; int capturedColor = receivedColor; int capturedSize = receivedSize, capturedSpacing = receivedSpacing, capturedFamily = receivedFamily; boolean capturedBold = receivedBold, capturedSeconds = receivedSeconds, capturedItalic = receivedItalic, capturedHidden = receivedHidden; StatusBarStyle capturedBar = receivedBar; int capturedBarColor = receivedBarColor; int capturedDate=receivedDate;
+                ReadResult capturedResult=new ReadResult(permit,retryable,detail);int capturedColor = receivedColor; int capturedSize = receivedSize, capturedSpacing = receivedSpacing, capturedFamily = receivedFamily; boolean capturedBold = receivedBold, capturedSeconds = receivedSeconds, capturedItalic = receivedItalic, capturedHidden = receivedHidden; StatusBarStyle capturedBar = receivedBar; int capturedBarColor = receivedBarColor; int capturedDate=receivedDate;
                 actor.post(() -> {
-                    try { if (session.current(ticket)) { brokerColor = capturedColor; brokerSize = capturedSize; brokerBold = capturedBold; brokerSeconds = capturedSeconds; brokerItalic = capturedItalic; brokerSpacing = capturedSpacing; brokerFamily = capturedFamily; brokerHidden = capturedHidden; brokerBar = capturedBar; brokerBarColor = capturedBarColor; brokerDate=capturedDate; } result.accept(session.current(ticket) ? captured : null); }
+                    try { if (session.current(ticket)) { brokerColor = capturedColor; brokerSize = capturedSize; brokerBold = capturedBold; brokerSeconds = capturedSeconds; brokerItalic = capturedItalic; brokerSpacing = capturedSpacing; brokerFamily = capturedFamily; brokerHidden = capturedHidden; brokerBar = capturedBar; brokerBarColor = capturedBarColor; brokerDate=capturedDate; } result.accept(session.current(ticket)?capturedResult:new ReadResult(null,false,"stale guard response")); }
                     catch (Throwable unavailable) { stop("Lifecycle callback failed."); }
                 });
             });
-        } catch (Throwable unavailable) { busy.set(false); result.accept(null); }
+        } catch (Throwable unavailable) { busy.set(false); result.accept(new ReadResult(null,true,"guard worker unavailable")); }
     }
     private Bundle snapshot() {
         PreviewLifecycle.Phase phase = session.state(now());
@@ -179,7 +217,16 @@ final class PreviewRuntime {
         result.putString("reason", reason); result.putString("clock_capture", visual ? ClockColorBackend.status() : ClockCaptureBackend.status()); result.putBoolean("visual", visual); result.putBoolean("enabled_mode", enabledMode); result.putInt("clock_color", ClockColorBackend.color()); result.putLong("deadline_ms", session.deadline());
         return result;
     }
-    private void stop(String why) { session.stop(); reason = why; cancelTimers(); }
+    private void stop(String why) {resumeWanted=false;cancelRecovery();session.stop();reason=why;cancelTimers();}
+    private void cancelRecovery(){if(recovery!=null)actor.removeCallbacks(recovery);recovery=null;}
+    private void recover(){
+        if(!enabledMode||!resumeWanted||resumeSuppressed||recovery!=null)return;
+        if(recoveryAttempts>=3){resumeWanted=false;reason+=" Automatic retries exhausted; wake the screen or Enable to check again.";return;}
+        int attempt=++recoveryAttempts;long epoch=session.generation();
+        reason+=" Fresh resume retry "+attempt+"/3 pending.";
+        recovery=()->{recovery=null;if(!session.current(epoch)||!resumeWanted||resumeSuppressed)return;startAttempt(true,true,true,now()+SystemUiGuardProtocol.DEADLINE_MS,ClockColorPolicy.DEFAULT,enabledIdentity,ignored->{});};
+        actor.postDelayed(recovery,attempt==1?2000:attempt==2?5000:10000);
+    }
     private void cancelTimers() {
         ClockColorBackend.end();
         ClockCaptureBackend.end();

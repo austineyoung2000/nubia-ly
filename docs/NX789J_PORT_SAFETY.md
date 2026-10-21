@@ -21,7 +21,7 @@ The production shell loader is exercised against exact matching profiles, wrong
 model/SDK, wildcard/malformed entries and unsafe allowlist permissions, alongside
 existing mount/rollback/restore and unchanged-stock tests.
 
-Guard module version: 0.1.16 (21). Launcher support accepts NX809J and NX789J on Android 16, with the same
+Guard module version: 0.1.17 (22). Launcher support accepts NX809J and NX789J on Android 16, with the same
 exact inspected launcher APK hash and version required on both devices. Android
 15 launcher support remains blocked. Both the module entry and UI/runtime gate
 use the same platform policy; guard authority and backend validation remain required.

@@ -41,7 +41,7 @@ final class ConnectivityBackend {
    }catch(Throwable unavailable){failed=true;v.invalidate();}
   }}));active=true;invalidate();}catch(Throwable unavailable){end();throw new IllegalStateException("Signal styling unavailable",unavailable);}}
  private static void invalidate(){for(ImageView v:new ArrayList<>(observed.keySet()))v.invalidate();}
- static boolean end(){active=false;invalidate();artwork.clear();for(var h:hooks)try{h.unhook();}catch(Throwable unavailable){failed=true;}hooks.clear();return !failed;}
+ static boolean end(){active=false;invalidate();artwork.clear();for(var h:new ArrayList<>(hooks))try{h.unhook();hooks.remove(h);}catch(Throwable unavailable){failed=true;}return !failed;}
  static boolean healthy(){return !failed;}
  static String status(){return "Connectivity styles: Wi-Fi "+wifi+", mobile "+signal+"; glyph draws: "+draws+" (Wi-Fi "+wifiDraws+", mobile "+mobileDraws+"); native fallback resources: "+(fallbackResources.isEmpty()?"none":String.join(", ",fallbackResources))+(ready?".":"; source unavailable.");}
 }

@@ -25,6 +25,25 @@ public final class LauncherActivityTest {
         info.applicationInfo=new ApplicationInfo();info.applicationInfo.packageName=info.packageName;info.applicationInfo.enabled=true;info.applicationInfo.targetSdkVersion=35;
         ActivityInfo settings=new ActivityInfo();settings.packageName=info.packageName;settings.name=LauncherActivity.SETTINGS;settings.applicationInfo=info.applicationInfo;settings.enabled=true;settings.exported=exported;settings.permission=permission;info.activities=new ActivityInfo[]{settings};pm.installPackage(info);
     }
+    @Test public void fullCompatibilityTestAllowsEveryLauncherPage() throws Exception {
+        var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();
+        java.util.concurrent.ExecutorService worker=org.robolectric.util.ReflectionHelpers.getField(a,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+        org.robolectric.util.ReflectionHelpers.setField(a,"compatible",true);
+        EditorPages pages=org.robolectric.util.ReflectionHelpers.getField(a,"pages");
+        for(String page:new String[]{"","icons","folders","grid","indicator","dock","artwork"}){pages.show("launcher",page);assertTrue(page,a.findViewById(android.R.id.content).findViewWithTag("launcher-enable").isEnabled());}
+        controller.pause().stop().destroy();
+    }
+    @Test public void layoutPagesKeepIndependentDraftsAndRoutes() throws Exception {
+        var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();
+        java.util.concurrent.ExecutorService worker=org.robolectric.util.ReflectionHelpers.getField(a,"worker");worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+        org.robolectric.util.ReflectionHelpers.setField(a,"compatible",true);org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"controls");
+        View root=a.findViewById(android.R.id.content);root.findViewWithTag("launcher-folders").performClick();assertTrue(root.findViewWithTag("launcher-folder-rows") instanceof com.google.android.material.slider.Slider);assertTrue(root.findViewWithTag("launcher-folder-columns") instanceof com.google.android.material.slider.Slider);org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"changeLayout",org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,0),org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,4));org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"changeLayout",org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,1),org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,5));assertTrue(root.findViewWithTag("launcher-folder-scale") instanceof com.google.android.material.slider.Slider);org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"changeLayout",org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,7),org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,65));a.getOnBackPressedDispatcher().onBackPressed();
+        root.findViewWithTag("launcher-dock").performClick();assertTrue(root.findViewWithTag("launcher-dock-scale") instanceof com.google.android.material.slider.Slider);org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"changeLayout",org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,5),org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,75));a.getOnBackPressedDispatcher().onBackPressed();root.findViewWithTag("launcher-grid").performClick();((android.widget.CompoundButton)root.findViewWithTag("launcher-expanded-grid")).setChecked(true);
+        assertEquals(8f,((com.google.android.material.slider.Slider)root.findViewWithTag("launcher-grid-rows")).getValueTo(),0f);assertEquals(7f,((com.google.android.material.slider.Slider)root.findViewWithTag("launcher-grid-columns")).getValueTo(),0f);
+        worker.submit(()->{}).get(3,java.util.concurrent.TimeUnit.SECONDS);
+        var draft=LauncherPreferences.draft(a);assertEquals(4,draft.layout().folderRows());assertEquals(5,draft.layout().folderColumns());assertEquals(65,draft.layout().folderScale());assertEquals(75,draft.layout().dockScale());assertTrue(draft.layout().expandedGrid());assertEquals(LauncherStyle.STOCK,LauncherPreferences.active(a));
+        controller.recreate();assertEquals("grid",((EditorPages)org.robolectric.util.ReflectionHelpers.getField(controller.get(),"pages")).page());controller.pause().stop().destroy();
+    }
     @Test public void opensOnlyVerifiedNativeSettingsComponent(){
         install(true,null);
         var controller=Robolectric.buildActivity(LauncherActivity.class).setup();var a=controller.get();

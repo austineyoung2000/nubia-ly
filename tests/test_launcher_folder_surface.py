@@ -42,10 +42,11 @@ controller.mLauncher.folder=new Folder();LauncherFolderSurface.apply(style(0),10
 System.out.println("Production folder surface hook passed: closing animation continuity, instant close, new-folder precedence, restore while closing; scoped zero/native/animated blur, preserved native state, exception cleanup, expiry and ownership-aware restore");}}
 '''
 }
-with tempfile.TemporaryDirectory(prefix='nubia-folder-surface-') as temp:
-    temp=Path(temp)
-    for name,content in sources.items():
-        p=temp/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
-    files=[str(p) for p in temp.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/p) for p in ['LauncherStyle.java','FolderSurfaceState.java','xposed/LauncherFolderSurface.java']]
-    subprocess.run(['java','com.sun.tools.javac.Main','-d',str(temp/'classes'),*files],check=True)
-    subprocess.run(['java','-cp',str(temp/'classes'),'com.elitedarkkaiser.nubialy.xposed.FolderSurfaceTest'],check=True)
+for getter in ('i1','g1'):
+    with tempfile.TemporaryDirectory(prefix='nubia-folder-surface-') as temp:
+        temp=Path(temp)
+        for name,content in sources.items():
+            p=temp/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content.replace("i1(",getter+"("))
+        files=[str(p) for p in temp.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/p) for p in ['LauncherStyle.java','FolderSurfaceState.java','xposed/LauncherFolderSurface.java']]
+        subprocess.run(['java','com.sun.tools.javac.Main','-d',str(temp/'classes'),*files],check=True)
+        subprocess.run(['java','-cp',str(temp/'classes'),'com.elitedarkkaiser.nubialy.xposed.FolderSurfaceTest'],check=True)

@@ -8,6 +8,8 @@ import java.util.*;
 
 /** Reuse the inspected NX809J clock's own seconds lifecycle; no module ticker or settings write. */
 final class ClockSecondsBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private static final Map<TextView, Boolean> stock = new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> hooks = new ArrayList<>();
     private static boolean active, writing;
@@ -35,7 +37,7 @@ final class ClockSecondsBackend {
             @Override protected void beforeHookedMethod(MethodHookParam p) {
                 if (!active || writing || !(p.thisObject instanceof TextView view) || !stock.containsKey(view)) return;
                 if (((Method)p.method).getName().equals("onTuningChanged") && !"clock_seconds".equals(p.args[0])) return;
-                if (Looper.myLooper() != Looper.getMainLooper()) { failed = true; return; }
+                if (Looper.myLooper() != Looper.getMainLooper()) { failed=true;hardFailed=true; return; }
                 depth++; p.setObjectExtra("nubia-ly:seconds", Boolean.TRUE);
             }
             @Override protected void afterHookedMethod(MethodHookParam p) {
@@ -45,7 +47,7 @@ final class ClockSecondsBackend {
                     if (p.hasThrowable()) throw new IllegalStateException();
                     TextView view = (TextView)p.thisObject;
                     stock.put(view, read(view)); ensure(view);
-                } catch (Throwable unavailable) { failed = true; }
+                } catch (Throwable unavailable) { failed=true;hardFailed=true; }
             }
         };
         hooks.add(XposedBridge.hookMethod(setter, callback));
@@ -54,7 +56,7 @@ final class ClockSecondsBackend {
         hooks.add(XposedBridge.hookMethod(save, new XC_MethodHook() {
             @Override protected void afterHookedMethod(MethodHookParam p) {
                 if (!active || !(p.thisObject instanceof TextView view) || !stock.containsKey(view)) return;
-                if (Looper.myLooper() != Looper.getMainLooper() || p.hasThrowable() || !(p.getResult() instanceof android.os.Bundle bundle)) { failed = true; return; }
+                if (Looper.myLooper() != Looper.getMainLooper() || p.hasThrowable() || !(p.getResult() instanceof android.os.Bundle bundle)) { failed=true;hardFailed=true; return; }
                 // The inspected Clock saves this exact field; never persist our override as stock.
                 android.os.Bundle clean = new android.os.Bundle(bundle);
                 clean.putBoolean("show_seconds", stock.get(view)); p.setResult(clean);
@@ -67,7 +69,7 @@ final class ClockSecondsBackend {
         if (failed || Looper.myLooper() != Looper.getMainLooper()) throw new IllegalStateException("Seconds unavailable");
         try {
             install(view.getClass()); stock.putIfAbsent(view, read(view)); ensure(view);
-        } catch (Throwable unavailable) { failed = true; throw new IllegalStateException("Stock seconds unavailable", unavailable); }
+        } catch (Throwable unavailable) { failed=true;hardFailed=true; throw new IllegalStateException("Stock seconds unavailable", unavailable); }
     }
     private static void ensure(TextView view) {
         if (read(view) && XposedHelpers.getObjectField(view, "mSecondsHandler") != null) return;
@@ -88,15 +90,14 @@ final class ClockSecondsBackend {
             XposedHelpers.callMethod(view, "updateClock");
             if (read(view) != previous.booleanValue() || (!previous && XposedHelpers.getObjectField(view, "mSecondsHandler") != null)) throw new IllegalStateException();
             stock.remove(view); return true;
-        } catch (Throwable unavailable) { failed = true; return false; }
+        } catch (Throwable unavailable) { failed=true; return false; }
         finally { writing = false; }
     }
     static boolean end() {
         active = false;
         for (TextView view : new ArrayList<>(stock.keySet())) restore(view);
-        for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
-        hooks.clear(); installed = null; depth = 0;
-        return !failed && stock.isEmpty();
+        for(XC_MethodHook.Unhook hook :new ArrayList<>(hooks))try{hook.unhook();hooks.remove(hook);}catch(Throwable unavailable){ failed=true;hardFailed=true; } installed = null; depth = 0;
+        if(!hardFailed&&stock.isEmpty()&&hooks.isEmpty())failed=false;return !failed && stock.isEmpty();
     }
     static boolean healthy() { return !failed; }
     static String status() { return "Seconds override: " + active + "; seconds remaining: " + stock.size() + "."; }

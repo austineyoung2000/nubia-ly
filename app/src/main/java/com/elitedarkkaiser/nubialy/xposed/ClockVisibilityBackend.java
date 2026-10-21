@@ -11,6 +11,8 @@ import java.util.*;
 
 /** Hide only tracked status-bar clocks; retain stock policy decisions and saved visibility. */
 final class ClockVisibilityBackend {
+    // Only verified cleanup may clear a restoration-only failure; apply/hook failures stay latched.
+    private static boolean hardFailed;
     private static final Map<TextView, Integer> stock = new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> hooks = new ArrayList<>();
     private static boolean active, writing;
@@ -30,7 +32,7 @@ final class ClockVisibilityBackend {
         XC_MethodHook callback = new XC_MethodHook() {
             @Override protected void beforeHookedMethod(MethodHookParam p) {
                 if (!active || writing || !(p.thisObject instanceof TextView view) || !stock.containsKey(view)) return;
-                if (Looper.myLooper() != Looper.getMainLooper()) { failed = true; return; }
+                if (Looper.myLooper() != Looper.getMainLooper()) { failed=true;hardFailed=true; return; }
                 depth++; p.setObjectExtra("nubia-ly:visibility", Boolean.TRUE);
             }
             @Override protected void afterHookedMethod(MethodHookParam p) {
@@ -40,7 +42,7 @@ final class ClockVisibilityBackend {
                     if (p.hasThrowable()) throw new IllegalStateException();
                     TextView view = (TextView)p.thisObject;
                     stock.put(view, read(view)); hide(view);
-                } catch (Throwable unavailable) { failed = true; }
+                } catch (Throwable unavailable) { failed=true;hardFailed=true; }
             }
         };
         hooks.add(XposedBridge.hookMethod(setter, callback));
@@ -48,7 +50,7 @@ final class ClockVisibilityBackend {
         hooks.add(XposedBridge.hookMethod(save, new XC_MethodHook() {
             @Override protected void afterHookedMethod(MethodHookParam p) {
                 if (!active || !(p.thisObject instanceof TextView view) || !stock.containsKey(view)) return;
-                if (Looper.myLooper() != Looper.getMainLooper() || p.hasThrowable() || !(p.getResult() instanceof Bundle bundle)) { failed = true; return; }
+                if (Looper.myLooper() != Looper.getMainLooper() || p.hasThrowable() || !(p.getResult() instanceof Bundle bundle)) { failed=true;hardFailed=true; return; }
                 Bundle clean = new Bundle(bundle); clean.putInt("visibility", stock.get(view)); p.setResult(clean);
             }
         })); installed = clock;
@@ -61,7 +63,7 @@ final class ClockVisibilityBackend {
         if (!active || writing || depth != 0) return;
         if (failed || Looper.myLooper() != Looper.getMainLooper()) throw new IllegalStateException("Visibility unavailable");
         try { install(view.getClass()); stock.putIfAbsent(view, read(view)); hide(view); }
-        catch (Throwable unavailable) { failed = true; throw new IllegalStateException("Clock visibility unavailable", unavailable); }
+        catch (Throwable unavailable) { failed=true;hardFailed=true; throw new IllegalStateException("Clock visibility unavailable", unavailable); }
     }
     private static void hide(TextView view) {
         if (read(view) == View.GONE) return;
@@ -76,14 +78,13 @@ final class ClockVisibilityBackend {
             // Keep the inspected Clock setter's stock visibility policy and vendor adapter.
             view.setVisibility(previous); if (read(view) != previous) throw new IllegalStateException();
             stock.remove(view); return true;
-        } catch (Throwable unavailable) { failed = true; return false; }
+        } catch (Throwable unavailable) { failed=true; return false; }
         finally { writing = false; }
     }
     static boolean end() {
         active = false;
         for (TextView view : new ArrayList<>(stock.keySet())) restore(view);
-        for (XC_MethodHook.Unhook hook : hooks) try { hook.unhook(); } catch (Throwable unavailable) { failed = true; }
-        hooks.clear(); installed = null; depth = 0; return !failed && stock.isEmpty();
+        for(XC_MethodHook.Unhook hook :new ArrayList<>(hooks))try{hook.unhook();hooks.remove(hook);}catch(Throwable unavailable){ failed=true;hardFailed=true; } installed = null; depth = 0; if(!hardFailed&&stock.isEmpty()&&hooks.isEmpty())failed=false;return !failed && stock.isEmpty();
     }
     static boolean healthy() { return !failed; }
     static String status() { return "Hide clock: " + active + "; visibility remaining: " + stock.size() + "."; }
