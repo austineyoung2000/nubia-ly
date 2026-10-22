@@ -6,11 +6,12 @@ public final class AppearanceScopeTest {
  private static final AppearanceScope.Snapshot STOCK=AppearanceScope.Snapshot.STOCK;
  private static final String[][] ROUTES={
   {"status_bar","typography","color","date","icons","battery","connectivity","inventory","iconpacks"},
-  {"quick_settings","labels","tiles","style","brightness","grid","iconpacks","landscape","top_layout","label_layout","brightness_layout"},
+  {"quick_settings","colors","background","labels","tiles","style","brightness","grid","iconpacks","landscape","top_layout","label_layout","brightness_layout"},
   {"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},
   {"notifications","styles","appearance","behavior","icons"},{"volume","styles"},{"power_menu","styles"}};
  private AppearanceScope.Snapshot draft(){
   var s=new SurfaceStyle(15,5,10,15,20,2,4,6,8,2,3,7,1,1,1,1,1,1,1,1,1,1,1,50,1,1,1,1,1,1,5,5,4,3|(1<<2)|(1<<4)|(1<<6)|256|(5<<9)|(4<<12),2,3);
+  s=s.withQsTheme(SurfaceStyle.QsTheme.STOCK.with(0,0xff112233).with(6,1).with(7,0xff445566).with(9,1).withImage("a".repeat(64)));
   var bar=new StatusBarStyle(127,110,115,120,90,85,80,Set.of("alarm_clock"),2,4,6,5,10,15,s);
   assertTrue(bar.valid());
   return new AppearanceScope.Snapshot(bar,0xff123456,1,new ClockSnapshot(0xffabcdef,110,true,true,true,5,1,true));

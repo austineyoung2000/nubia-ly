@@ -4,6 +4,8 @@ import tempfile, subprocess
 root=Path(__file__).resolve().parents[1]
 pkg='com/elitedarkkaiser/nubialy/'
 sources={
+'com/elitedarkkaiser/nubialy/xposed/QsAppearanceBackend.java': 'package com.elitedarkkaiser.nubialy.xposed;class QsAppearanceBackend {static void prepare(Object a,Object b){}static void install(ClassLoader l){}static void observe(Object v){}static void begin(com.elitedarkkaiser.nubialy.SurfaceStyle.QsTheme t){}static boolean end(){return true;}static boolean healthy(){return true;}static boolean twoTone(){return false;}static String status(){return "";}}',
+
 'android/os/Looper.java':'package android.os; public class Looper {public static Looper getMainLooper(){return new Looper();}}',
 'android/os/SystemClock.java':'package android.os; public class SystemClock {public static long time=1000;public static long elapsedRealtime(){return time;}}',
 'android/os/Handler.java':'''package android.os;public class Handler {public Handler(Looper l){}public boolean post(Runnable r){r.run();return true;}public boolean postDelayed(Runnable r,long delay){return true;}public void removeCallbacks(Runnable r){}}''',
