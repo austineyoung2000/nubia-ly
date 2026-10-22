@@ -17,6 +17,9 @@ final class QsAppearanceBackend {
  private static final Set<View> roots=Collections.newSetFromMap(new WeakHashMap<>());
  private static final Set<View> dismissing=Collections.newSetFromMap(new WeakHashMap<>());
  private static final Map<View,java.lang.ref.WeakReference<Object>> stateControllers=new WeakHashMap<>();
+ private static final Set<View> expandedQs=Collections.newSetFromMap(new WeakHashMap<>());
+ private static final Map<View,Integer> shadeStates=new WeakHashMap<>();
+ private static final Map<View,Float> qsFractions=new WeakHashMap<>();
  private static final Map<View,Float> panelFractions=new WeakHashMap<>();
  private static final Set<View> tiles=Collections.newSetFromMap(new WeakHashMap<>());private static long generation;
  private static boolean attempted,ready,active,failed,restorePending;private static QsTheme theme=QsTheme.STOCK;
@@ -35,20 +38,30 @@ final class QsAppearanceBackend {
    if(Looper.myLooper()!=Looper.getMainLooper())return;
    Object target=container.get(p.thisObject);if(target instanceof View v&&v.getClass().getName().equals(ROOT)){
     stateControllers.put(v,new java.lang.ref.WeakReference<>(stateController.get(p.thisObject)));
-    // Lock and unlock both discard old expansion; wait for a fresh panel frame.
-    panelFractions.remove(v);roots.add(v);v.invalidate();
+    // Preserve a deliberate QS opening across KEYGUARD -> SHADE_LOCKED.
+    int next=(Integer)p.args[0],previous=shadeStates.getOrDefault(v,0);shadeStates.put(v,next);
+    if((next==0)!=(previous==0)||next<0||next>2){panelFractions.remove(v);qsFractions.remove(v);expandedQs.remove(v);}
+    roots.add(v);v.invalidate();
    }
   }}));
   Class<?> stateImpl=XposedHelpers.findClass("com.android.systemui.statusbar.StatusBarStateControllerImpl",loader);
   hooks.add(XposedBridge.hookMethod(stateImpl.getDeclaredMethod("setIsDozing",boolean.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
    if(Looper.myLooper()!=Looper.getMainLooper())return;
    // Discard expansion across AOD entry/exit even if no QS expansion callback follows.
-   for(var entry:new ArrayList<>(stateControllers.entrySet()))if(entry.getKey()!=null&&entry.getValue().get()==p.thisObject){panelFractions.remove(entry.getKey());entry.getKey().invalidate();}
+   for(var entry:new ArrayList<>(stateControllers.entrySet()))if(entry.getKey()!=null&&entry.getValue().get()==p.thisObject){panelFractions.remove(entry.getKey());qsFractions.remove(entry.getKey());expandedQs.remove(entry.getKey());entry.getKey().invalidate();}
+  }}));
+  // setExpanded is the native QS-open request; panel fraction alone is also 1 on idle keyguard.
+  hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("setExpanded",boolean.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
+   if(Looper.myLooper()!=Looper.getMainLooper())return;
+   Object target=container.get(p.thisObject);if(!(target instanceof View v)||!v.getClass().getName().equals(ROOT))return;
+   if(Boolean.TRUE.equals(p.args[0]))expandedQs.add(v);else expandedQs.remove(v);
+   roots.add(v);v.invalidate();
   }}));
   hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("setQsExpansion",float.class,float.class,float.class,float.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
    if(Looper.myLooper()!=Looper.getMainLooper())return;
    Object target=container.get(p.thisObject);if(!(target instanceof View v)||!v.getClass().getName().equals(ROOT))return;
    stateControllers.put(v,new java.lang.ref.WeakReference<>(stateController.get(p.thisObject)));
+   float qs=((Number)p.args[0]).floatValue();qsFractions.put(v,Float.isFinite(qs)?Math.max(0f,Math.min(1f,qs)):0f);
    float fraction=((Number)p.args[1]).floatValue();panelFractions.put(v,Float.isFinite(fraction)?Math.max(0f,Math.min(1f,fraction)):0f);roots.add(v);v.invalidate();
   }}));
   // Nubia can dismiss by fading children while the container/panel fraction remains visible.
@@ -56,14 +69,14 @@ final class QsAppearanceBackend {
   XC_MethodHook appearance=new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
    if(Looper.myLooper()!=Looper.getMainLooper())return;
    Object target=container.get(p.thisObject);if(!(target instanceof View v)||!v.getClass().getName().equals(ROOT))return;
-   if(Boolean.TRUE.equals(p.args[0]))dismissing.remove(v);else dismissing.add(v);
+   if(Boolean.TRUE.equals(p.args[0]))dismissing.remove(v);else {dismissing.add(v);expandedQs.remove(v);}
    roots.add(v);v.invalidate();
   }};
   hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("animateAppearDisapper",boolean.class),appearance));
   hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("animateHeaderShow",boolean.class,Runnable.class),appearance));
   hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("animateHeaderSlidingOut"),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
    if(Looper.myLooper()!=Looper.getMainLooper())return;
-   Object target=container.get(p.thisObject);if(target instanceof View v&&v.getClass().getName().equals(ROOT)){dismissing.add(v);roots.add(v);v.invalidate();}
+   Object target=container.get(p.thisObject);if(target instanceof View v&&v.getClass().getName().equals(ROOT)){dismissing.add(v);expandedQs.remove(v);roots.add(v);v.invalidate();}
   }}));
   Class<?> base=XposedHelpers.findClass("com.zte.qs.tileimpl.QSTileViewBase",loader),wide=XposedHelpers.findClass("com.zte.qs.tileimpl.QSTileViewWide",loader);
   for(Class<?> c:new Class<?>[]{base,wide})for(String name:new String[]{"getBackgroundColorForState","getBackgroundStartColorForState","getBackgroundEndColorForState","getLabelColorForState","getSecondaryLabelColorForState"}){
@@ -72,7 +85,7 @@ final class QsAppearanceBackend {
   Class<?> multi=XposedHelpers.findClass("com.zte.feature.qs.theme.MultiThemeFeature",loader);
   hooks.add(XposedBridge.hookMethod(multi.getDeclaredMethod("getQSIconViewColor",int.class,Context.class,int.class,boolean.class,String.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[2];if(state==0)return;int value=state==2?theme.activeIcon():theme.inactiveIcon();if(value!=0)p.setResult(value);}}));
   // Invoked by the vendor's dispatchDraw after it applies native clipping, before child tiles draw.
-  hooks.add(XposedHelpers.findAndHookMethod(ViewGroup.class,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(Looper.myLooper()!=Looper.getMainLooper()||!p.thisObject.getClass().getName().equals(ROOT))return;ViewGroup v=(ViewGroup)p.thisObject;roots.add(v);if(!allowed()||theme.header()==0||dismissing.contains(v)||!v.isAttachedToWindow())return;try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"getShowQsPanel")))return;var reference=stateControllers.get(v);Object controller=reference==null?null:reference.get();if(controller==null||!Integer.valueOf(0).equals(XposedHelpers.callMethod(controller,"getState"))||!Boolean.FALSE.equals(XposedHelpers.callMethod(controller,"isDozing")))return;float fraction=panelFractions.getOrDefault(v,0f);if(fraction<=0f)return;draw((Canvas)p.args[0],v,fraction);}catch(Throwable error){failed=true;message="QS background draw stopped: "+error.getClass().getSimpleName();}}}));
+  hooks.add(XposedHelpers.findAndHookMethod(ViewGroup.class,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(Looper.myLooper()!=Looper.getMainLooper()||!p.thisObject.getClass().getName().equals(ROOT))return;ViewGroup v=(ViewGroup)p.thisObject;roots.add(v);if(!allowed()||theme.header()==0||dismissing.contains(v)||!v.isAttachedToWindow())return;try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"getShowQsPanel")))return;var reference=stateControllers.get(v);Object controller=reference==null?null:reference.get();if(controller==null||!Boolean.FALSE.equals(XposedHelpers.callMethod(controller,"isDozing")))return;int state=(Integer)XposedHelpers.callMethod(controller,"getState");if(state<0||state>2)return;float fraction=panelFractions.getOrDefault(v,0f);if(state!=0){if(!expandedQs.contains(v))return;fraction=Math.min(fraction,qsFractions.getOrDefault(v,0f));}if(fraction<=0f)return;draw((Canvas)p.args[0],v,fraction);}catch(Throwable error){failed=true;message="QS background draw stopped: "+error.getClass().getSimpleName();}}}));
   ready=true;message="Ready";
  }catch(Throwable error){for(var h:new ArrayList<>(hooks))try{h.unhook();hooks.remove(h);}catch(Throwable ignored){}failed=true;message="QS appearance unavailable: "+error.getClass().getSimpleName()+" "+error.getMessage();}}
  private static boolean allowed(){return active&&ready&&!failed&&Looper.myLooper()==Looper.getMainLooper()&&ClockColorBackend.authorized();}
