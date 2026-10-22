@@ -16,6 +16,7 @@ final class QsAppearanceBackend {
  private static final List<XC_MethodHook.Unhook> hooks=new ArrayList<>();
  private static final Set<View> roots=Collections.newSetFromMap(new WeakHashMap<>());
  private static final Set<View> dismissing=Collections.newSetFromMap(new WeakHashMap<>());
+ private static final Map<View,java.lang.ref.WeakReference<Object>> stateControllers=new WeakHashMap<>();
  private static final Map<View,Float> panelFractions=new WeakHashMap<>();
  private static final Set<View> tiles=Collections.newSetFromMap(new WeakHashMap<>());private static long generation;
  private static boolean attempted,ready,active,failed,restorePending;private static QsTheme theme=QsTheme.STOCK;
@@ -27,9 +28,27 @@ final class QsAppearanceBackend {
   // Panel fraction is distinct from QS expansion: compact QS can be visible at expansion zero.
   Class<?> fragment=XposedHelpers.findClass("com.zte.mifavor.qs.MfvQSFragment",loader);
   java.lang.reflect.Field container=fragment.getDeclaredField("qsContainer");container.setAccessible(true);
+  java.lang.reflect.Field stateController=fragment.getDeclaredField("statusBarStateController");stateController.setAccessible(true);
+  Class<?> stateApi=XposedHelpers.findClass("com.android.systemui.plugins.statusbar.StatusBarStateController",loader);
+  if(stateApi.getDeclaredMethod("getState").getReturnType()!=int.class||stateApi.getDeclaredMethod("isDozing").getReturnType()!=boolean.class)throw new IllegalStateException("QS state controller signature");
+  hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("onStateChanged",int.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
+   if(Looper.myLooper()!=Looper.getMainLooper())return;
+   Object target=container.get(p.thisObject);if(target instanceof View v&&v.getClass().getName().equals(ROOT)){
+    stateControllers.put(v,new java.lang.ref.WeakReference<>(stateController.get(p.thisObject)));
+    // Lock and unlock both discard old expansion; wait for a fresh panel frame.
+    panelFractions.remove(v);roots.add(v);v.invalidate();
+   }
+  }}));
+  Class<?> stateImpl=XposedHelpers.findClass("com.android.systemui.statusbar.StatusBarStateControllerImpl",loader);
+  hooks.add(XposedBridge.hookMethod(stateImpl.getDeclaredMethod("setIsDozing",boolean.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
+   if(Looper.myLooper()!=Looper.getMainLooper())return;
+   // Discard expansion across AOD entry/exit even if no QS expansion callback follows.
+   for(var entry:new ArrayList<>(stateControllers.entrySet()))if(entry.getKey()!=null&&entry.getValue().get()==p.thisObject){panelFractions.remove(entry.getKey());entry.getKey().invalidate();}
+  }}));
   hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("setQsExpansion",float.class,float.class,float.class,float.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
    if(Looper.myLooper()!=Looper.getMainLooper())return;
    Object target=container.get(p.thisObject);if(!(target instanceof View v)||!v.getClass().getName().equals(ROOT))return;
+   stateControllers.put(v,new java.lang.ref.WeakReference<>(stateController.get(p.thisObject)));
    float fraction=((Number)p.args[1]).floatValue();panelFractions.put(v,Float.isFinite(fraction)?Math.max(0f,Math.min(1f,fraction)):0f);roots.add(v);v.invalidate();
   }}));
   // Nubia can dismiss by fading children while the container/panel fraction remains visible.
@@ -53,7 +72,7 @@ final class QsAppearanceBackend {
   Class<?> multi=XposedHelpers.findClass("com.zte.feature.qs.theme.MultiThemeFeature",loader);
   hooks.add(XposedBridge.hookMethod(multi.getDeclaredMethod("getQSIconViewColor",int.class,Context.class,int.class,boolean.class,String.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[2];if(state==0)return;int value=state==2?theme.activeIcon():theme.inactiveIcon();if(value!=0)p.setResult(value);}}));
   // Invoked by the vendor's dispatchDraw after it applies native clipping, before child tiles draw.
-  hooks.add(XposedHelpers.findAndHookMethod(ViewGroup.class,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(Looper.myLooper()!=Looper.getMainLooper()||!p.thisObject.getClass().getName().equals(ROOT))return;ViewGroup v=(ViewGroup)p.thisObject;roots.add(v);if(!allowed()||theme.header()==0||dismissing.contains(v)||!v.isAttachedToWindow())return;try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"getShowQsPanel")))return;float fraction=panelFractions.getOrDefault(v,0f);if(fraction<=0f)return;draw((Canvas)p.args[0],v,fraction);}catch(Throwable error){failed=true;message="QS background draw stopped: "+error.getClass().getSimpleName();}}}));
+  hooks.add(XposedHelpers.findAndHookMethod(ViewGroup.class,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(Looper.myLooper()!=Looper.getMainLooper()||!p.thisObject.getClass().getName().equals(ROOT))return;ViewGroup v=(ViewGroup)p.thisObject;roots.add(v);if(!allowed()||theme.header()==0||dismissing.contains(v)||!v.isAttachedToWindow())return;try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"getShowQsPanel")))return;var reference=stateControllers.get(v);Object controller=reference==null?null:reference.get();if(controller==null||!Integer.valueOf(0).equals(XposedHelpers.callMethod(controller,"getState"))||!Boolean.FALSE.equals(XposedHelpers.callMethod(controller,"isDozing")))return;float fraction=panelFractions.getOrDefault(v,0f);if(fraction<=0f)return;draw((Canvas)p.args[0],v,fraction);}catch(Throwable error){failed=true;message="QS background draw stopped: "+error.getClass().getSimpleName();}}}));
   ready=true;message="Ready";
  }catch(Throwable error){for(var h:new ArrayList<>(hooks))try{h.unhook();hooks.remove(h);}catch(Throwable ignored){}failed=true;message="QS appearance unavailable: "+error.getClass().getSimpleName()+" "+error.getMessage();}}
  private static boolean allowed(){return active&&ready&&!failed&&Looper.myLooper()==Looper.getMainLooper()&&ClockColorBackend.authorized();}
