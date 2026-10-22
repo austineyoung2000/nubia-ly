@@ -15,6 +15,7 @@ final class QsAppearanceBackend {
  private static final String ROOT="com.zte.mifavor.qs.MfvQSContainerImpl";
  private static final List<XC_MethodHook.Unhook> hooks=new ArrayList<>();
  private static final Set<View> roots=Collections.newSetFromMap(new WeakHashMap<>());
+ private static final Set<View> dismissing=Collections.newSetFromMap(new WeakHashMap<>());
  private static final Map<View,Float> panelFractions=new WeakHashMap<>();
  private static final Set<View> tiles=Collections.newSetFromMap(new WeakHashMap<>());private static long generation;
  private static boolean attempted,ready,active,failed,restorePending;private static QsTheme theme=QsTheme.STOCK;
@@ -31,6 +32,20 @@ final class QsAppearanceBackend {
    Object target=container.get(p.thisObject);if(!(target instanceof View v)||!v.getClass().getName().equals(ROOT))return;
    float fraction=((Number)p.args[1]).floatValue();panelFractions.put(v,Float.isFinite(fraction)?Math.max(0f,Math.min(1f,fraction)):0f);roots.add(v);v.invalidate();
   }}));
+  // Nubia can dismiss by fading children while the container/panel fraction remains visible.
+  // Latch dismissal at its start; stale expansion frames must not resurrect the background.
+  XC_MethodHook appearance=new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
+   if(Looper.myLooper()!=Looper.getMainLooper())return;
+   Object target=container.get(p.thisObject);if(!(target instanceof View v)||!v.getClass().getName().equals(ROOT))return;
+   if(Boolean.TRUE.equals(p.args[0]))dismissing.remove(v);else dismissing.add(v);
+   roots.add(v);v.invalidate();
+  }};
+  hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("animateAppearDisapper",boolean.class),appearance));
+  hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("animateHeaderShow",boolean.class,Runnable.class),appearance));
+  hooks.add(XposedBridge.hookMethod(fragment.getDeclaredMethod("animateHeaderSlidingOut"),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p)throws Throwable{
+   if(Looper.myLooper()!=Looper.getMainLooper())return;
+   Object target=container.get(p.thisObject);if(target instanceof View v&&v.getClass().getName().equals(ROOT)){dismissing.add(v);roots.add(v);v.invalidate();}
+  }}));
   Class<?> base=XposedHelpers.findClass("com.zte.qs.tileimpl.QSTileViewBase",loader),wide=XposedHelpers.findClass("com.zte.qs.tileimpl.QSTileViewWide",loader);
   for(Class<?> c:new Class<?>[]{base,wide})for(String name:new String[]{"getBackgroundColorForState","getBackgroundStartColorForState","getBackgroundEndColorForState","getLabelColorForState","getSecondaryLabelColorForState"}){
    for(Method m:c.getDeclaredMethods())if(m.getName().equals(name)&&m.getReturnType()==int.class&&m.getParameterTypes().length>0&&m.getParameterTypes()[0]==int.class)hooks.add(XposedBridge.hookMethod(m,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(Looper.myLooper()==Looper.getMainLooper()&&p.thisObject instanceof View v)tiles.add(v);if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[0];if(state==0)return;int value=color(name,state);if(value!=0)p.setResult(value);}}));
@@ -38,7 +53,7 @@ final class QsAppearanceBackend {
   Class<?> multi=XposedHelpers.findClass("com.zte.feature.qs.theme.MultiThemeFeature",loader);
   hooks.add(XposedBridge.hookMethod(multi.getDeclaredMethod("getQSIconViewColor",int.class,Context.class,int.class,boolean.class,String.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[2];if(state==0)return;int value=state==2?theme.activeIcon():theme.inactiveIcon();if(value!=0)p.setResult(value);}}));
   // Invoked by the vendor's dispatchDraw after it applies native clipping, before child tiles draw.
-  hooks.add(XposedHelpers.findAndHookMethod(ViewGroup.class,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(Looper.myLooper()!=Looper.getMainLooper()||!p.thisObject.getClass().getName().equals(ROOT))return;ViewGroup v=(ViewGroup)p.thisObject;roots.add(v);if(!allowed()||theme.header()==0||!v.isAttachedToWindow())return;try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"getShowQsPanel")))return;float fraction=panelFractions.getOrDefault(v,0f);if(fraction<=0f)return;draw((Canvas)p.args[0],v,fraction);}catch(Throwable error){failed=true;message="QS background draw stopped: "+error.getClass().getSimpleName();}}}));
+  hooks.add(XposedHelpers.findAndHookMethod(ViewGroup.class,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(Looper.myLooper()!=Looper.getMainLooper()||!p.thisObject.getClass().getName().equals(ROOT))return;ViewGroup v=(ViewGroup)p.thisObject;roots.add(v);if(!allowed()||theme.header()==0||dismissing.contains(v)||!v.isAttachedToWindow())return;try{if(!Boolean.TRUE.equals(XposedHelpers.callMethod(v,"getShowQsPanel")))return;float fraction=panelFractions.getOrDefault(v,0f);if(fraction<=0f)return;draw((Canvas)p.args[0],v,fraction);}catch(Throwable error){failed=true;message="QS background draw stopped: "+error.getClass().getSimpleName();}}}));
   ready=true;message="Ready";
  }catch(Throwable error){for(var h:new ArrayList<>(hooks))try{h.unhook();hooks.remove(h);}catch(Throwable ignored){}failed=true;message="QS appearance unavailable: "+error.getClass().getSimpleName()+" "+error.getMessage();}}
  private static boolean allowed(){return active&&ready&&!failed&&Looper.myLooper()==Looper.getMainLooper()&&ClockColorBackend.authorized();}
