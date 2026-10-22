@@ -6,7 +6,7 @@ public final class AppearanceScopeTest {
  private static final AppearanceScope.Snapshot STOCK=AppearanceScope.Snapshot.STOCK;
  private static final String[][] ROUTES={
   {"status_bar","typography","color","date","icons","battery","connectivity","inventory","iconpacks"},
-  {"quick_settings","colors","two_tone","background","labels","tiles","style","brightness","grid","iconpacks","landscape","top_layout","label_layout","brightness_layout"},
+  {"quick_settings","colors","background","labels","tiles","style","brightness","grid","iconpacks","landscape","top_layout","label_layout","brightness_layout"},
   {"lock_screen","clock","date","fonts","fingerprint","widgets","charging"},
   {"notifications","styles","appearance","behavior","icons"},{"volume","styles"},{"power_menu","styles"}};
  private AppearanceScope.Snapshot draft(){
