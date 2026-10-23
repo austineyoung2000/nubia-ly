@@ -130,7 +130,7 @@ public final class LauncherActivity extends AppCompatActivity {
         layoutSlider(folderEditor,"Folder icon size",7,50,100,"launcher-folder-scale");
         layoutSlider(folderEditor,"Folder rows",0,2,6,"launcher-folder-rows");layoutSlider(folderEditor,"Folder columns",1,2,6,"launcher-folder-columns");MaterialButton nativeFolderGrid=button("Use native folder grid");folderEditor.addView(nativeFolderGrid);layoutControls.add(nativeFolderGrid);nativeFolderGrid.setOnClickListener(v->{changeLayout(0,0);changeLayout(1,0);});
         folderEditor.addView(text("Rows and columns set the maximum page size; small folders may use fewer cells. Close and reopen a folder after applying. Additional apps stay on further folder pages.",14));
-        folderEditor.addView(text("Folder title and app-label colors are independent of home-screen labels. Save a draft here, then enable launcher customization to apply.",14));pages.register("launcher","folders","Folders",(View)folderEditor.getParent());
+        folderEditor.addView(text("Folder title and app-label colors are independent of home-screen labels. Save a draft here, then apply this tab to apply.",14));pages.register("launcher","folders","Folders",(View)folderEditor.getParent());
         LinearLayout actions=panel(content,"Apply & restore");status=text("Checking installed launcher…",15);status.setTag("launcher-status");actions.addView(status);
         enable=button("Enable launcher customization");enable.setTag("launcher-enable");enable.setEnabled(false);actions.addView(enable);enable.setOnClickListener(v->apply(false));
         restore=button("Restore launcher appearance");restore.setTag("launcher-restore");actions.addView(restore);restore.setOnClickListener(v->apply(true));

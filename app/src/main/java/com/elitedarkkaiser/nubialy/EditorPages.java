@@ -17,7 +17,7 @@ final class EditorPages {
  void onChange(Runnable callback){changed=callback;changed.run();}String title(){return title;}String section(){return section;}String page(){return page;}
  EditorPages(AppCompatActivity activity,MaterialToolbar toolbar,ScrollView scroll){this.activity=activity;this.toolbar=toolbar;this.scroll=scroll;toolbar.setNavigationOnClickListener(v->activity.finish());activity.getOnBackPressedDispatcher().addCallback(activity,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){activity.finish();}});}
  void register(String section,String page,String title,View view){panels.add(new Panel(section,page,title,view));}
- void show(String section,String requested){positions.put(this.section+":"+page,scroll.getScrollY());if(panels.stream().noneMatch(p->p.section.equals(section))){show("status_bar","");return;}this.section=section;page=EditorNavigation.tab(section,requested);String area=switch(section){case "launcher"->"Launcher";case "lock_screen"->"Lock screen";case "quick_settings"->"Quick Settings";case "volume"->"Volume";case "notifications"->"Notifications";case "power_menu"->"Power menu";default->"Status bar";};
+ void show(String section,String requested){positions.put(this.section+":"+page,scroll.getScrollY());if(panels.stream().noneMatch(p->p.section.equals(section))){if(!panels.isEmpty())show(panels.get(0).section,"");return;}this.section=section;page=EditorNavigation.tab(section,requested);String area=switch(section){case "launcher"->"Launcher";case "lock_screen"->"Lock screen";case "quick_settings"->"Quick Settings";case "volume"->"Volume";case "notifications"->"Notifications";case "power_menu"->"Power menu";default->"Status bar";};
   for(Panel p:panels)p.view.setVisibility(p.section.equals(section)&&(p.page.equals("preview")||EditorNavigation.contains(section,page,p.page))?View.VISIBLE:View.GONE);
   toolbar.setTitle(area);for(String[] t:EditorNavigation.tabs(section))if(t[0].equals(page))title=t[1];
   if(tabs!=null){selecting=true;tabs.removeAllTabs();for(String[] t:EditorNavigation.tabs(section))tabs.addTab(tabs.newTab().setText(t[1]).setTag(t[0]),t[0].equals(page));selecting=false;}
@@ -25,6 +25,7 @@ final class EditorPages {
  }
  private static void detach(View v){if(v.getParent() instanceof ViewGroup p)p.removeView(v);}
  void layout(MaterialButton apply,MaterialButton restore,TextView status,View diagnostics){
+  if(diagnostics instanceof ViewGroup group){ViewGroup help=group;if(group.getChildCount()==1&&group.getChildAt(0) instanceof LinearLayout inner)help=inner;LinearLayout notes=new LinearLayout(activity);notes.setOrientation(LinearLayout.VERTICAL);for(Panel panel:panels)if(panel.section.equals(section)&&!panel.page.isEmpty()&&!panel.page.equals("preview"))collectHelp(panel.view,notes);help.addView(notes);}
   detach(scroll);detach(toolbar);detach(apply);detach(restore);detach(status);detach(diagnostics);
   LinearLayout root=new LinearLayout(activity);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(activity.getColor(R.color.background));
   androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scroll,null);scroll.setPadding(0,0,0,0);
@@ -36,5 +37,6 @@ final class EditorPages {
   toolbar.setOnMenuItemClickListener(item->{if(item.getTitle().equals("Dashboard")){activity.finish();return true;}detach(diagnostics);ScrollView body=new ScrollView(activity);body.addView(diagnostics);new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity).setTitle("Help & diagnostics").setView(body).setPositiveButton("Close",null).show();return true;});
   androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root,(v,insets)->{var bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});show(section,page);
  }
+ private void collectHelp(View view,LinearLayout notes){if(view instanceof TextView t&&view.getClass()==TextView.class&&t.getTag()==null&&t.getText().length()>180&&t.getTextSize()/activity.getResources().getDisplayMetrics().scaledDensity<=15){detach(t);notes.addView(t);return;}if(view instanceof ViewGroup group){List<View> children=new ArrayList<>();for(int i=0;i<group.getChildCount();i++)children.add(group.getChildAt(i));for(View child:children)collectHelp(child,notes);}}
  private int dp(int n){return PersonalizationUi.dp(activity,n);}
 }

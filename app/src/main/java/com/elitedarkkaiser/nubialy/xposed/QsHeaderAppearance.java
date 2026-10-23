@@ -24,9 +24,10 @@ final class QsHeaderAppearance {
  private static String id(View v){try{return v.getResources().getResourceEntryName(v.getId()).toLowerCase(java.util.Locale.ROOT);}catch(Exception missing){return "";}}
  private static int rawRole(View v){String id=id(v),name=v.getClass().getSimpleName().toLowerCase(java.util.Locale.ROOT);if(v instanceof android.widget.TextView){if(id.contains("date")||name.contains("dateview"))return 1;if(id.contains("clock")||name.equals("clock"))return 0;}if(id.equals("statusicons")||id.equals("status_icons")||id.equals("system_icons")||id.equals("battery")||name.contains("statusiconcontainer")||name.contains("batterymeterview")||name.contains("signalclusterview"))return 2;return -1;}
  private static int role(View v){int role=rawRole(v);if(role<0)return -1;View current=v;for(int depth=0;depth<16;depth++){if(headers.contains(current))return role;if(!(current.getParent() instanceof View parent))return -1;current=parent;if(rawRole(current)>=0)return -1;}return -1;}
- static void observe(View container){try{Object header=XposedHelpers.getObjectField(container,"mHeader");if(header instanceof View v)headers.add(v);}catch(Throwable ignored){}}
+ static void observe(View container){try{Object header=XposedHelpers.getObjectField(container,"mHeader");if(header instanceof View v&&headers.add(v)&&custom())v.post(()->invalidateTree(v));}catch(Throwable ignored){}}
  static void begin(QsTheme next){theme=next;observed=0;invalidate();}
  static void end(){theme=QsTheme.STOCK;invalidate();}
- private static void invalidate(){for(View v:new ArrayList<>(headers))if(v!=null)v.invalidate();}
+ private static void invalidate(){for(View v:new ArrayList<>(headers))if(v!=null)invalidateTree(v);}
+ private static void invalidateTree(View v){v.invalidate();if(v instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++)invalidateTree(group.getChildAt(i));}
  static String status(){return "QS header: "+headers.size()+" hosts; styled draws="+observed+".";}
 }

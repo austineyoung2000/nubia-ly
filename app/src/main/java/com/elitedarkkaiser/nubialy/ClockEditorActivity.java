@@ -122,8 +122,8 @@ public final class ClockEditorActivity extends AppCompatActivity {
         resetIcons=button("Reset icons & battery selections");icons.addView(resetIcons);resetIcons.setOnClickListener(v->{
             enabled(false);worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),StatusBarStyle.STOCK.withSurfaces(currentSurfaces().withBatteryStyle(0).withBatteryControls(0,0)));runOnUiThread(()->{if(alive()){if(saved){finish();startActivity(new android.content.Intent(this,ClockEditorActivity.class));}else {enabled(true);saveStatus.setText("Reset could not be saved.");}}});});
         });
-        icons.addView(text("Reset clears draft icon/battery controls; press Enable afterward to apply stock icon/battery appearance while keeping your clock choices.",14,false));
-        icons.addView(text("100% uses stock size. These controls apply to recognized top-status-bar views; other icons may keep their stock appearance. Press Enable to apply this page.",14,false));
+        icons.addView(text("Reset clears draft icon/battery controls; press Apply afterward to apply stock icon/battery appearance while keeping your clock choices.",14,false));
+        icons.addView(text("100% uses stock size. These controls apply to recognized top-status-bar views; other icons may keep their stock appearance. Press Apply to apply this page.",14,false));
         LinearLayout batteries=editorPanel("status_bar","battery","Battery styles & controls");batteryControls(batteries);batteryStyleControls(batteries);
         iconPackControls(editorPanel("status_bar","iconpacks","Icon packs"),false);
         iconPackControls(editorPanel("quick_settings","iconpacks","Icon packs"),true);
@@ -141,17 +141,17 @@ public final class ClockEditorActivity extends AppCompatActivity {
         qsThemeEditor.colors(editorPanel("quick_settings","colors","QS colors"));
         qsThemeEditor.header(editorPanel("quick_settings","header","QS header"));
         qsThemeEditor.background(editorPanel("quick_settings","background","Upper QS background"));
-        if(!qsTheme.image().isEmpty()){String imageHash=qsTheme.image();worker.execute(()->{android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeFile(QsImageStore.file(getApplicationContext(),imageHash).toString());runOnUiThread(()->{if(alive())qsThemeEditor.image(bitmap,imageHash);});});}
+        if(!qsTheme.image().isEmpty()){String imageHash=qsTheme.image();worker.execute(()->{android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeFile(QsImageStore.file(getApplicationContext(),imageHash).toString());runOnUiThread(()->{if(alive()){qsThemeEditor.image(bitmap,imageHash);for(EditorPreview preview:editorPreviews)preview.qsImage(bitmap,imageHash);}});});}
         LinearLayout stylePanel=editorPanel("quick_settings","style","Tile style");qsStyleControls(stylePanel);
         LinearLayout brightnessPanel=editorPanel("quick_settings","brightness","Brightness slider");brightnessStyleControls(brightnessPanel);
         LinearLayout surfaces=editorPanel("quick_settings","tiles","Tile shapes");
-        surfaces.addView(text("Choose independent shapes for large and small tiles. Label appearance keeps tile actions unchanged. Press Enable to apply saved choices.",14,false));
+        surfaces.addView(text("Choose independent shapes for large and small tiles. Label appearance keeps tile actions unchanged. Press Apply to apply saved choices.",14,false));
         MaterialButton oneui=button("Apply One UI-style look");surfaces.addView(oneui);statusControls.add(oneui);
-        surfaces.addView(text("One tap: pill large & small tiles, filled tile style and a denser 5-column grid. Tweak anything afterwards, then press Enable. Panel pull-down stays stock.",13,false));
+        surfaces.addView(text("One tap: pill large & small tiles, filled tile style and a denser 5-column grid. Tweak anything afterwards, then press Apply. Panel pull-down stays stock.",13,false));
         oneui.setOnClickListener(v->{tileShape=4;largeTileShape=4;qsStyle=0;qsColumns=5;final StatusBarStyle value=currentStatusBar();enabled(false);worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),value);runOnUiThread(()->{if(alive()){if(saved){finish();startActivity(new android.content.Intent(this,ClockEditorActivity.class).putExtra("surfaces",true).putExtra("section","quick_settings"));}else{enabled(true);saveStatus.setText("Could not apply the One UI-style preset.");}}});});});
         shapeControls(surfaces,"Large QS tiles",true);
         shapeControls(surfaces,"Small QS tiles",false);
-        surfaces.addView(text("Large QS tiles are the four wide tiles at the top. Small QS tiles are the tiles below brightness. Each group has its own shape. Press Enable to apply.",14,false));
+        surfaces.addView(text("Large QS tiles are the four wide tiles at the top. Small QS tiles are the tiles below brightness. Each group has its own shape. Press Apply to apply.",14,false));
         LinearLayout labels=editorPanel("quick_settings","labels","Label styles");
         surfaceControls(labels,"Main labels",0);surfaceControls(labels,"Secondary labels",1);
         LinearLayout clock=editorPanel("lock_screen","clock","Clock appearance");surfaceControls(clock,"Clock",2);
@@ -178,7 +178,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         }
         hideControl = new com.google.android.material.materialswitch.MaterialSwitch(this); hideControl.setText("Hide status-bar clock"); hideControl.setChecked(hidden); typography.addView(hideControl);
         hideControl.setOnCheckedChangeListener((v, checked) -> { hidden = checked;refreshEditorPreviews(); final boolean requested = checked;
-            worker.execute(() -> { boolean saved = ClockColorPreferences.saveHidden(getApplicationContext(), requested); runOnUiThread(() -> { if(alive()) saveStatus.setText(saved ? "Visibility saved. Press Enable to apply it." : "Visibility could not be saved."); }); }); });
+            worker.execute(() -> { boolean saved = ClockColorPreferences.saveHidden(getApplicationContext(), requested); runOnUiThread(() -> { if(alive()) saveStatus.setText(saved ? "Visibility saved. Press Apply to apply it." : "Visibility could not be saved."); }); }); });
         italicControl = new com.google.android.material.materialswitch.MaterialSwitch(this);
         italicControl.setText("Italic clock"); italicControl.setChecked(italic); typography.addView(italicControl);
         italicControl.setOnCheckedChangeListener((v, checked) -> { italic = checked; saveExtras(); });
@@ -193,21 +193,21 @@ public final class ClockEditorActivity extends AppCompatActivity {
         secondsControl.setOnCheckedChangeListener((v, checked) -> {
             seconds = checked; final boolean requested = checked;
             worker.execute(() -> { boolean saved = ClockColorPreferences.saveSeconds(getApplicationContext(), requested);
-                runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Seconds selection saved. Press Enable to apply it." : "Seconds selection could not be saved."); }); });
+                runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Seconds selection saved. Press Apply to apply it." : "Seconds selection could not be saved."); }); });
         });
         typography.addView(text("Seconds update using the stock clock while awake. They can use more power and status-bar space.", 14, false));
-        typography.addView(text("Size follows your stock font scaling. Press Enable to apply your saved size and weight with the selected color.", 14, false));
+        typography.addView(text("Size follows your stock font scaling. Press Apply to apply your saved size and weight with the selected color.", 14, false));
         LinearLayout dateFormats=editorPanel("status_bar","date","Date format");
         dateChoices(dateFormats,"Date format",ClockDatePolicy.LABELS,0);
         dateChoices(dateFormats,"Date position",ClockDatePolicy.POSITIONS,1);
         dateChoices(dateFormats,"Date separator",ClockDatePolicy.SEPARATOR_LABELS,2);
         dateChoices(dateFormats,"Date letter case",ClockDatePolicy.CASE_LABELS,3);
-        dateFormats.addView(text("Date uses your stock locale and timezone. Position, separator and letter case affect only the added date; time keeps its stock format. Long dates add width. Press Enable to apply your saved choices.",14,false));
+        dateFormats.addView(text("Date uses your stock locale and timezone. Position, separator and letter case affect only the added date; time keeps its stock format. Long dates add width. Press Apply to apply your saved choices.",14,false));
         String initial=state==null?getIntent().getStringExtra("section"):state.getString("editor_section");if(initial==null)initial=getIntent().getBooleanExtra("surfaces",false)?"quick_settings":"status_bar";
         pages.show(initial,state==null?"":state.getString("editor_page",""));
         LinearLayout controls = card("Apply your style");
         ((android.view.ViewGroup)saveStatus.getParent()).removeView(saveStatus);controls.addView(saveStatus);
-        controls.addView(text("Enable applies only this page. Other applied areas stay as they are; their drafts wait until you enable them. Restore resets only this page.", 15, false));
+        controls.addView(text("Apply affects only this page. Other applied areas stay as they are; their drafts wait until you enable them. Restore resets only this page.", 15, false));
         controls.addView(text("Requires root and the updated recovery guard. Your enabled color resumes after wake or reboot. The guard Action independently turns it off.", 14, false));
         previewStatus = text(getSharedPreferences("recovery", MODE_PRIVATE).getBoolean("restart_recovery_stopped", false)
             ? "Clock color was stopped after repeated System UI restarts. Enable again only after checking recovery."
@@ -229,7 +229,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private StatusBarStyle currentStatusBar() { return new StatusBarStyle(statusMask,systemScale,notificationScale,batteryScale,systemOpacity,notificationOpacity,batteryOpacity,hiddenSlots,systemTransform,notificationTransform,batteryTransform,fanAppearance,pumpAppearance,refreshAppearance,currentSurfaces()); }
     private void redrawIcon(){iconSelection.setText("Mobile service icon color: "+ClockColorPolicy.hex(iconColor));iconSelection.setTextColor(iconColor);for(int n=0;n<iconPresets.getChildCount();n++){Chip c=(Chip)iconPresets.getChildAt(n);c.setChecked((Integer)c.getTag()==iconColor);}}
-    private void chooseIcon(int color){if(!ClockColorPolicy.valid(color))return;iconColor=color;redrawIcon();refreshEditorPreviews();worker.execute(()->{boolean saved=StatusBarPreferences.saveColor(getApplicationContext(),color);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Icon color saved. Press Enable to apply it.":"Icon color could not be saved.");});});}
+    private void chooseIcon(int color){if(!ClockColorPolicy.valid(color))return;iconColor=color;redrawIcon();refreshEditorPreviews();worker.execute(()->{boolean saved=StatusBarPreferences.saveColor(getApplicationContext(),color);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Icon color saved. Press Apply to apply it.":"Icon color could not be saved.");});});}
     private void showSlots(java.util.List<String> live){
         for(int n=0;n<iconSlots.getChildCount();n++)removeSlotControls(iconSlots.getChildAt(n));iconSlots.removeAllViews();java.util.Set<String> values=new java.util.TreeSet<>(live);values.addAll(hiddenSlots);
         indicatorHide("Hide cooling fan icon",StatusBarStyle.HIDE_FAN);
@@ -252,7 +252,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private void saveStatusBar() {
         refreshEditorPreviews();
         final StatusBarStyle value=currentStatusBar();
-        worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),value);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Style choices saved. Press Enable to apply.":"Status-bar selections could not be saved.");});});
+        worker.execute(()->{boolean saved=StatusBarPreferences.save(getApplicationContext(),value);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Style choices saved. Press Apply to apply.":"Status-bar selections could not be saved.");});});
     }
     private void statusSwitch(LinearLayout box,String title,int flag) {
         var toggle=new com.google.android.material.materialswitch.MaterialSwitch(this);toggle.setText(title);toggle.setChecked((statusMask&flag)!=0);box.addView(toggle);statusControls.add(toggle);
@@ -266,7 +266,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         refreshEditorPreviews();
         final boolean requestedItalic = italic; final int requestedSpacing = spacing, requestedFamily = fontFamily;
         worker.execute(() -> { boolean saved = ClockColorPreferences.saveExtras(getApplicationContext(), requestedItalic, requestedSpacing, requestedFamily);
-            runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Enable to apply it." : "Style could not be saved."); }); });
+            runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Apply to apply it." : "Style could not be saved."); }); });
         swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
         swatch.setLetterSpacing(spacing / 100f);
     }
@@ -274,7 +274,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         refreshEditorPreviews();
         final int requestedSize = sizePercent; final boolean requestedBold = bold, requestedSeconds = seconds;
         worker.execute(() -> { boolean saved = ClockColorPreferences.saveStyle(getApplicationContext(), requestedSize, requestedBold);
-            runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Enable to apply it." : "Style could not be saved."); }); });
+            runOnUiThread(() -> { if (alive()) saveStatus.setText(saved ? "Style saved. Press Apply to apply it." : "Style could not be saved."); }); });
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
         swatch.setTypeface(android.graphics.Typeface.create(ClockStylePolicy.familyName(fontFamily), (bold ? android.graphics.Typeface.BOLD : 0) | (italic ? android.graphics.Typeface.ITALIC : 0)));
     }
@@ -286,7 +286,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
             boolean saved = ClockColorPreferences.save(getApplicationContext(), color);
             runOnUiThread(() -> {
                 if (alive() && ticket == saveGeneration) saveStatus.setText(saved
-                    ? "Selection saved. Press Enable to apply it."
+                    ? "Selection saved. Press Apply to apply it."
                     : "Selected color could not be saved. You can still enable it.");
             });
         });
@@ -372,7 +372,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
             chip.setOnClickListener(v->{
                 dateMode=ClockDatePolicy.selection(component==0?value:ClockDatePolicy.base(dateMode),component==1?value:ClockDatePolicy.position(dateMode),component==2?value:ClockDatePolicy.separator(dateMode),component==3?value:ClockDatePolicy.letterCase(dateMode));
                 for(int n=0;n<group.getChildCount();n++){Chip c=(Chip)group.getChildAt(n);c.setChecked((Integer)c.getTag()==value);}
-                final int requested=dateMode;worker.execute(()->{boolean saved=StatusBarPreferences.saveDate(getApplicationContext(),requested);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Date choices saved. Press Enable to apply them.":"Date choices could not be saved.");});});
+                final int requested=dateMode;worker.execute(()->{boolean saved=StatusBarPreferences.saveDate(getApplicationContext(),requested);runOnUiThread(()->{if(alive())saveStatus.setText(saved?"Date choices saved. Press Apply to apply them.":"Date choices could not be saved.");});});
             });
         }
     }
@@ -416,7 +416,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         fingerprintPreview=new android.widget.ImageView(this);fingerprintPreview.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);LinearLayout.LayoutParams iconSize=new LinearLayout.LayoutParams(dp(88),dp(88));iconSize.gravity=Gravity.CENTER_HORIZONTAL;parent.addView(fingerprintPreview,iconSize);
         fingerprintPicker=button("UDFPS icon");parent.addView(fingerprintPicker);statusControls.add(fingerprintPicker);redrawFingerprint();
         fingerprintPicker.setOnClickListener(v->{android.content.Intent intent=new android.content.Intent(this,FingerprintPickerActivity.class);intent.putExtra("selection",fingerprintStyle);startActivityForResult(intent,PICK_FINGERPRINT);});
-        parent.addView(text("Choose an icon on its own page, then press Enable customization to apply. The icon follows stock visibility, including face unlock.",14,false));
+        parent.addView(text("Choose an icon on its own page, then press Apply customization to apply. The icon follows stock visibility, including face unlock.",14,false));
         animationPicker=button("Fingerprint animation · "+FingerprintAnimations.NAMES[fingerprintAnimation]);parent.addView(animationPicker);statusControls.add(animationPicker);animationPicker.setOnClickListener(v->{android.content.Intent intent=new android.content.Intent(this,FingerprintAnimationPickerActivity.class);intent.putExtra("selection",fingerprintAnimation);startActivityForResult(intent,PICK_ANIMATION);});
         TextView serviceStatus=text("Fingerprint service has not been checked.",14,false);fingerprintHelp.addView(serviceStatus);MaterialButton serviceCheck=button("Check fingerprint service");fingerprintHelp.addView(serviceCheck);serviceCheck.setOnClickListener(v->{serviceStatus.setText("Checking fingerprint service…");fingerprintClient.check(serviceStatus::setText);});
         parent=editorPanel("lock_screen","fonts","Clock font styles");
@@ -428,9 +428,9 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private void redrawFingerprint(){fingerprintPreview.setImageDrawable(fingerprintStyle==0?getDrawable(R.drawable.rising_fp_udfps_icon_default):new com.elitedarkkaiser.nubialy.xposed.FingerprintGlyphDrawable(fingerprintStyle,0xffc0a8ff));fingerprintPreview.setContentDescription(FingerprintStyles.NAMES[fingerprintStyle]);fingerprintPicker.setText("UDFPS icon · "+FingerprintStyles.NAMES[fingerprintStyle]);}
     private void redrawClockFont(){if(lockFontPreview==null)return;var face=LockClockFonts.FACES[lockClockFont];lockFontPreview.setTypeface(android.graphics.Typeface.create(face.family(),face.style()));lockFontPicker.setText("Clock font styles · "+face.name());}
-    @Override protected void onActivityResult(int request,int result,android.content.Intent data){super.onActivityResult(request,result,data);if(request==PICK_QS_IMAGE&&result==RESULT_OK&&data!=null&&data.getData()!=null){android.net.Uri uri=data.getData();saveStatus.setText("Importing background…");worker.execute(()->{String hash=null,error=null;try{hash=QsImageStore.importImage(getApplicationContext(),uri);}catch(Exception failure){error=failure.getMessage();}String imported=hash,problem=error;android.graphics.Bitmap imagePreview=hash==null?null:android.graphics.BitmapFactory.decodeFile(QsImageStore.file(getApplicationContext(),hash).toString());runOnUiThread(()->{if(!alive())return;if(imported!=null){qsTheme=qsTheme.withImage(imported);qsThemeEditor.image(imagePreview,imported);saveStatusBar();}else saveStatus.setText("Background import failed: "+problem);});});}if(request==PICK_CLOCK_FONT&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(LockClockFonts.valid(value)){lockClockFont=value;redrawClockFont();saveStatusBar();}}if(request==PICK_ANIMATION&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(FingerprintAnimations.valid(value)){fingerprintAnimation=value;animationPicker.setText("Fingerprint animation · "+FingerprintAnimations.NAMES[value]);saveStatusBar();}}if(request==PICK_FINGERPRINT&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(FingerprintStyles.valid(value)){fingerprintStyle=value;redrawFingerprint();saveStatusBar();}}}
+    @Override protected void onActivityResult(int request,int result,android.content.Intent data){super.onActivityResult(request,result,data);if(request==PICK_QS_IMAGE&&result==RESULT_OK&&data!=null&&data.getData()!=null){android.net.Uri uri=data.getData();saveStatus.setText("Importing background…");worker.execute(()->{String hash=null,error=null;try{hash=QsImageStore.importImage(getApplicationContext(),uri);}catch(Exception failure){error=failure.getMessage();}String imported=hash,problem=error;android.graphics.Bitmap imagePreview=hash==null?null:android.graphics.BitmapFactory.decodeFile(QsImageStore.file(getApplicationContext(),hash).toString());runOnUiThread(()->{if(!alive())return;if(imported!=null){qsTheme=qsTheme.withImage(imported);qsThemeEditor.image(imagePreview,imported);for(EditorPreview preview:editorPreviews)preview.qsImage(imagePreview,imported);saveStatusBar();}else saveStatus.setText("Background import failed: "+problem);});});}if(request==PICK_CLOCK_FONT&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(LockClockFonts.valid(value)){lockClockFont=value;redrawClockFont();saveStatusBar();}}if(request==PICK_ANIMATION&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(FingerprintAnimations.valid(value)){fingerprintAnimation=value;animationPicker.setText("Fingerprint animation · "+FingerprintAnimations.NAMES[value]);saveStatusBar();}}if(request==PICK_FINGERPRINT&&result==RESULT_OK&&data!=null){int value=data.getIntExtra("selection",-1);if(FingerprintStyles.valid(value)){fingerprintStyle=value;redrawFingerprint();saveStatusBar();}}}
     private void gridControls(LinearLayout parent){
-        parent.addView(text("Arrange the small tiles below brightness. These choices apply to the portrait paged panel; landscape has its own grid page and large text keeps stock layout. Enable applies the saved grid.",14,false));
+        parent.addView(text("Arrange the small tiles below brightness. These choices apply to the portrait paged panel; landscape has its own grid page and large text keeps stock layout. Apply affects the saved grid.",14,false));
         gridChoices(parent,true,new int[]{0,2,3,5},new String[]{"Stock","2 columns","3 columns","5 columns"});
         gridChoices(parent,false,new int[]{0,1,2,4,5,6},new String[]{"Stock","1 row","2 rows","4 rows","5 rows","6 rows"});
         parent.addView(text("Rows are a maximum: the phone may fit fewer when space is limited. Extra rows include matching expansion animations when the height allows. Five columns require enough width for stock-size tiles and spacing; narrower panels keep stock columns. Page count follows your tiles. The large-tile layout has its own page; tile order and tap actions remain native. Restore stock appearance or the guard Action restores the native grid.",14,false));
@@ -475,7 +475,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         for(int i=0;i<choices.size();i++){MaterialCardView card=choices.get(i);card.setStrokeWidth(dp(i==qsStyle?3:0));card.setStrokeColor(getColor(R.color.primary));card.setSelected(i==qsStyle);card.setContentDescription(names[i]+(i==qsStyle?", selected":""));}
     }
     private void brightnessStyleControls(LinearLayout parent){
-        parent.addView(text("Style the brightness track and its drag mirror. Thin keeps the full touch area. Press Enable to apply.",14,false));
+        parent.addView(text("Style the brightness track and its drag mirror. Thin keeps the full touch area. Press Apply to apply.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();String[] names=BrightnessEffects.NAMES;
         LinearLayout row=null;boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<names.length;i++){final int value=i;if(stacked||i%2==0){row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);parent.addView(row);}MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag("brightness-style:"+i);choices.add(card);statusControls.add(card);
@@ -486,7 +486,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         for(int i=0;i<choices.size();i++){MaterialCardView card=choices.get(i);card.setStrokeWidth(dp(i==brightnessStyle?3:0));card.setStrokeColor(getColor(R.color.primary));card.setSelected(i==brightnessStyle);card.setContentDescription(names[i]+(i==brightnessStyle?", selected":""));}
     }
     private void volumeStyleControls(LinearLayout parent){
-        parent.addView(text("Choose a look for compatible sliders in the volume-button panel. Audio levels and controls stay stock. Press Enable to apply.",14,false));
+        parent.addView(text("Choose a look for compatible sliders in the volume-button panel. Audio levels and controls stay stock. Press Apply to apply.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();String[] names=VolumeEffects.NAMES;
         LinearLayout row=null;boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<names.length;i++){final int value=i;if(stacked||i%2==0){row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);parent.addView(row);}MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag("volume-style:"+i);choices.add(card);statusControls.add(card);
@@ -503,16 +503,16 @@ public final class ClockEditorActivity extends AppCompatActivity {
         for(int i=0;i<names.length;i++){final int value=i;Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setTag("battery-percent:"+i);chip.setText(names[i]);chip.setCheckable(true);chip.setChecked(batteryPercent==i);choices.addView(chip);statusControls.add(chip);chip.setOnClickListener(v->{batteryPercent=value;saveStatusBar();});}
         var charge=new com.google.android.material.materialswitch.MaterialSwitch(this);charge.setTag("battery-hide-charge");charge.setText("Hide charging symbol");charge.setChecked(batteryCharge!=0);controls.addView(charge);statusControls.add(charge);charge.setOnCheckedChangeListener((v,on)->{batteryCharge=on?1:0;saveStatusBar();});
         statusScale(controls,"Battery size",batteryScale,n->batteryScale=n);
-        controls.addView(text("Press Enable to apply. Size shares the Icons & battery setting. Text only always displays its percentage; Hidden hides the whole battery. Charging can temporarily replace an inside percentage. Warning and unsupported charging states retain REDMAGIC indicators.",14,false));
+        controls.addView(text("Press Apply to apply. Size shares the Icons & battery setting. Text only always displays its percentage; Hidden hides the whole battery. Charging can temporarily replace an inside percentage. Warning and unsupported charging states retain REDMAGIC indicators.",14,false));
     }
     private void notificationIconControls(LinearLayout parent){
         parent.addView(text("Control notification icons in the top status bar. The count replaces the overflow dot with the number of additional notification icons, including the icon represented by the dot. Grouped notifications follow Android’s icon grouping. Notifications in the shade are unchanged.",14,false));
         var count=new com.google.android.material.materialswitch.MaterialSwitch(this);count.setTag("notification-overflow-count");count.setText("Show overflow count");count.setChecked(notificationCount!=0);parent.addView(count);statusControls.add(count);count.setOnCheckedChangeListener((v,on)->{notificationCount=on?1:0;saveStatusBar();});
         parent.addView(text("Maximum icon slots",16,true));ChipGroup limits=new ChipGroup(this);limits.setSingleSelection(true);parent.addView(limits);for(int i=0;i<=8;i++){final int value=i;Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setTag("notification-limit:"+i);chip.setText(i==0?"Stock":Integer.toString(i));chip.setCheckable(true);chip.setChecked(notificationLimit==i);limits.addView(chip);statusControls.add(chip);chip.setOnClickListener(v->{notificationLimit=value;saveStatusBar();});}
-        parent.addView(text("Overflow uses one slot. Available space and REDMAGIC may reduce the number further. Existing Hide notification icons takes priority. Lock screen, AOD and notification shelf retain stock behavior. Press Enable to apply.",14,false));
+        parent.addView(text("Overflow uses one slot. Available space and REDMAGIC may reduce the number further. Existing Hide notification icons takes priority. Lock screen, AOD and notification shelf retain stock behavior. Press Apply to apply.",14,false));
     }
     private void batteryStyleControls(LinearLayout parent){
-        parent.addView(text("Choose a battery design inspired by RisingOS. Previews show sample low, normal and charging states. Styles follow your real battery level and native colors. Press Enable to apply.",14,false));
+        parent.addView(text("Choose a battery design inspired by RisingOS. Previews show sample low, normal and charging states. Styles follow your real battery level and native colors. Press Apply to apply.",14,false));
         parent.addView(text("Designs fit inside your current status-bar space. External percentage and charge indicators keep their stock positions. Text only replaces the battery group with its percentage; Hidden hides its graphics while keeping the space.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();LinearLayout row=null;boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<BatteryStyles.NAMES.length;i++){final int value=i;if(stacked||i%2==0){row=new LinearLayout(this);parent.addView(row);}MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag("battery-style:"+i);choices.add(card);statusControls.add(card);
@@ -523,7 +523,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private void iconPackControls(LinearLayout parent,boolean quickSettings){
         SystemIconPacks.resources(getResources());
-        parent.addView(text("Choose icons for this area only. Your separate Wi-Fi and mobile-signal styles take priority in the Status bar. Android keeps control of state and tint; unsupported icons stay stock. Press Enable to apply.",14,false));
+        parent.addView(text("Choose icons for this area only. Your separate Wi-Fi and mobile-signal styles take priority in the Status bar. Android keeps control of state and tint; unsupported icons stay stock. Press Apply to apply.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();LinearLayout row=null;
         boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<SystemIconPacks.NAMES.length;i++){final int value=i;
@@ -539,13 +539,13 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private void connectivityControls(LinearLayout parent){
         ConnectivityStyles.resources(getResources());
-        parent.addView(text("Choose separate Wi-Fi and mobile-signal artwork. Signal strength, SIMs and connectivity remain controlled by Android. Warning and unsupported icons keep stock appearance. Press Enable to apply.",14,false));
+        parent.addView(text("Choose separate Wi-Fi and mobile-signal artwork. Signal strength, SIMs and connectivity remain controlled by Android. Warning and unsupported icons keep stock appearance. Press Apply to apply.",14,false));
         parent.addView(text("Wi-Fi",18,true));visualStyleChoices(parent,"wifi");parent.addView(text("Mobile signal",18,true));visualStyleChoices(parent,"signal");
     }
     private int visualSelection(String kind){return kind.equals("wifi")?wifiStyle:kind.equals("signal")?signalStyle:powerStyle;}
     private void visualStyleChoices(LinearLayout parent,String kind){
         boolean power=kind.equals("power"),wifi=kind.equals("wifi");String[] names=power?NotificationEffects.NAMES:ConnectivityStyles.NAMES;
-        if(power)parent.addView(text("Style the stock power and restart button backgrounds. Power actions, confirmations and lock-screen security stay controlled by REDMAGIC. Press Enable to apply.",14,false));
+        if(power)parent.addView(text("Style the stock power and restart button backgrounds. Power actions, confirmations and lock-screen security stay controlled by REDMAGIC. Press Apply to apply.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();LinearLayout row=null;boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<names.length;i++){final int value=i;if(stacked||i%2==0){row=new LinearLayout(this);parent.addView(row);}MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag(kind+"-style:"+i);choices.add(card);statusControls.add(card);
             LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setGravity(Gravity.CENTER);body.setPadding(dp(12),dp(12),dp(12),dp(12));body.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
@@ -556,7 +556,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         for(int n=0;n<choices.size();n++){MaterialCardView card=choices.get(n);card.setStrokeWidth(dp(n==visualSelection(kind)?3:0));card.setStrokeColor(getColor(R.color.primary));card.setSelected(n==visualSelection(kind));card.setContentDescription(names[n]+(n==visualSelection(kind)?", selected":""));}
     }
     private void notificationAppearanceControls(LinearLayout parent){
-        parent.addView(text("Adjust the compatible card background without fading text or actions. Corner clipping adds rounding inside the stock shape; grouped and newer vendor surfaces may keep stock. Press Enable to apply.",14,false));
+        parent.addView(text("Adjust the compatible card background without fading text or actions. Corner clipping adds rounding inside the stock shape; grouped and newer vendor surfaces may keep stock. Press Apply to apply.",14,false));
         TextView label=text("",16,true);parent.addView(label);Slider opacity=new Slider(this);opacity.setValueFrom(50);opacity.setValueTo(100);opacity.setStepSize(5);int selectedOpacity=NotificationControls.opacity(notificationAppearance);opacity.setValue(selectedOpacity==0?100:selectedOpacity);parent.addView(opacity);statusControls.add(opacity);
         Runnable redraw=()->label.setText("Background opacity: "+(NotificationControls.opacity(notificationAppearance)==0?"Stock":NotificationControls.opacity(notificationAppearance)+"%"));redraw.run();opacity.addOnChangeListener((v,value,user)->{if(user){notificationAppearance=NotificationControls.encode((int)value,NotificationControls.corners(notificationAppearance));redraw.run();saveStatusBar();}});
         MaterialButton stock=button("Use stock opacity");parent.addView(stock);statusControls.add(stock);stock.setOnClickListener(v->{notificationAppearance=NotificationControls.encode(0,NotificationControls.corners(notificationAppearance));opacity.setValue(100);redraw.run();saveStatusBar();});
@@ -571,11 +571,11 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private void openNotificationSettings(String action){try{startActivity(new android.content.Intent(action));}catch(android.content.ActivityNotFoundException unavailable){new MaterialAlertDialogBuilder(this).setTitle("Not available").setMessage("REDMAGIC does not expose this settings page on your firmware.").setPositiveButton("OK",null).show();}}
     private void chargingControls(LinearLayout parent){
         var toggle=new com.google.android.material.materialswitch.MaterialSwitch(this);toggle.setText("Show live charging diagnostics");toggle.setChecked(chargingInfo!=0);parent.addView(toggle);statusControls.add(toggle);toggle.setOnCheckedChangeListener((v,on)->{chargingInfo=on?1:0;saveStatusBar();});
-        parent.addView(text("Adds a second line beneath the stock charging message while plugged in and awake: measured battery voltage, battery current and temperature when available. The existing charging type and percentage remain above it. Press Enable to apply.",14,false));
+        parent.addView(text("Adds a second line beneath the stock charging message while plugged in and awake: measured battery voltage, battery current and temperature when available. The existing charging type and percentage remain above it. Press Apply to apply.",14,false));
         parent.addView(text("Example · Battery 4.420 V · +2,350 mA · 36.5 °C",16,true));parent.addView(text("Battery voltage is measured at the battery, not the USB charger. Current sign follows the device sensor. Readings follow native charging updates; there is no background polling.",14,false));
     }
     private void notificationStyleControls(LinearLayout parent){
-        parent.addView(text("Choose a background treatment for notification cards. Text, actions and gestures follow Android. Press Enable to apply.",14,false));
+        parent.addView(text("Choose a background treatment for notification cards. Text, actions and gestures follow Android. Press Apply to apply.",14,false));
         java.util.List<MaterialCardView> choices=new java.util.ArrayList<>();String[] names=NotificationEffects.NAMES;
         LinearLayout row=null;boolean stacked=getResources().getConfiguration().fontScale>1.3f||getResources().getConfiguration().screenWidthDp<360;
         for(int i=0;i<names.length;i++){final int value=i;if(stacked||i%2==0){row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);parent.addView(row);}MaterialCardView card=new MaterialCardView(this);card.setRadius(dp(24));card.setCardElevation(0);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setClickable(true);card.setFocusable(true);card.setTag("notification-style:"+i);choices.add(card);statusControls.add(card);
