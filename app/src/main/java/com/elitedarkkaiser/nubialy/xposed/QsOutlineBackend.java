@@ -18,7 +18,7 @@ final class QsOutlineBackend {
         final long ticket=++generation;
         try{hook=XposedHelpers.findAndHookMethod(GradientDrawable.class,"draw",Canvas.class,new XC_MethodHook(){
             @Override protected void beforeHookedMethod(MethodHookParam p){
-                if(QsAppearanceBackend.twoTone()||!active||failed||Looper.myLooper()!=Looper.getMainLooper()||!(p.thisObject instanceof GradientDrawable drawable))return;
+                if(!active||failed||Looper.myLooper()!=Looper.getMainLooper()||!(p.thisObject instanceof GradientDrawable drawable))return;
                 WeakReference<ViewGroup> ref=owners.get(drawable);ViewGroup owner=ref==null?null:ref.get();
                 if(!eligible(owner,drawable))return;
                 try{boolean rendered=QsTileEffects.draw(style,(Canvas)p.args[0],drawable,owner.getResources().getDisplayMetrics().density,

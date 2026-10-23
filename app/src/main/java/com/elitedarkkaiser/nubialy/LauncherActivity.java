@@ -53,7 +53,7 @@ public final class LauncherActivity extends AppCompatActivity {
         FolderColor(LinearLayout editor,boolean title){this.title=title;int selected=title?draftFolderTitle:draftFolderLabels;if(selected!=0)last=selected;
             String name=title?"Folder title":"App labels",tag=title?"folder-title":"folder-labels";
             editor.addView(text(name+" color",18));nativeSwitch=new MaterialSwitch(LauncherActivity.this);nativeSwitch.setText("Use native "+name.toLowerCase(java.util.Locale.ROOT)+" color");nativeSwitch.setTag(tag+"-native");nativeSwitch.setChecked(selected==0);editor.addView(nativeSwitch);
-            value=text("",16);value.setTag(tag+"-selection");editor.addView(value);custom=button("Custom color");custom.setTag(tag+"-custom");editor.addView(custom);
+            value=text("",16);value.setTag(tag+"-selection");editor.addView(value);custom=button("Edit hex color");custom.setTag(tag+"-custom");editor.addView(custom);
             custom.setOnClickListener(v->ColorPickerDialog.show(LauncherActivity.this,"Custom "+name.toLowerCase(java.util.Locale.ROOT)+" color",title?"Folder":"App label",last,color->{if(closed||busy)return;last=color;if(nativeSwitch.isChecked())nativeSwitch.setChecked(false);else choose(color);}));
             nativeSwitch.setOnCheckedChangeListener((v,checked)->choose(checked?0:last));
         }
@@ -105,12 +105,8 @@ public final class LauncherActivity extends AppCompatActivity {
         nativeColor=new MaterialSwitch(this);nativeColor.setText("Use native label color");nativeColor.setTag("launcher-native-label-color");nativeColor.setChecked(draftColor==0);editor.addView(nativeColor);
         labelSelection=text("",16);labelSelection.setTag("launcher-label-selection");editor.addView(labelSelection);
         labelPresets=new com.google.android.material.chip.ChipGroup(this);labelPresets.setSingleSelection(true);editor.addView(labelPresets);
-        for(ClockColorPolicy.Preset preset:ClockColorPolicy.PRESETS){
-            com.google.android.material.chip.Chip chip=new com.google.android.material.chip.Chip(this);chip.setId(View.generateViewId());chip.setText(preset.name());chip.setCheckable(true);chip.setTag(preset.color());
-            android.graphics.drawable.GradientDrawable dot=new android.graphics.drawable.GradientDrawable();dot.setShape(android.graphics.drawable.GradientDrawable.OVAL);dot.setColor(preset.color());dot.setSize(dp(20),dp(20));chip.setChipIcon(dot);chip.setChipIconVisible(true);chip.setOnClickListener(v->chooseLabelColor(preset.color()));labelPresets.addView(chip);
-        }
-        customColor=button("Custom color");customColor.setTag("launcher-custom-color");editor.addView(customColor);customColor.setOnClickListener(v->ColorPickerDialog.show(this,"Custom label color","App label",customLabelColor,color->{if(!closed&&!busy)chooseLabelColor(color);}));
-        editor.addView(text("Choose a preset or open Custom color for hex and RGB controls. Hidden labels stay hidden.",14));
+        customColor=button("Edit hex color");customColor.setTag("launcher-custom-color");editor.addView(customColor);customColor.setOnClickListener(v->ColorPickerDialog.show(this,"Custom label color","App label",customLabelColor,color->{if(!closed&&!busy)chooseLabelColor(color);}));
+        editor.addView(text("Open the hex editor to choose a color. Hidden labels stay hidden.",14));
         nativeColor.setOnCheckedChangeListener((v,checked)->{draftColor=checked?0:customLabelColor;mark();saveDraft();});
         MaterialButton defaults=button("Use native appearance");editor.addView(defaults);defaults.setOnClickListener(v->{if(busy)return;draftScale=100;draftHide=false;draftColor=0;nativeColor.setChecked(true);scale.setProgress(30);hide.setChecked(false);mark();saveDraft();});
         editor.addView(text("Selections save a draft. Enable launcher customization to apply. App drawer and widgets retain their native appearance. Folder settings have their own page.",14));pages.register("launcher","icons","Icons & labels",(View)editor.getParent());
@@ -139,11 +135,13 @@ public final class LauncherActivity extends AppCompatActivity {
         enable=button("Enable launcher customization");enable.setTag("launcher-enable");enable.setEnabled(false);actions.addView(enable);enable.setOnClickListener(v->apply(false));
         restore=button("Restore launcher appearance");restore.setTag("launcher-restore");actions.addView(restore);restore.setOnClickListener(v->apply(true));
         MaterialButton check=button("Check launcher runtime");actions.addView(check);check.setOnClickListener(v->client.check(message->{if(!closed)status.setText(message);}));
-        actions.addView(text("Enable nubia-ly for Launcher (com.zte.mifavor.launcher) in Vector, then reboot. Existing System UI and Fingerprint scopes remain selected. Emergency stop and global Restore also stop launcher styling.",14));pages.register("launcher","preview","Launcher",(View)actions.getParent());
+        actions.addView(text("Enable nubia-ly for Launcher (com.zte.mifavor.launcher) in Vector, then reboot. Existing System UI and Fingerprint scopes remain selected. Emergency stop and global Restore also stop launcher styling.",14));
         LinearLayout nativeSettings=panel(content,"Launcher settings");nativeSettings.addView(text("Open the launcher's own settings for layout, folders and other native options. Changes made there remain managed by the launcher.",14));
-        open=button("Open launcher settings");open.setTag("launcher-native-settings");nativeSettings.addView(open);open.setOnClickListener(v->openSettings());pages.register("launcher","","Launcher",(View)nativeSettings.getParent());
-        LinearLayout support=panel(content,"Compatibility");MaterialButton technical=button("Technical details");technical.setTag("launcher-details-toggle");support.addView(technical);details=text("",13);details.setTag("launcher-details");support.addView(details);details.setVisibility(state!=null&&state.getBoolean("details")?View.VISIBLE:View.GONE);technical.setOnClickListener(v->details.setVisibility(details.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));pages.register("launcher","","Launcher",(View)support.getParent());
-        pages.onChange(()->{controls();enable.setText("Enable "+pages.title());restore.setText("Restore "+pages.title());});
+        open=button("Open launcher settings");open.setTag("launcher-native-settings");nativeSettings.addView(open);open.setOnClickListener(v->openSettings());pages.register("launcher","tools","Tools",(View)nativeSettings.getParent());
+        LinearLayout support=panel(content,"Compatibility");MaterialButton technical=button("Technical details");technical.setTag("launcher-details-toggle");support.addView(technical);details=text("",13);details.setTag("launcher-details");support.addView(details);details.setVisibility(state!=null&&state.getBoolean("details")?View.VISIBLE:View.GONE);technical.setOnClickListener(v->details.setVisibility(details.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));pages.register("launcher","tools","Tools",(View)support.getParent());
+        pages.onChange(()->{controls();enable.setText("Apply "+pages.title());restore.setText("Restore");});
+        TextView footerStatus=text("Draft ready · Apply affects this tab",12);pages.layout(enable,restore,footerStatus,(View)actions.getParent());
+        status.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int before,int count){footerStatus.setText(s.toString().split("\\n",2)[0]);}public void afterTextChanged(android.text.Editable e){}});
         mark();loadIconPreview();pages.show("launcher",state==null?"":state.getString("page",""));
         worker.execute(()->{boolean allowed=LauncherCompatibility.supported(getApplicationContext());runOnUiThread(()->{if(closed)return;compatible=allowed;controls();status.setText(allowed?"Launcher available. Choose styles, enable the Launcher scope in Vector, reboot, then apply. If a tweak fails, report your launcher version and share a launcher dump.":"Launcher unavailable: check the supported device and installed launcher package.");});});
     }

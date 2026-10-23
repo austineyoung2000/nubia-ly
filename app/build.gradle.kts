@@ -20,8 +20,8 @@ android {
         targetSdk = 35
         buildConfigField("String", "BASELINE_FINGERPRINT", baselineLiteral("fingerprint"))
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
-        versionCode = 99
-        versionName = "1.0.2-qs-test"
+        versionCode = 101
+        versionName = "1.0.3-editor-test"
     }
     signingConfigs {
         if (releaseSigning) create("persistent") {
@@ -66,5 +66,6 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     compileOnly("de.robv.android.xposed:api:82")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("de.robv.android.xposed:api:82")
     testImplementation("org.robolectric:robolectric:4.17")
 }

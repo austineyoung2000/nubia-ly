@@ -26,6 +26,10 @@ public final class QsTileEffectsTest {
             int center=image.getPixel(60,32);assertTrue(Color.green(center)>=Color.red(center));assertTrue(Color.green(center)>=Color.blue(center));assertEquals(173,tile.getAlpha());assertEquals(new Rect(0,0,120,64),tile.getBounds());assertArrayEquals(corners,tile.getCornerRadii(),0f);nativeImage.recycle();image.recycle();
         }assertEquals(6,signatures.size());
     }
+    @Test public void neumorphDecoratesTwoToneWithoutReplacingItsGradient()throws Throwable{
+        GradientDrawable tile=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{Color.RED,Color.BLUE});tile.setCornerRadius(20);tile.setBounds(0,0,120,64);Bitmap image=Bitmap.createBitmap(120,64,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(image);int saves=canvas.getSaveCount();
+        assertTrue(QsTileEffects.draw(3,canvas,tile,1,()->true,()->tile.draw(canvas)));assertEquals(saves,canvas.getSaveCount());int left=image.getPixel(15,32),right=image.getPixel(105,32);assertTrue(Color.red(left)>Color.blue(left));assertTrue(Color.blue(right)>Color.red(right));assertEquals(0,image.getPixel(0,0));assertEquals(255,Color.alpha(left));image.recycle();
+    }
     @Test public void canceledAndFailedCompositionLeavesNoPartialLayer()throws Throwable{
         for(int style=2;style<8;style++){
             var tile=tile();Bitmap image=Bitmap.createBitmap(120,64,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(image);int count=canvas.getSaveCount();AtomicBoolean permit=new AtomicBoolean(true);

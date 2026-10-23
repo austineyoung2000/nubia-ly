@@ -87,29 +87,17 @@ public final class ClockEditorActivity extends AppCompatActivity {
         editorOverview("notifications","Notifications",new String[][]{{"styles","Notification styles","Card backgrounds & layers"},{"appearance","Appearance controls","Background opacity & rounded corners"},{"behavior","Notification controls","Heads-up, history & app settings"},{"icons","Counts & icon limits","Status-bar overflow & icon slots"}});
         editorOverview("power_menu","Power menu",new String[][]{{"styles","Power-menu styles","Duoline, CyberPunk, Fluid & layers"}});
         editorOverview("volume","Volume",new String[][]{{"styles","Volume styles","Outline, gradients & layered effects"}});
-        editorOverview("status_bar","Status bar",new String[][]{{"typography","Clock style","Font, size & seconds"},{"date","Date format","Format, position & letter case"},{"color","Clock color","Presets & custom colors"},{"icons","Icons & battery","Colors, size & placement"},{"battery","Battery styles & controls","Design, percentage, charging & size"},{"iconpacks","Icon packs","Status-bar artwork"},{"connectivity","Wi-Fi & mobile signal","Choose independent icon styles"},{"inventory","Individual icons","Visibility & vendor indicators"}});
+        editorOverview("status_bar","Status bar",new String[][]{{"typography","Clock style","Font, size & seconds"},{"date","Date format","Format, position & letter case"},{"color","Clock color","Hex color editor"},{"icons","Icons & battery","Colors, size & placement"},{"battery","Battery styles & controls","Design, percentage, charging & size"},{"iconpacks","Icon packs","Status-bar artwork"},{"connectivity","Wi-Fi & mobile signal","Choose independent icon styles"},{"inventory","Individual icons","Visibility & vendor indicators"}});
         LinearLayout colors = editorPanel("status_bar","color","Clock color");
         swatch = text("12:34", 44, true); colors.addView(swatch);
         selection = text("", 16, true); colors.addView(selection);
         presets = new ChipGroup(this); presets.setSingleSelection(true); colors.addView(presets);
-        for (ClockColorPolicy.Preset preset : ClockColorPolicy.PRESETS) {
-            Chip chip = new Chip(this); chip.setId(View.generateViewId()); chip.setText(preset.name()); chip.setCheckable(true);
-            chip.setTag(preset.color());
-            GradientDrawable dot = new GradientDrawable(); dot.setShape(GradientDrawable.OVAL); dot.setColor(preset.color());
-            dot.setSize(dp(20), dp(20)); chip.setChipIcon(dot); chip.setChipIconVisible(true);
-            chip.setOnClickListener(v -> choose(preset.color())); presets.addView(chip);
-        }
-        MaterialButton custom = button("Custom color"); colors.addView(custom); custom.setOnClickListener(v -> customColor());
+        MaterialButton custom = button("Edit hex color"); colors.addView(custom); custom.setOnClickListener(v -> customColor());
         saveStatus = text("Saved selection loaded.", 14, false); colors.addView(saveStatus);
         LinearLayout icons = editorPanel("status_bar","icons","Icons & battery");
         icons.addView(text("Mobile service icon controls style the compatible calling-service indicator, such as VoLTE. Other compatible system indicators can share these settings. App notification icons are separate. Some Wi-Fi and signal icons keep stock appearance. Battery keeps stock charge and warning colors.",14,false));
         LinearLayout iconTints=detailGroup(icons,"Icon color","Mobile service indicator");
         iconSelection=text("",16,true);iconTints.addView(iconSelection);iconPresets=new ChipGroup(this);iconPresets.setSingleSelection(true);iconTints.addView(iconPresets);
-        for(ClockColorPolicy.Preset preset:ClockColorPolicy.PRESETS){
-            Chip chip=new Chip(this);chip.setId(View.generateViewId());chip.setText(preset.name());chip.setTag(preset.color());chip.setCheckable(true);
-            GradientDrawable dot=new GradientDrawable();dot.setShape(GradientDrawable.OVAL);dot.setColor(preset.color());dot.setSize(dp(20),dp(20));chip.setChipIcon(dot);chip.setChipIconVisible(true);
-            chip.setOnClickListener(v->chooseIcon(preset.color()));iconPresets.addView(chip);statusControls.add(chip);
-        }
         MaterialButton iconCustom=button("Custom mobile service icon color");iconTints.addView(iconCustom);statusControls.add(iconCustom);iconCustom.setOnClickListener(v->customColor(true));redrawIcon();
         statusSwitch(iconTints,"Tint mobile service icon",StatusBarStyle.TINT);
         LinearLayout visibility=detailGroup(icons,"Visibility","Mobile service, notifications & battery");
@@ -151,6 +139,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         qsLayoutControls();
         qsThemeEditor=new QsThemeEditor(this,()->qsTheme,value->{qsTheme=value;saveStatusBar();},()->{android.content.Intent pick=new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(android.content.Intent.CATEGORY_OPENABLE);startActivityForResult(pick,PICK_QS_IMAGE);});
         qsThemeEditor.colors(editorPanel("quick_settings","colors","QS colors"));
+        qsThemeEditor.header(editorPanel("quick_settings","header","QS header"));
         qsThemeEditor.background(editorPanel("quick_settings","background","Upper QS background"));
         if(!qsTheme.image().isEmpty()){String imageHash=qsTheme.image();worker.execute(()->{android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeFile(QsImageStore.file(getApplicationContext(),imageHash).toString());runOnUiThread(()->{if(alive())qsThemeEditor.image(bitmap,imageHash);});});}
         LinearLayout stylePanel=editorPanel("quick_settings","style","Tile style");qsStyleControls(stylePanel);
@@ -230,7 +219,9 @@ public final class ClockEditorActivity extends AppCompatActivity {
         enable.setOnClickListener(v -> applyScope(false));
         check.setOnClickListener(v -> request("status"));
         restore.setOnClickListener(v -> applyScope(true));
-        pages.onChange(()->{enable.setText("Enable "+pages.title());restore.setText("Restore "+pages.title());});
+        pages.onChange(()->{enable.setText("Apply "+pages.title());restore.setText("Restore");});
+        pages.layout(enable,restore,saveStatus,(View)controls.getParent());
+        previewStatus.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int before,int count){saveStatus.setText(s.toString().split("\\n",2)[0]);}public void afterTextChanged(android.text.Editable e){}});
         redraw();
         swatch.setLetterSpacing(spacing / 100f);
         swatch.setTextSize(44 * (sizePercent == 0 ? 1f : sizePercent / 100f));
@@ -344,14 +335,15 @@ public final class ClockEditorActivity extends AppCompatActivity {
         GradientDrawable background=new GradientDrawable();background.setColor(getColor(R.color.surface_container_high));background.setCornerRadius(dp(22));group.setBackground(background);
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.topMargin=dp(10);parent.addView(group,params);
         MaterialButton open=new MaterialButton(this);open.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT));open.setTextColor(getColor(R.color.on_surface));open.setAllCaps(false);open.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);open.setText(title+"  ›");open.setContentDescription(title+". "+summary+". Expand settings");group.addView(open,new LinearLayout.LayoutParams(-1,-2));
-        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setVisibility(View.GONE);group.addView(body);open.setOnClickListener(v->{boolean show=body.getVisibility()!=View.VISIBLE;body.setVisibility(show?View.VISIBLE:View.GONE);open.setText(title+(show?"  ⌃":"  ›"));open.setContentDescription(title+". "+(show?"Collapse":"Expand")+" settings");});return body;
+        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setVisibility(View.VISIBLE);group.addView(body);open.setOnClickListener(v->{boolean show=body.getVisibility()!=View.VISIBLE;body.setVisibility(show?View.VISIBLE:View.GONE);open.setText(title+(show?"  ⌃":"  ›"));open.setContentDescription(title+". "+(show?"Collapse":"Expand")+" settings");});return body;
     }
     private LinearLayout editorPanel(String section,String page,String title){LinearLayout box=card(title);pages.register(section,page,title,(View)box.getParent());return box;}
     private void editorOverview(String section,String title,String[][] items){
         LinearLayout preview=editorPanel(section,"preview",title+" preview");
         EditorPreview artwork=new EditorPreview(this,section,()->new EditorPreview.Draft(currentStatusBar(),selected,iconColor,sizePercent,bold,italic,hidden,fontFamily,spacing/100f));
-        editorPreviews.add(artwork);preview.addView(artwork,new LinearLayout.LayoutParams(-1,dp(section.equals("lock_screen")?280:section.equals("quick_settings")?180:section.equals("volume")?220:section.equals("notifications")?180:100)));
-        preview.addView(text("Draft preview · sample content",12,false));
+        editorPreviews.add(artwork);preview.addView(artwork,new LinearLayout.LayoutParams(-1,dp(section.equals("lock_screen")?160:section.equals("quick_settings")?130:section.equals("volume")?140:section.equals("notifications")?130:80)));
+        TextView previewHint=text("Draft preview · tap title to collapse",12,false);preview.addView(previewHint);
+        preview.getChildAt(0).setOnClickListener(v->{boolean show=artwork.getVisibility()!=View.VISIBLE;artwork.setVisibility(show?View.VISIBLE:View.GONE);previewHint.setVisibility(show?View.VISIBLE:View.GONE);});
         LinearLayout overview=editorPanel(section,"", "Make it yours");
         for(String[] item:items){
             com.google.android.material.card.MaterialCardView row=new com.google.android.material.card.MaterialCardView(this);row.setRadius(dp(22));row.setCardElevation(0);row.setStrokeWidth(0);row.setCardBackgroundColor(getColor(R.color.surface_container_high));row.setClickable(true);row.setFocusable(true);row.setContentDescription(item[1]+". "+item[2]);row.setTag("editor-route:"+section+":"+item[0]);
@@ -457,21 +449,19 @@ public final class ClockEditorActivity extends AppCompatActivity {
         qsOptionCards(land,12,3,new int[]{0,1,2,3,4,5,6},new String[]{"Stock rows","1 row","2 rows","3 rows","4 rows","5 rows","6 rows"},"qs-landscape-rows");
     }
     private void qsOptionCards(LinearLayout parent,int shift,int bits,int[] values,String[] names,String tag){
+        if(tag.equals("qs-landscape-columns")||tag.equals("qs-landscape-rows")||tag.equals("qs-top-layout")||tag.equals("qs-label-lines")){int mask=(1<<bits)-1,current=(qsOptions>>shift)&mask,index=0;for(int i=0;i<values.length;i++)if(values[i]==current)index=i;
+            TextView label=text(names[index],16,true);parent.addView(label);Slider slider=new Slider(this);slider.setValueFrom(0);slider.setValueTo(values.length-1);slider.setStepSize(1);slider.setValue(index);slider.setLabelFormatter(v->names[(int)v]);slider.setTag(tag+"-slider");parent.addView(slider);statusControls.add(slider);slider.addOnChangeListener((v,n,user)->{{int i=(int)n;qsOptions=(qsOptions&~(mask<<shift))|(values[i]<<shift);label.setText(names[i]);saveStatusBar();}});return;}
+
         java.util.List<MaterialCardView> cards=new java.util.ArrayList<>();int mask=(1<<bits)-1;
         for(int i=0;i<values.length;i++){final int value=values[i];MaterialCardView card=new MaterialCardView(this);PersonalizationUi.panel(card);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setRadius(dp(22));card.setClickable(true);card.setFocusable(true);card.setTag(tag+":"+value);cards.add(card);statusControls.add(card);TextView label=text(names[i],17,true);label.setPadding(dp(20),dp(18),dp(20),dp(18));label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);card.addView(label);LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(5),0,dp(5));parent.addView(card,params);card.setStrokeColor(getColor(R.color.primary));
             card.setOnClickListener(v->{qsOptions=(qsOptions&~(mask<<shift))|(value<<shift);for(int k=0;k<cards.size();k++){boolean chosen=values[k]==value;cards.get(k).setStrokeWidth(dp(chosen?3:0));cards.get(k).setSelected(chosen);cards.get(k).setContentDescription(names[k]+(chosen?", selected":""));}saveStatusBar();});
         }
         for(int i=0;i<cards.size();i++){boolean chosen=values[i]==((qsOptions>>shift)&mask);cards.get(i).setStrokeWidth(dp(chosen?3:0));cards.get(i).setSelected(chosen);cards.get(i).setContentDescription(names[i]+(chosen?", selected":""));}
     }
-    private void gridChoices(LinearLayout parent,boolean column,int[] values,String[] names){
-        parent.addView(text(column?"Columns":"Rows per page",18,true));
-        java.util.List<MaterialCardView> cards=new java.util.ArrayList<>();
-        for(int i=0;i<values.length;i++){final int value=values[i];MaterialCardView card=new MaterialCardView(this);PersonalizationUi.panel(card);card.setCardBackgroundColor(getColor(R.color.surface_container_high));card.setRadius(dp(22));card.setClickable(true);card.setFocusable(true);card.setTag((column?"qs-columns:":"qs-rows:")+value);cards.add(card);statusControls.add(card);
-            LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(16),dp(12),dp(16),dp(12));content.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);TextView title=text(names[i],17,true);content.addView(title);
-            int count=column?(value==0?4:value):4,lines=column?2:(value==0?3:value);for(int r=0;r<lines;r++){LinearLayout row=new LinearLayout(this);for(int c=0;c<count;c++){View tile=new View(this);android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();bg.setColor(getColor(R.color.primary));bg.setCornerRadius(dp(8));tile.setBackground(bg);LinearLayout.LayoutParams cell=new LinearLayout.LayoutParams(0,dp(13),1);cell.setMargins(dp(3),dp(3),dp(3),dp(3));row.addView(tile,cell);}content.addView(row);}card.addView(content);LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(5),0,dp(5));parent.addView(card,params);
-            card.setOnClickListener(v->{if(column)qsColumns=value;else qsRows=value;for(int k=0;k<cards.size();k++){boolean selected=values[k]==value;cards.get(k).setStrokeWidth(dp(selected?3:0));cards.get(k).setSelected(selected);cards.get(k).setContentDescription(names[k]+(selected?", selected":""));}saveStatusBar();});
-        }
-        for(int i=0;i<cards.size();i++){boolean selected=values[i]==(column?qsColumns:qsRows);cards.get(i).setStrokeColor(getColor(R.color.primary));cards.get(i).setStrokeWidth(dp(selected?3:0));cards.get(i).setSelected(selected);cards.get(i).setContentDescription(names[i]+(selected?", selected":""));}
+    private void gridChoices(LinearLayout parent,boolean column,int[] unused,String[] names){
+        int nativeValue=column?4:3,stored=column?qsColumns:qsRows;TextView label=text((column?"Columns: ":"Rows: ")+(stored==0?"Native ("+nativeValue+")":stored),16,true);parent.addView(label);
+        Slider slider=new Slider(this);slider.setValueFrom(column?2:1);slider.setValueTo(column?5:6);slider.setStepSize(1);slider.setValue(stored==0?nativeValue:stored);slider.setTag(column?"qs-columns-slider":"qs-rows-slider");parent.addView(slider);statusControls.add(slider);
+        slider.addOnChangeListener((v,value,user)->{{int n=(int)value;if(column)qsColumns=n==nativeValue?0:n;else qsRows=n==nativeValue?0:n;label.setText((column?"Columns: ":"Rows: ")+n);saveStatusBar();}});
     }
     private void qsStyleControls(LinearLayout parent){
         parent.addView(text("Choose a look for both large and small tiles. Styles follow native state colors and your separate shape choices.",14,false));
