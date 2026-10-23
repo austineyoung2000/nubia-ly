@@ -108,6 +108,13 @@ jobs:
           else
             gradle testDebugUnitTest assembleDebug
           fi
+      - name: Upload editor renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-previews
+          path: app/build/editor-previews/*.png
+          if-no-files-found: warn
       - name: Verify persistent signature
         if: env.HAS_SIGNING == 'true'
         run: |

@@ -341,9 +341,8 @@ public final class ClockEditorActivity extends AppCompatActivity {
     private void editorOverview(String section,String title,String[][] items){
         LinearLayout preview=editorPanel(section,"preview",title+" preview");
         EditorPreview artwork=new EditorPreview(this,section,()->new EditorPreview.Draft(currentStatusBar(),selected,iconColor,sizePercent,bold,italic,hidden,fontFamily,spacing/100f));
-        editorPreviews.add(artwork);preview.addView(artwork,new LinearLayout.LayoutParams(-1,dp(section.equals("lock_screen")?160:section.equals("quick_settings")?130:section.equals("volume")?140:section.equals("notifications")?130:80)));
-        TextView previewHint=text("Draft preview · tap title to collapse",12,false);preview.addView(previewHint);
-        preview.getChildAt(0).setOnClickListener(v->{boolean show=artwork.getVisibility()!=View.VISIBLE;artwork.setVisibility(show?View.VISIBLE:View.GONE);previewHint.setVisibility(show?View.VISIBLE:View.GONE);});
+        editorPreviews.add(artwork);artwork.setTag("editor-preview:"+section);preview.addView(artwork,new LinearLayout.LayoutParams(-1,-2));
+        preview.setPadding(dp(12),dp(8),dp(12),dp(12));TextView previewTitle=(TextView)preview.getChildAt(0);previewTitle.setText("Preview  ⌃");previewTitle.setTextSize(14);previewTitle.setTextColor(getColor(R.color.on_surface_variant));previewTitle.setOnClickListener(v->{boolean show=artwork.getVisibility()!=View.VISIBLE;artwork.setVisibility(show?View.VISIBLE:View.GONE);previewTitle.setText(show?"Preview  ⌃":"Preview  ⌄");});
         LinearLayout overview=editorPanel(section,"", "Make it yours");
         for(String[] item:items){
             com.google.android.material.card.MaterialCardView row=new com.google.android.material.card.MaterialCardView(this);row.setRadius(dp(22));row.setCardElevation(0);row.setStrokeWidth(0);row.setCardBackgroundColor(getColor(R.color.surface_container_high));row.setClickable(true);row.setFocusable(true);row.setContentDescription(item[1]+". "+item[2]);row.setTag("editor-route:"+section+":"+item[0]);
@@ -354,9 +353,9 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private void refreshEditorPreviews(){for(EditorPreview preview:editorPreviews)preview.invalidate();if(batteryControlPreview!=null)batteryControlPreview.invalidate();}
     private LinearLayout card(String title) {
-        MaterialCardView panel = new MaterialCardView(this); PersonalizationUi.panel(panel);
-        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(20),dp(20),dp(20),dp(20)); panel.addView(box);
-        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.topMargin=dp(18);content.addView(panel,params);box.addView(text(title,22,true));return box;
+        MaterialCardView panel = new MaterialCardView(this); PersonalizationUi.panel(panel);panel.setRadius(dp(24));
+        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(16),dp(14),dp(16),dp(14)); panel.addView(box);
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.topMargin=dp(12);content.addView(panel,params);box.addView(text(title,19,true));return box;
     }
     private TextView text(String value,int size,boolean bold) {
         TextView view=new TextView(this);view.setText(value);view.setTextSize(size);view.setPadding(0,dp(6),0,dp(8));if(bold)view.setTypeface(null,android.graphics.Typeface.BOLD);return view;
@@ -614,9 +613,8 @@ public final class ClockEditorActivity extends AppCompatActivity {
     }
     private SurfaceStyle currentSurfaces(){return new SurfaceStyle(surfaceHidden,surfaceAppearance[0],surfaceAppearance[1],surfaceAppearance[2],surfaceAppearance[3],surfacePosition[0],surfacePosition[1],surfacePosition[2],surfacePosition[3],tileShape,largeTileShape,widgetsHidden,fingerprintStyle,fingerprintHidden,lockClockFont,fingerprintAnimation,qsStyle,brightnessStyle,volumeStyle,notificationStyle,wifiStyle,signalStyle,powerStyle,notificationAppearance,notificationBehavior,chargingInfo,batteryStyle,batteryPercent,batteryCharge,notificationCount,notificationLimit,qsColumns,qsRows,qsOptions,iconPack,qsIconPack,qsTheme);}
     private void surfaceControls(LinearLayout parent,String title,int group){
-        parent.addView(text(title,18,true));
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);parent.addView(box);
-        var hide=new com.google.android.material.checkbox.MaterialCheckBox(this);hide.setText("Hide "+title.toLowerCase(java.util.Locale.ROOT));hide.setChecked((surfaceHidden&(1<<group))!=0);box.addView(hide);statusControls.add(hide);
+        var hide=new com.google.android.material.materialswitch.MaterialSwitch(this);hide.setText("Hide "+title.toLowerCase(java.util.Locale.ROOT));hide.setChecked((surfaceHidden&(1<<group))!=0);box.addView(hide);statusControls.add(hide);
         hide.setOnCheckedChangeListener((v,value)->{surfaceHidden=value?surfaceHidden|(1<<group):surfaceHidden&~(1<<group);saveStatusBar();});
         statusScale(box,"Visual size",StatusBarStyle.indicatorScale(surfaceAppearance[group]),n->{surfaceAppearance[group]=StatusBarStyle.appearance(n,StatusBarStyle.indicatorOpacity(surfaceAppearance[group]));});
         statusOpacity(box,"Opacity",StatusBarStyle.indicatorOpacity(surfaceAppearance[group]),n->{surfaceAppearance[group]=StatusBarStyle.appearance(StatusBarStyle.indicatorScale(surfaceAppearance[group]),n);});
