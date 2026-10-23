@@ -13,7 +13,7 @@ with ZipFile(out, "w", ZIP_DEFLATED) as archive:
     payload = root / "build/ui-styles-signed"
     if payload.is_dir():
         for apk in sorted(payload.glob("*.apk")):
-            item = ZipInfo("system/product/overlay/nubialy_ui/" + apk.name)
+            item = ZipInfo("system/product/overlay/nubialy_ui_" + apk.name)
             item.create_system = 3
             item.external_attr = 0o100644 << 16
             archive.writestr(item, apk.read_bytes(), compress_type=ZIP_DEFLATED)

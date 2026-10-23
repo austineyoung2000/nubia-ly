@@ -72,3 +72,18 @@ need particular testing. Preview swatches are samples, not rendered stock apps.
 The first binary set is bound to the supplied NX809J Android 16 APKs. Other
 firmware/device profiles require rebuilding against their resources. Launcher
 compatibility remains unchanged.
+
+
+## Systemless mounting and package scanning
+
+KernelSU installations using metamodules need an active mounting provider before
+these APKs can appear under `/product/overlay`. Overlayfsx users must import or
+reinstall the guard into its module image, then reboot. Verify the APKs are
+visible before investigating OverlayManager states.
+
+Guard 24 corrects the original guard 23 directory layout: all 36 independent
+APKs are direct children of `/product/overlay`, prefixed `nubialy_ui_`.
+Android treats a child directory as one split-APK package; putting independent
+packages together in `overlay/nubialy_ui/` prevents package registration.
+Install the replacement guard through the root manager and reboot; APK 100 is
+unchanged. Installation leaves all styles disabled.
