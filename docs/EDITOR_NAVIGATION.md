@@ -2,7 +2,7 @@
 
 The existing dashboard is unchanged. Status bar, QS, Lock screen, Notifications,
 Volume, Power menu and Launcher open directly to an editor with visible scrollable
-tabs, a compact preview, and fixed Restore / Apply actions. Back returns to the
+tabs below a compact collapsible preview, and fixed outlined Restore / filled Apply actions. Back returns to the
 dashboard. Tabs retain their draft and scroll position for the activity lifetime;
 the selected tab survives activity recreation. Help and runtime diagnostics are
 available from the toolbar. A preview title toggles its artwork.
@@ -11,6 +11,8 @@ available from the toolbar. A preview title toggles its artwork.
 or restores the union of those scopes against the last applied state. It does
 not apply unrelated drafts. Launcher retains its existing individual page scopes.
 Existing artwork/font pickers return to the same editor.
+
+Preview canvases scale uniformly and use their natural aspect ratio; slider tracks are thin with circular thumbs. Cards use consistent 16 dp content margins. Tile styles precede shapes and icon packs.
 
 Named color chips are removed; the established hex/RGB picker remains. QS
 portrait/landscape dimensions and large-tile arrangements use discrete sliders.

@@ -3,7 +3,7 @@ package com.elitedarkkaiser.nubialy;
 public final class EditorNavigation {
  private EditorNavigation(){}
  public static String[][] tabs(String section){return switch(section){
- case "quick_settings"->new String[][]{{"tab_tiles","Tiles","tiles,style,iconpacks"},{"tab_colors","Colors","colors"},{"tab_header","Header","header"},{"tab_layout","Layout","grid,landscape,top_layout,label_layout,labels"},{"tab_brightness","Brightness","brightness,brightness_layout"},{"tab_background","Background","background"}};
+ case "quick_settings"->new String[][]{{"tab_tiles","Tiles","style,tiles,iconpacks"},{"tab_colors","Colors","colors"},{"tab_header","Header","header"},{"tab_layout","Layout","grid,landscape,top_layout,label_layout,labels"},{"tab_brightness","Brightness","brightness,brightness_layout"},{"tab_background","Background","background"}};
  case "status_bar"->new String[][]{{"tab_clock","Clock","typography,color,date"},{"tab_icons","Icons","icons,inventory"},{"tab_battery","Battery","battery"},{"tab_artwork","Artwork","iconpacks,connectivity"}};
  case "lock_screen"->new String[][]{{"tab_clock","Clock","clock,date,fonts"},{"tab_fingerprint","Fingerprint","fingerprint"},{"tab_widgets","Widgets","widgets"},{"tab_charging","Charging","charging"}};
  case "launcher"->new String[][]{{"icons","Icons","icons"},{"folders","Folders","folders"},{"grid","Grid","grid"},{"dock","Dock","dock"},{"artwork","Artwork","artwork"},{"indicator","Indicator","indicator"},{"tools","Tools","tools"}};
