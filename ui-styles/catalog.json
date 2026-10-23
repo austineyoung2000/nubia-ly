@@ -1,0 +1,326 @@
+[
+  {
+    "id": "espresso",
+    "name": "Espresso",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.espresso.framework",
+    "apk": "espresso-framework.apk",
+    "resources": 48,
+    "sha256": "d29e939449b3604c81afdb93c7dddd01bbfbf216348d02ed630cc5385febc428"
+  },
+  {
+    "id": "espresso",
+    "name": "Espresso",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.espresso.vendor",
+    "apk": "espresso-vendor.apk",
+    "resources": 10,
+    "sha256": "0aee17fa5cb309102b2dee28edcdef7e0294297c3130f6ab14a781a3a59e31bc"
+  },
+  {
+    "id": "espresso",
+    "name": "Espresso",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.espresso.settings",
+    "apk": "espresso-settings.apk",
+    "resources": 13,
+    "sha256": "7789e15e4ea6a9e1bcbeabe3f65753fc372dfc6bbcd8348aaaf6b31e0543810f"
+  },
+  {
+    "id": "espresso",
+    "name": "Espresso",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.espresso.systemui",
+    "apk": "espresso-systemui.apk",
+    "resources": 6,
+    "sha256": "cba60cdd0508ca9a09dc74b991cb2132664fa17dd5b0214ca625e148ce46e5f8"
+  },
+  {
+    "id": "snow",
+    "name": "Snow Paint Drop",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.snow.framework",
+    "apk": "snow-framework.apk",
+    "resources": 48,
+    "sha256": "6824095670a12ab21ae1448d5684ac578062f3e2140508907a66d51a4d6b5670"
+  },
+  {
+    "id": "snow",
+    "name": "Snow Paint Drop",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.snow.vendor",
+    "apk": "snow-vendor.apk",
+    "resources": 10,
+    "sha256": "434659cd4e093814a17cd0be7de79618d84dc3c40b254d1c97b8943d1870193c"
+  },
+  {
+    "id": "snow",
+    "name": "Snow Paint Drop",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.snow.settings",
+    "apk": "snow-settings.apk",
+    "resources": 13,
+    "sha256": "3b2db18540318d3f70f5736816c070137c04cb3929e19d7b3ed06c4127399122"
+  },
+  {
+    "id": "snow",
+    "name": "Snow Paint Drop",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.snow.systemui",
+    "apk": "snow-systemui.apk",
+    "resources": 6,
+    "sha256": "7cadb2b4c6585f0e0dc2c9b194fe1ae5cb99555f6dc8f5527157b5ef28551da8"
+  },
+  {
+    "id": "vivid",
+    "name": "Vivid",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.vivid.framework",
+    "apk": "vivid-framework.apk",
+    "resources": 48,
+    "sha256": "4449a059d1b457a60d109b97d09096554ac34a00d62c954eb2995e3f0e8e00c7"
+  },
+  {
+    "id": "vivid",
+    "name": "Vivid",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.vivid.vendor",
+    "apk": "vivid-vendor.apk",
+    "resources": 10,
+    "sha256": "9bd842a9ce494f470033185bf2a8eefaf2756b8d85d41b1e67da7671dca687aa"
+  },
+  {
+    "id": "vivid",
+    "name": "Vivid",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.vivid.settings",
+    "apk": "vivid-settings.apk",
+    "resources": 13,
+    "sha256": "6a4a2a548f7c7a8f5ec4974f01e9bffddcbcebd58576f19fb1d0c0029fa81859"
+  },
+  {
+    "id": "vivid",
+    "name": "Vivid",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.vivid.systemui",
+    "apk": "vivid-systemui.apk",
+    "resources": 6,
+    "sha256": "0c03109c378912ad674e420f61ed979574f88704213a9a0bac38974473154467"
+  },
+  {
+    "id": "pacleggers",
+    "name": "Pacleggers",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.pacleggers.framework",
+    "apk": "pacleggers-framework.apk",
+    "resources": 50,
+    "sha256": "884f0dc6fda1a4c70f40430e4df9481d1d6151c84ad4ccfc9d7e6200e03a5675"
+  },
+  {
+    "id": "pacleggers",
+    "name": "Pacleggers",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.pacleggers.vendor",
+    "apk": "pacleggers-vendor.apk",
+    "resources": 10,
+    "sha256": "b81bc978bd5f9fbce25f82f6c02df1b7aea38abb90cc766f68b7b817b259ba49"
+  },
+  {
+    "id": "pacleggers",
+    "name": "Pacleggers",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.pacleggers.settings",
+    "apk": "pacleggers-settings.apk",
+    "resources": 19,
+    "sha256": "6113e461ace89f51e6ba06f3396e9821e14ddddc6dc9972da6dc8fa8a584b10e"
+  },
+  {
+    "id": "pacleggers",
+    "name": "Pacleggers",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.pacleggers.systemui",
+    "apk": "pacleggers-systemui.apk",
+    "resources": 8,
+    "sha256": "fbf487006e32660becba2b26c17a3dcac2221b57d877c6578e724058caf2fa7e"
+  },
+  {
+    "id": "amalgamation",
+    "name": "Shishu Amalgamation",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.amalgamation.framework",
+    "apk": "amalgamation-framework.apk",
+    "resources": 49,
+    "sha256": "beca53ec0aa0fa400212741ff9f624aae4b373b3a5c5393e00978ff7e3c5f10e"
+  },
+  {
+    "id": "amalgamation",
+    "name": "Shishu Amalgamation",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.amalgamation.vendor",
+    "apk": "amalgamation-vendor.apk",
+    "resources": 10,
+    "sha256": "ae53fc37b4d5a4092919cecfa57160da290334db8c997a240dd88434f734614a"
+  },
+  {
+    "id": "amalgamation",
+    "name": "Shishu Amalgamation",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.amalgamation.settings",
+    "apk": "amalgamation-settings.apk",
+    "resources": 14,
+    "sha256": "b0f7ab4994d8cb2753ae8aebfe2fa2505b708d3020352ef58b5323457d5ecaaf"
+  },
+  {
+    "id": "amalgamation",
+    "name": "Shishu Amalgamation",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.amalgamation.systemui",
+    "apk": "amalgamation-systemui.apk",
+    "resources": 9,
+    "sha256": "529837dd08e2fb60dec0d500084a6bfcb117e90493721c93489fa4e17c7a8b97"
+  },
+  {
+    "id": "illusions",
+    "name": "Shishu Illusions",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.illusions.framework",
+    "apk": "illusions-framework.apk",
+    "resources": 25,
+    "sha256": "f9cd0874c048fd0f2e3f0678abd62741a12f0150a0bdf25a799f25d40ab88921"
+  },
+  {
+    "id": "illusions",
+    "name": "Shishu Illusions",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.illusions.vendor",
+    "apk": "illusions-vendor.apk",
+    "resources": 10,
+    "sha256": "7ccd978a3b2d9a2278cf4812c4e538b3b65fc41b95009950da57cdc41a107a07"
+  },
+  {
+    "id": "illusions",
+    "name": "Shishu Illusions",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.illusions.settings",
+    "apk": "illusions-settings.apk",
+    "resources": 16,
+    "sha256": "7c06f336997ec740759959c882c147d4e645362e9b12db38b7990d2c79877c54"
+  },
+  {
+    "id": "illusions",
+    "name": "Shishu Illusions",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.illusions.systemui",
+    "apk": "illusions-systemui.apk",
+    "resources": 9,
+    "sha256": "0c873c6b67ffa01bd3cbedbd69c7a0409bb58c138a19fc9dce0311f657871d66"
+  },
+  {
+    "id": "immensity",
+    "name": "Shishu Immensity",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.immensity.framework",
+    "apk": "immensity-framework.apk",
+    "resources": 58,
+    "sha256": "08a663440ecd3aecf846306d62566380ebe6e734717f0509194950109bc9cc39"
+  },
+  {
+    "id": "immensity",
+    "name": "Shishu Immensity",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.immensity.vendor",
+    "apk": "immensity-vendor.apk",
+    "resources": 10,
+    "sha256": "d79be6a5835e509abcb0684c5ce89a0a0d2f5888d6b6f4660336fc6afe5f3d9b"
+  },
+  {
+    "id": "immensity",
+    "name": "Shishu Immensity",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.immensity.settings",
+    "apk": "immensity-settings.apk",
+    "resources": 16,
+    "sha256": "3fc93b2afe257b0268b8cee586d59fa29cd9c2b7a206e8b4332ae3d7d9d9598d"
+  },
+  {
+    "id": "immensity",
+    "name": "Shishu Immensity",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.immensity.systemui",
+    "apk": "immensity-systemui.apk",
+    "resources": 9,
+    "sha256": "5cd20500ad6b6ff19cdcd133d8263d0552f8f4b700cf3cf744ce0ff09bc0ad48"
+  },
+  {
+    "id": "nights",
+    "name": "Shishu Nights",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.nights.framework",
+    "apk": "nights-framework.apk",
+    "resources": 58,
+    "sha256": "1a78c79c882eb44d4700eca8f17197c0cc6dab92fc487751951b060f99672172"
+  },
+  {
+    "id": "nights",
+    "name": "Shishu Nights",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.nights.vendor",
+    "apk": "nights-vendor.apk",
+    "resources": 10,
+    "sha256": "535354fada45826c0a3fb4a679a9ed93491ed35dc49e0129f65f603c2b1f17a1"
+  },
+  {
+    "id": "nights",
+    "name": "Shishu Nights",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.nights.settings",
+    "apk": "nights-settings.apk",
+    "resources": 16,
+    "sha256": "eeb4f0fbf1283f79296be49279e37bfcd5d640f1114c5c8cd8ed579b3729d997"
+  },
+  {
+    "id": "nights",
+    "name": "Shishu Nights",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.nights.systemui",
+    "apk": "nights-systemui.apk",
+    "resources": 33,
+    "sha256": "5153823b1e90d2348f69c434af2def86336e002eb86e3420f1b78aba7329a101"
+  },
+  {
+    "id": "solarized",
+    "name": "Solarized Dark",
+    "target": "framework",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.solarized.framework",
+    "apk": "solarized-framework.apk",
+    "resources": 48,
+    "sha256": "c7d8101e6b0293694a8d32cae7107bae8efedf31605331beeb39c2761c262ad8"
+  },
+  {
+    "id": "solarized",
+    "name": "Solarized Dark",
+    "target": "vendor",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.solarized.vendor",
+    "apk": "solarized-vendor.apk",
+    "resources": 10,
+    "sha256": "7693cfd9fd646155055a86eed218a18b891c7b94298a82969d843781396fda6a"
+  },
+  {
+    "id": "solarized",
+    "name": "Solarized Dark",
+    "target": "settings",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.solarized.settings",
+    "apk": "solarized-settings.apk",
+    "resources": 13,
+    "sha256": "04e4e81f78a80e60b05d08912aa6037362d52e6742a201f2f609d480609b2ee5"
+  },
+  {
+    "id": "solarized",
+    "name": "Solarized Dark",
+    "target": "systemui",
+    "package": "com.elitedarkkaiser.nubialy.uistyle.solarized.systemui",
+    "apk": "solarized-systemui.apk",
+    "resources": 9,
+    "sha256": "697f67ae7f1f79538661e54082e7bf3faa31549a773f428556487a3a3b517371"
+  }
+]

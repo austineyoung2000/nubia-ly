@@ -8,10 +8,13 @@ with tempfile.TemporaryDirectory(prefix='nubialy-unlock-') as work:
   text=p.read_text().replace('/data/local/tmp/nubia-ly-guard',str(guard)).replace('/data/adb/nubia_ly_guard',str(state)).replace(') >/dev/null 2>&1 &',')')
   (module/p.name).write_text(text)
  (tools/'getprop').write_text('#!/bin/sh\ncase "$1" in ro.product.model) echo NX809J;;ro.build.version.sdk) echo 36;;sys.boot_completed) echo 1;;esac\n')
+ (tools/'cmd').write_text('#!/bin/sh\nexit 0\n')
  (tools/'id').write_text('#!/bin/sh\necho 0\n')
  (tools/'am').write_text('#!/bin/sh\nif [ "$1" = get-started-user-state ]; then echo "${TEST_UNLOCK:-RUNNING_UNLOCKED}";else echo "$*" >> "$CALL_LOG";fi\n')
  (tools/'sleep').write_text('#!/bin/sh\necho wait >> "$WAIT_LOG"\n')
  for p in tools.iterdir():p.chmod(0o755)
+ # UI transaction behavior is exercised independently; isolate clock nudge timing here.
+ (module/'uictl.sh').write_text('#!/bin/sh\nexit 0\n')
  env=dict(os.environ,PATH=str(tools)+':'+os.environ['PATH'],CALL_LOG=str(log),WAIT_LOG=str(w/'waits'))
  def run(command,ok=True,script='guardctl.sh',extra=None):
   r=subprocess.run(['sh',str(module/script),command],env=dict(env,**(extra or {})),capture_output=True,text=True,timeout=5);assert (r.returncode==0)==ok,(r.stdout,r.stderr);return r

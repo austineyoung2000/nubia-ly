@@ -75,7 +75,7 @@ public final class MainActivity extends AppCompatActivity {
         int setupEnd=content.getChildCount();
         spacer(20);
         content.addView(PersonalizationUi.dashboard(this, section -> startActivity(
-            new android.content.Intent(this,section.equals("launcher")?LauncherActivity.class:section.equals("boot_animation")?BootAnimationActivity.class:ClockEditorActivity.class).putExtra("section",section))));
+            new android.content.Intent(this,section.equals("ui_styles")?UiStylesActivity.class:section.equals("launcher")?LauncherActivity.class:section.equals("boot_animation")?BootAnimationActivity.class:ClockEditorActivity.class).putExtra("section",section))));
         spacer(16);
         int recoveryStart=content.getChildCount();
         LinearLayout recovery = card("Restore & recovery", "Recovery must be ready before the first customization is enabled.");

@@ -30,6 +30,8 @@ jobs:
           python3 tests/test_clock_backend.py
           python3 tests/test_statusbar_backend.py
           python3 tests/test_surface_backend.py
+          python3 tests/test_ui_style_contract.py
+          sudo python3 tests/test_ui_style_shell.py
           python3 tests/test_qs_appearance_backend.py
           python3 tests/test_qs_grid_inspection.py
           python3 tests/test_qs_grid_backend.py
@@ -108,6 +110,7 @@ jobs:
           else
             gradle testDebugUnitTest assembleDebug
           fi
+          python3 scripts/prepare-ui-style-overlays.py
       - name: Verify persistent signature
         if: env.HAS_SIGNING == 'true'
         run: |

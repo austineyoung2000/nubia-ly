@@ -1,0 +1,23 @@
+{
+  "model": "NX809J",
+  "sdk": 36,
+  "fingerprint": "REDMAGIC/NX809J-UN/NX809J:16/BQ2A.250705.001-BP2A.250605.031.A3/20260408.075725:user/release-keys",
+  "targets": {
+    "framework": {
+      "file": "framework-res.apk",
+      "sha256": "5db4eaa36c16805ce1ff6d15295a7961019b4fcea658421c3913f80e412d795f"
+    },
+    "vendor": {
+      "file": "framework-zte-res.apk",
+      "sha256": "4bd830454d1dcc158b02e5dc0c05d4f7c1fa6f21d593d693ba710dbdf429868b"
+    },
+    "settings": {
+      "file": "Settings_MFV_abroad.apk",
+      "sha256": "ede2ad99467767acca35c7a8e7aff5d56a82f25f74a736c2b99b80f9da689480"
+    },
+    "systemui": {
+      "file": "SystemUI_MFV.apk",
+      "sha256": "09cf76ee820ffba3414631c310fdf531c650825ddd1af95c5c927a148f678393"
+    }
+  }
+}

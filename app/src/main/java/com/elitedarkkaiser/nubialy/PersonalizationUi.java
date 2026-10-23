@@ -39,6 +39,7 @@ final class PersonalizationUi {
         LinearLayout.LayoutParams powerParams=new LinearLayout.LayoutParams(-1,-2);powerParams.topMargin=dp(a,12);notificationColumn.addView(tile(a,"Power menu","Button styles",5,()->open.accept("power_menu"),62),powerParams);
         LinearLayout.LayoutParams bootParams=new LinearLayout.LayoutParams(-1,-2);bootParams.topMargin=dp(a,12);dashboard.addView(tile(a,"Boot animations","Systemless startup styles",6,()->open.accept("boot_animation"),62),bootParams);
         LinearLayout.LayoutParams launcherParams=new LinearLayout.LayoutParams(-1,-2);launcherParams.topMargin=dp(a,12);dashboard.addView(tile(a,"Launcher","Home screen & launcher settings",7,()->open.accept("launcher"),90),launcherParams);
+        LinearLayout.LayoutParams uiParams=new LinearLayout.LayoutParams(-1,-2);uiParams.topMargin=dp(a,12);dashboard.addView(tile(a,"UI styles","Framework, Settings & System UI",8,()->open.accept("ui_styles"),90),uiParams);
         return dashboard;
     }
     private static MaterialCardView tile(Activity a,String title,String summary,int kind,Runnable action,int previewHeight){

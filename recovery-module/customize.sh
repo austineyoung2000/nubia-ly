@@ -4,7 +4,8 @@ ui_print "- Installer sees: model='$(gp ro.product.model)' vendor='$(gp ro.produ
 nx789j || abort "NX789J or NX809J model only - see the model values above"
 case "$(gp ro.build.version.sdk)" in 35|36) ;; *) abort "Android 15 or 16 only - see the sdk value above" ;; esac
 set_perm_recursive "$MODPATH" 0 0 0755 0644
-for script in guardctl.sh bootctl.sh post-fs-data.sh action.sh service.sh uninstall.sh; do
+[ ! -d "$MODPATH/system/product/overlay/nubialy_ui" ] || rm -f "$MODPATH/skip_mount"
+for script in uictl.sh guardctl.sh bootctl.sh post-fs-data.sh action.sh service.sh uninstall.sh; do
     set_perm "$MODPATH/$script" 0 0 0755
 done
 ui_print "Independent recovery guard with saved-feature resume after first unlock. Installation enables no new features."

@@ -18,6 +18,7 @@
             android:permission="com.elitedarkkaiser.nubialy.permission.GUARD_DIAGNOSTIC">
             <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.USER_UNLOCKED" /></intent-filter>
         </receiver>
+        <activity android:name=".UiStylesActivity" android:exported="false" />
         <activity android:name=".LauncherActivity" android:exported="false" />
         <activity android:name=".BootAnimationActivity" android:exported="false" />
         <activity android:name=".ClockFontPickerActivity" android:exported="false" />

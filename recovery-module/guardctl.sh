@@ -17,6 +17,10 @@ command=${1:-status}
 case "$command" in status|stop|probe|preview|clock|enable_clock|resume|resume_app) ;; *) echo "STOP: use status, stop, probe, preview or clock"; exit 1 ;; esac
 # Stop the independent boot selection before touching cosmetic receipts.
 boot_stop_failed=0
+ui_stop_failed=0
+if [ "$command" = stop ] && [ -f "${0%/*}/uictl.sh" ]; then
+    sh "${0%/*}/uictl.sh" restore || ui_stop_failed=1
+fi
 if [ "$command" = stop ] && [ -f "${0%/*}/bootctl.sh" ]; then
     sh "${0%/*}/bootctl.sh" restore || boot_stop_failed=1
 fi
@@ -41,6 +45,7 @@ case "$command" in
             rm -f "$state_dir/clock_id" || exit 1
         fi
         rm -f "$guard_dir/enabled" "$guard_dir/probe" "$guard_dir/preview" "$guard_dir/clock" || exit 1
+        [ "$ui_stop_failed" = 0 ] || { echo "UI style restoration incomplete; retry Guard Action"; exit 1; }
         [ "$boot_stop_failed" = 0 ] || { echo "Cosmetic permits stopped; boot-animation stop unconfirmed. Retry Action."; exit 1; }
         echo "All nubia-ly permits stopped. Active preview restores on the next guard validation. Reboot discards in-memory overrides."
         ;;

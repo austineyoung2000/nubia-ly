@@ -1,5 +1,13 @@
 #!/system/bin/sh
 MODDIR=${0%/*}
+# UI overlays are test-only; bounded restoration after OverlayManager becomes available.
+(
+    tries=0
+    while [ "$tries" -lt 60 ]; do
+        sh "$MODDIR/uictl.sh" boot >/dev/null 2>&1 && exit 0
+        tries=$((tries + 1)); sleep 1
+    done
+) >/dev/null 2>&1 &
 # Only ephemeral test receipts expire on boot; durable enabled identity is explicit user state.
 sh "$MODDIR/guardctl.sh" resume
 

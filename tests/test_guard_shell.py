@@ -9,11 +9,12 @@ with tempfile.TemporaryDirectory(prefix='nubialy-guard-test-') as work:
     module.mkdir()
     guard = work / 'guard'
     for source in (root / 'recovery-module').glob('*.sh'):
-        text = source.read_text().replace('guard_dir=/data/local/tmp/nubia-ly-guard', f'guard_dir={guard}').replace('state_dir=/data/adb/nubia_ly_guard', f'state_dir={work / "state"}')
+        text = source.read_text().replace('STATE=/data/adb/nubia_ly_guard/ui_style', f'STATE={work / "ui-state"}').replace('guard_dir=/data/local/tmp/nubia-ly-guard', f'guard_dir={guard}').replace('state_dir=/data/adb/nubia_ly_guard', f'state_dir={work / "state"}')
         (module / source.name).write_text(text)
     binaries = work / 'bin'
     binaries.mkdir()
     (binaries / 'getprop').write_text('#!/bin/sh\ncase "$1" in ro.product.model) echo "${TEST_MODEL:-NX809J}" ;; ro.build.version.sdk) echo 36 ;; sys.boot_completed) echo 1 ;; esac\n')
+    (binaries / 'cmd').write_text('#!/bin/sh\nexit 0\n')
     (binaries / 'am').write_text('#!/bin/sh\nexit 0\n')
     (binaries / 'id').write_text('#!/bin/sh\necho "${TEST_UID:-0}"\n')
     for executable in binaries.iterdir(): executable.chmod(0o755)
