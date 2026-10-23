@@ -2,6 +2,7 @@
 MODDIR=${0%/*}
 # UI overlays are test-only; bounded restoration after OverlayManager becomes available.
 (
+    [ -f "$MODDIR/uictl.sh" ] || exit 0
     tries=0
     while [ "$tries" -lt 60 ]; do
         sh "$MODDIR/uictl.sh" boot >/dev/null 2>&1 && exit 0
