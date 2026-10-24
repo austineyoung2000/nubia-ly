@@ -44,7 +44,9 @@ public final class GuardBrokerProvider extends ContentProvider {
                 reply.putInt("status",allowed?GuardBrokerPolicy.READABLE:GuardBrokerPolicy.BLOCKED);
                 if(allowed){reply.putString("permit_id",id);reply.putLong("deadline_ms",android.os.SystemClock.elapsedRealtime()+ClockEnabledPolicy.HEALTH_MS);
                     if(style!=null){
-                        SurfaceStyle.QsTheme theme=StatusBarPreferences.active(getContext(),id).surfaces().qsTheme();
+                        SurfaceStyle applied=StatusBarPreferences.active(getContext(),id).surfaces();
+                        SurfaceStyle.QsTheme theme=applied.qsTheme();
+                        style=style.withSurface(switch(style.surface()){case 300->applied.qsStyle();case 301->applied.powerStyle()==0?0:100+applied.powerStyle();case 302->applied.volumeStyle()==0?0:200+applied.volumeStyle();default->style.surface();});
                         if(style.theme()==0)style=style.with(0,theme.inactiveBackground()==0?0xff25232b:theme.inactiveBackground()).with(1,theme.primaryLabel()==0?0xfff4efff:theme.primaryLabel());
                         if("@launcher".equals(style.iconPack()))style=style.withPack(LauncherPreferences.active(getContext()).iconPack());
                         reply.putString("sidebar_style",style.encode());

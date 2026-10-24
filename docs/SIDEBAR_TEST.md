@@ -33,3 +33,15 @@ Reads run on one worker, only while the panel is open. A 3-second visible-panel 
 9. Repeat screen off/on and multiple panel openings. Check Vector logs for adapter installation or an explicit APK-mismatch message.
 
 Keep the separate activation/stability branch unmerged. This branch starts from main's merged fingerprint-speed commit and does not incorporate that pending fix. Device behavior and rendered UI still require owner testing before merge.
+
+## Shared styles and full-panel coverage — build 108
+
+Sidebar → UI styles now uses the exact QsTileEffects, NotificationEffects (also used by power menu), and VolumeEffects renderers. Choose a named look or follow the applied style from Quick Settings, Power menu, or Volume. Existing color, opacity, blur, corners and dimensions remain independent. Existing sidebar drafts decode with surface style 0. Preview cards use the same sidebar drawable as the runtime; they do not simulate background blur.
+
+The APK layout confirms mLLSmallBar is the bottom toolbar, not the whole sidebar. Styling/dimensions now target mCtlListView; mEditLay receives the same surface, and the footer no longer paints a second opaque background over the main panel. Native blur is drawn outside offscreen shading layers. Close, Restore and permit expiry still restore captured native backgrounds.
+
+Icon loading now covers current, expanded-editor, origin and recent app records. Both main and edit adapters refresh. The sidebar-specific loader accepts exact mappings, unambiguous same-package activity aliases, and standard appfilter iconback/iconmask/iconupon/scale fallbacks. All parsing and icon generation stay on the worker; aliases are indexed once per loaded pack. An unchanged visible panel reuses its cache. The shared launcher loader and stock utility shortcut artwork are unchanged. Pack-private features and third-party launcher per-app overrides are not imported.
+
+After updating, reboot to reload Vector. Select the same pack as your actual launcher under Sidebar → App icons; “Follow nubia-ly Launcher editor” means that editor's selection, and cannot read Nova's private configuration. Test Gmail, Google TV, ChatGPT and another previously stock icon in both the narrow panel and expanded app picker. If Dots still differs, inspect that exact pack APK rather than inventing resource names.
+
+Test a bright custom color at opacity 55 and 100: the full main body, expanded picker and footer should share the chosen surface without a gray main plate. Exercise each shared style family and each Follow option; verify labels/icons stay sharp. Restore stock while open, close/reopen, and switch screen off/on. Additional full-list artwork loading has a bounded 6.5-second first-load timeout and cancels at the next package when the panel closes; permit expiry remains 15 seconds.
