@@ -150,7 +150,7 @@ final class StatusBarBackend {
     private static ViewGroup owner(View view){
         View current=view;
         for(int depth=0;depth<24&&current!=null;depth++){
-            if(current.getClass().getName().equals(ROOT)&&current instanceof ViewGroup group)return group;
+            if((current.getClass().getName().equals(ROOT)||QsHeaderScope.isRoot(current))&&current instanceof ViewGroup group)return group;
             ViewParent parent=current.getParent();current=parent instanceof View v?v:null;
         }return null;
     }
@@ -168,6 +168,7 @@ final class StatusBarBackend {
         ArrayDeque<View> queue=new ArrayDeque<>();queue.add(root);int count=0;
         while(!queue.isEmpty()&&count++<512){View v=queue.removeFirst();track(v);if(v instanceof ViewGroup g)for(int n=0;n<g.getChildCount()&&queue.size()<512;n++)queue.addLast(g.getChildAt(n));}
     }
+    static void observeHeader(View header){if(header instanceof ViewGroup root){roots.put(root,true);if(active)scan(root);}}
     static void refresh(){
         if(!active||failed||Looper.myLooper()!=Looper.getMainLooper())return;
         SurfaceBackend.refresh();

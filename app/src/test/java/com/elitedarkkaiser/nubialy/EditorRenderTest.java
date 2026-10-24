@@ -23,7 +23,7 @@ import static org.junit.Assert.*;
 public final class EditorRenderTest {
  @Test public void phoneEditorsKeepPreviewProportionsAndActionsVisible() throws Exception {
   ShadowBuild.setModel("NX809J");
-  for(String[] route:new String[][]{{"lock_screen","clock"},{"quick_settings","tiles"},{"quick_settings","colors"},{"quick_settings","grid"}}){
+  for(String[] route:new String[][]{{"lock_screen","clock"},{"quick_settings","tiles"},{"quick_settings","colors"},{"quick_settings","header"},{"quick_settings","grid"}}){
    var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section",route[0])).setup();
    var activity=controller.get();EditorPages pages=ReflectionHelpers.getField(activity,"pages");pages.show(route[0],route[1]);
    var root=(android.view.ViewGroup)activity.findViewById(android.R.id.content);measure(root);

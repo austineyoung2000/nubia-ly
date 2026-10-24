@@ -64,6 +64,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-controls-') as work:
  folder=Path(work)
  for name,content in sources.items():
   p=folder/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
- files=[str(p) for p in folder.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/name) for name in ['ConnectivityResourcePolicy.java','ChargingReadout.java','NotificationControls.java','xposed/ConnectivityBackend.java','xposed/PowerMenuBackend.java','xposed/NotificationBehaviorBackend.java','xposed/ChargingInfoBackend.java']]
+ files=[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/QsHeaderScope.java')]+[str(p) for p in folder.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/name) for name in ['ConnectivityResourcePolicy.java','ChargingReadout.java','NotificationControls.java','xposed/ConnectivityBackend.java','xposed/PowerMenuBackend.java','xposed/NotificationBehaviorBackend.java','xposed/ChargingInfoBackend.java']]
  subprocess.run(['java','com.sun.tools.javac.Main','-d',str(folder/'classes'),*files],check=True)
  subprocess.run(['java','-cp',str(folder/'classes'),'com.elitedarkkaiser.nubialy.xposed.ControlsTest'],check=True)

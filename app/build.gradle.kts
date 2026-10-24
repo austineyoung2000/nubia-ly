@@ -20,7 +20,7 @@ android {
         targetSdk = 35
         buildConfigField("String", "BASELINE_FINGERPRINT", baselineLiteral("fingerprint"))
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
-        versionCode = 102
+        versionCode = 103
         versionName = "1.0.3-editor-test"
     }
     signingConfigs {

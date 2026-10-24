@@ -21,7 +21,7 @@ final class ConnectivityBackend {
  private static String id(View v){try{return v.getResources().getResourcePackageName(v.getId()).equals("com.android.systemui")?v.getResources().getResourceEntryName(v.getId()):"";}catch(Throwable absent){return "";}}
  private static int category(ImageView v){String id=id(v);if(!id.equals("wifi_signal")&&!id.equals("mobile_signal"))return 0;boolean owner=false;View current=v;
   for(int i=0;i<16&&current!=null;i++){String name=current.getClass().getName();if(name.equals(id.equals("wifi_signal")?"com.android.systemui.statusbar.pipeline.wifi.ui.view.ModernStatusBarWifiView":"com.android.systemui.statusbar.pipeline.mobile.ui.view.ModernStatusBarMobileView"))owner=true;
-   if(name.equals("com.android.systemui.statusbar.phone.PhoneStatusBarView"))return owner?(id.equals("wifi_signal")?1:2):0;current=current.getParent() instanceof View next?next:null;}return 0;}
+   if((name.equals("com.android.systemui.statusbar.phone.PhoneStatusBarView")||QsHeaderScope.isRoot(current)))return owner?(id.equals("wifi_signal")?1:2):0;current=current.getParent() instanceof View next?next:null;}return 0;}
  static void observe(View view){if(main()&&view instanceof ImageView image&&category(image)!=0){observed.put(image,true);if(active)image.invalidate();}}
  static void install(ClassLoader loader){try{
   XposedHelpers.findClass("com.android.systemui.statusbar.pipeline.wifi.ui.view.ModernStatusBarWifiView",loader);XposedHelpers.findClass("com.android.systemui.statusbar.pipeline.mobile.ui.view.ModernStatusBarMobileView",loader);

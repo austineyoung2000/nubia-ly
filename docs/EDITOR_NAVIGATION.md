@@ -29,3 +29,26 @@ This requires device testing, especially battery rendering and large-text bounds
 Legacy 15-field QS theme drafts decode with stock header settings; new drafts use
 21 fields. This branch does not contain the abandoned RRO UI style experiment and
 requires only the existing guard 22, not a mounting metamodule.
+
+
+## QS header correction (APK 103)
+
+The initial outer `View.draw(Canvas)` hook missed hardware-rendered header children.
+Header text now hooks `TextView.onDraw`, and status groups hook
+`ViewGroup.dispatchDraw`, each scoped by ancestry under the captured `mHeader`.
+Canvas tint/scale is balanced after the content pass. A header counter now reports
+text/icon draws and discovered class/resource IDs instead of reporting readiness alone.
+
+Header clocks have the existing font picker and Native, Digital, Stacked and Outline
+looks. Custom artwork reads the native TextView's current text; it does not replace
+its time source, change its text/typeface or add a timer. Header font/clock fields
+extend QS theme serialization to 23 fields; legacy 15/21-field drafts still decode.
+Only applying Header changes these fields.
+
+The captured header joins the existing status-bar artwork scope: system icon packs,
+Wi-Fi/mobile glyphs, battery renderer and battery controls reuse the already-applied
+status-bar selections. QS tile icon-pack selection remains independent. Keyguard
+and unrelated containers remain excluded. Isolated backend tests cover a captured
+header battery with a non-status-bar vendor type and header-vs-tile icon packs;
+native graphics tests exercise text tint/scale without any outer View.draw call,
+custom clock artwork, unchanged native text/font and balanced canvas restoration.
