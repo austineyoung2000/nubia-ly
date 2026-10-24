@@ -1,0 +1,7 @@
+package com.elitedarkkaiser.nubialy;
+import android.widget.LinearLayout;import androidx.appcompat.app.AppCompatActivity;
+import org.junit.Test;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import static org.junit.Assert.*;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=35)
+public class PaletteEditorTest {
+ @Test public void hexPickerSavesDraftAndBrightnessToggleLeavesStatusColorsAlone(){var controller=Robolectric.buildActivity(AppCompatActivity.class);var a=controller.get();a.setTheme(R.style.Theme_NubiaLy);controller.setup();var root=new LinearLayout(a);root.setOrientation(1);a.setContentView(root);var palette=new SurfaceStyle.Palette[]{SurfaceStyle.Palette.STOCK};var editor=new PaletteEditor(a,()->palette[0],p->palette[0]=p);editor.status(root);editor.brightness(root);root.findViewWithTag("palette-color:0").performClick();var dialog=(androidx.appcompat.app.AlertDialog)org.robolectric.shadows.ShadowDialog.getLatestDialog();com.google.android.material.textfield.TextInputEditText hex=dialog.getWindow().getDecorView().findViewWithTag("color-picker-hex");hex.setText("123456");assertEquals(0,palette[0].wifi());dialog.getButton(-1).performClick();assertEquals(0xff123456,palette[0].wifi());root.findViewWithTag("brightness-two-tone").performClick();assertEquals(1,palette[0].brightnessTwoTone());assertEquals(0xff123456,palette[0].wifi());controller.pause().stop().destroy();}
+}

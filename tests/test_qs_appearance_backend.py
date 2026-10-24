@@ -4,6 +4,7 @@ import subprocess,tempfile
 root=Path(__file__).resolve().parents[1]
 pkg='com/elitedarkkaiser/nubialy/'
 sources={
+pkg+'xposed/QsHeaderAppearance.java':'package com.elitedarkkaiser.nubialy.xposed;final class QsHeaderAppearance {static void install(){}static void observe(android.view.View v){}static void begin(com.elitedarkkaiser.nubialy.SurfaceStyle.QsTheme t){}static void end(){}static String status(){return "header isolated";}}',
 'android/os/Looper.java':'package android.os;public class Looper {static final Looper MAIN=new Looper();public static Looper getMainLooper(){return MAIN;}public static Looper myLooper(){return MAIN;}}',
 'android/os/Handler.java':'package android.os;public class Handler {public Handler(Looper l){}public boolean post(Runnable r){r.run();return true;}}',
 'android/view/View.java':'package android.view;public class View {public boolean attached=true;public boolean isAttachedToWindow(){return attached;}public int getWidth(){return 500;}public int getHeight(){return 1000;}public void invalidate(){}}',

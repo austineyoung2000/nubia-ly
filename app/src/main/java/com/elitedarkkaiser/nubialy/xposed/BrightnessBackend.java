@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.view.*;
 import android.widget.SeekBar;
 import com.elitedarkkaiser.nubialy.BrightnessEffects;
+import com.elitedarkkaiser.nubialy.SurfaceStyle.Palette;
 import de.robv.android.xposed.*;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
@@ -24,8 +25,10 @@ final class BrightnessBackend {
     private static boolean sliderName(String name){return name.equals(SLIDER)||name.equals(CCSLIDER);}
     static void release(View view){if(view instanceof SeekBar slider){observed.remove(slider);leaves.entrySet().removeIf(e->e.getValue().slider().get()==slider);}}
     private static boolean main(){return Looper.myLooper()==Looper.getMainLooper();}
-    static void begin(int style){
-        if(style<0||style>3||!main())throw new IllegalArgumentException();if(!end())throw new IllegalStateException("Brightness cleanup incomplete");selection=style;if(style==0)return;
+    private static Palette palette=Palette.STOCK;
+    static void begin(int style){begin(style,Palette.STOCK);}
+    static void begin(int style,Palette colors){
+        if(style<0||style>3||!main())throw new IllegalArgumentException();if(!end())throw new IllegalStateException("Brightness cleanup incomplete");selection=style;palette=colors;if(style==0&&!colors.brightnessAny())return;
         drawCallbacks=decoratedDraws=0;lastRoot="not observed";final long ticket=++generation;
         try{
             Class<?> slider=XposedHelpers.findClass(SLIDER,loader),owner=XposedHelpers.findClass(OWNER,loader);
@@ -41,7 +44,7 @@ final class BrightnessBackend {
             hooks.add(XposedHelpers.findAndHookMethod(GradientDrawable.class,"draw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!active||failed||!main()||!(p.thisObject instanceof GradientDrawable d))return;Entry entry=leaves.get(d);if(!eligible(entry,d))return;
                 SeekBar view=entry.slider().get();
-                try{if(BrightnessEffects.draw(style,(Canvas)p.args[0],d,view.getResources().getDisplayMetrics().density,()->active&&!failed&&generation==ticket&&eligible(entry,d),()->XposedBridge.invokeOriginalMethod(p.method,p.thisObject,p.args))){decoratedDraws++;p.setResult(null);}}
+                try{GradientDrawable[] parts=layers(view.getProgressDrawable());boolean fill=parts!=null&&parts[1]==d;GradientDrawable colored=com.elitedarkkaiser.nubialy.BrightnessColors.copy(d,fill,palette);GradientDrawable artwork=colored==null?d:colored;com.elitedarkkaiser.nubialy.QsOutlineRenderer.NativeDraw original=colored==null?()->XposedBridge.invokeOriginalMethod(p.method,p.thisObject,p.args):()->artwork.draw((Canvas)p.args[0]);boolean rendered=BrightnessEffects.draw(style,(Canvas)p.args[0],artwork,view.getResources().getDisplayMetrics().density,()->active&&!failed&&generation==ticket&&eligible(entry,d),original);if(!rendered&&colored!=null&&active&&!failed&&generation==ticket&&eligible(entry,d)){original.draw();rendered=true;}if(rendered){decoratedDraws++;p.setResult(null);}}
                 catch(Throwable unavailable){failed=true;invalidate();}
             }}));active=true;refresh();invalidate();
         }catch(Throwable unavailable){failed=true;end();throw new IllegalStateException("Brightness styling unavailable",unavailable);}

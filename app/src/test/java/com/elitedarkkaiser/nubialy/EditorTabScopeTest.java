@@ -1,0 +1,9 @@
+package com.elitedarkkaiser.nubialy;
+import org.junit.Test;import static org.junit.Assert.*;
+public class EditorTabScopeTest {
+ @Test public void everyGroupedTabMatchesItsIndividualScopes(){var active=AppearanceScope.Snapshot.STOCK;var theme=SurfaceStyle.QsTheme.STOCK.with(0,0xff123456).with(15,0xffabcdef).with(18,110).with(21,18).with(22,2);var bar=StatusBarStyle.STOCK.withSurfaces(SurfaceStyle.STOCK.withQsTheme(theme));var draft=new AppearanceScope.Snapshot(bar,0xff112233,1,ClockSnapshot.STOCK);
+  for(String section:new String[]{"status_bar","quick_settings","lock_screen","notifications","volume","power_menu"})for(String[] tab:EditorNavigation.tabs(section)){var expected=active;for(String scope:EditorNavigation.scopes(section,tab[0]))expected=AppearanceScope.merge(section,scope,expected,draft);assertEquals(expected,AppearanceScope.merge(section,tab[0],active,draft));}
+  assertEquals(0,AppearanceScope.merge("quick_settings","tab_colors",active,draft).bar().surfaces().qsTheme().clockColor());assertEquals(0,AppearanceScope.merge("quick_settings","tab_header",active,draft).bar().surfaces().qsTheme().activeBackground());assertEquals(active,AppearanceScope.merge("quick_settings","tab_unknown",active,draft));
+ }
+ @Test public void legacyQsDraftsDecodeAndHeaderFieldsRoundTrip(){var old="0:0:0:0:0:0:0:-4151041:-8333057:0:-14671832::100:25:40";var theme=SurfaceStyle.QsTheme.decode(old);assertNotNull(theme);assertEquals(100,theme.clockScale());theme=theme.with(15,0xff102030).with(16,0xff445566).with(17,0xffabcdef).with(20,125);assertTrue(theme.valid());assertEquals(theme,SurfaceStyle.QsTheme.decode(theme.encode()));assertFalse(theme.with(18,200).valid());assertFalse(theme.with(21,999).valid());assertFalse(theme.with(22,4).valid());assertEquals(theme,theme.withImage("").with(18,100));}
+}

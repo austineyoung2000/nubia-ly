@@ -21,6 +21,6 @@ with tempfile.TemporaryDirectory(prefix='nubialy-icon-controls-') as work:
  folder=Path(work)
  for name,content in sources.items():
   f=folder/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_text(content)
- files=[str(p) for p in folder.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/n) for n in ['xposed/BatteryControlBackend.java','xposed/NotificationIconBackend.java']]
+ files=[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/QsHeaderScope.java')]+[str(p) for p in folder.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy'/n) for n in ['xposed/BatteryControlBackend.java','xposed/NotificationIconBackend.java']]
  subprocess.run(['java','com.sun.tools.javac.Main','-d',str(folder/'classes'),*files],check=True)
  subprocess.run(['java','-cp',str(folder/'classes'),'com.elitedarkkaiser.nubialy.xposed.IconControlsTest'],check=True)

@@ -9,6 +9,7 @@ public final class AppearanceScope {
  private static int bits(int active,int draft,int mask){return (active&~mask)|(draft&mask);}
  public static Snapshot merge(String section,String page,Snapshot active,Snapshot draft){
   if(section==null||page==null||active==null||draft==null)throw new IllegalArgumentException();
+  if(page.startsWith("tab_")){Snapshot result=active;for(String scope:EditorNavigation.scopes(section,page)){if(scope.equals(page))return active;result=merge(section,scope,result,draft);}return result;}
   var a=active.bar();var d=draft.bar();var x=a.surfaces();var y=d.surfaces();
   int hiddenMask=(owns(section,page,"quick_settings","labels")?3:0)|(owns(section,page,"lock_screen","clock")?4:0)|(owns(section,page,"lock_screen","date")?8:0);
   int optionMask=(owns(section,page,"quick_settings","top_layout")?3:0)|(owns(section,page,"quick_settings","label_layout")?60:0)|(owns(section,page,"quick_settings","brightness_layout")?448:0)|(owns(section,page,"quick_settings","landscape")?32256:0);
@@ -48,7 +49,7 @@ public final class AppearanceScope {
    owns(section,page,"quick_settings","grid")?y.qsRows():x.qsRows(),
    bits(x.qsOptions(),y.qsOptions(),optionMask),
    owns(section,page,"status_bar","iconpacks")?y.iconPack():x.iconPack(),
-   owns(section,page,"quick_settings","iconpacks")?y.qsIconPack():x.qsIconPack()).withQsTheme(section.equals("quick_settings")?SurfaceStyle.QsTheme.merge(x.qsTheme(),y.qsTheme(),page):x.qsTheme());
+   owns(section,page,"quick_settings","iconpacks")?y.qsIconPack():x.qsIconPack()).withQsTheme(section.equals("quick_settings")?SurfaceStyle.QsTheme.merge(x.qsTheme(),y.qsTheme(),page):x.qsTheme()).withPalette(SurfaceStyle.Palette.merge(x.palette(),y.palette(),section,page));
   int mask=(owns(section,page,"status_bar","icons")?15:0)|(owns(section,page,"status_bar","inventory")?112:0);
   StatusBarStyle result=new StatusBarStyle(bits(a.mask(),d.mask(),mask),
    owns(section,page,"status_bar","icons")?d.systemScale():a.systemScale(),

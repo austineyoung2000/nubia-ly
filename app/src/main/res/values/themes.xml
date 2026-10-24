@@ -1,5 +1,6 @@
 <resources>
     <style name="Theme.NubiaLy" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="sliderStyle">@style/Widget.NubiaLy.Slider</item>
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/on_primary</item>
         <item name="colorSecondary">@color/secondary</item>
@@ -12,5 +13,14 @@
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:fontFamily">sans-serif</item>
+    </style>
+    <style name="Widget.NubiaLy.Slider" parent="Widget.MaterialComponents.Slider">
+        <item name="trackHeight">4dp</item>
+        <item name="thumbRadius">9dp</item>
+        <item name="haloRadius">18dp</item>
+        <item name="tickVisible">false</item>
+        <item name="thumbColor">@color/primary</item>
+        <item name="trackColorActive">@color/primary</item>
+        <item name="trackColorInactive">@color/surface_container_high</item>
     </style>
 </resources>

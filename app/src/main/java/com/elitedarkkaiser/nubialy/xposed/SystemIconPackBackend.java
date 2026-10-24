@@ -96,7 +96,7 @@ final class SystemIconPackBackend {
         View v=image;boolean qs=false;for(int i=0;i<18&&v!=null;i++){
         String name=v.getClass().getName();if(name.equals("com.android.systemui.statusbar.phone.NotificationIconContainer"))return false;
         if(qsIconClass!=null&&qsIconClass.isInstance(v))qs=true;
-        if(name.equals("com.android.systemui.statusbar.phone.PhoneStatusBarView"))return true;
+        if((name.equals("com.android.systemui.statusbar.phone.PhoneStatusBarView")||QsHeaderScope.isRoot(v)))return true;
         if(qs)return true;
         v=v.getParent() instanceof View parent?parent:null;
     }return false;}
