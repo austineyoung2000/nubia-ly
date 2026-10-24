@@ -29,6 +29,13 @@ final class ClockColorBackend {
     private static volatile long generation;
     private static int applied, restored, darkReapplications;
     private static String startupFailure = "none";
+    static String failureChain(Throwable failure){
+        StringBuilder text=new StringBuilder();java.util.Set<Throwable> seen=java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for(int depth=0;failure!=null&&depth<8&&seen.add(failure);depth++,failure=failure.getCause()){
+            if(text.length()>0)text.append(" ← ");text.append(failure.getClass().getSimpleName());String detail=failure.getMessage();
+            if(detail!=null&&!detail.isBlank()){detail=detail.replace('\n',' ').replace('\r',' ');text.append(": ").append(detail,0,Math.min(240,detail.length()));}
+        }return text.toString();
+    }
     static String startupFailure(){return startupFailure;}
     static boolean cleanupRetryable(){return !hardFailed&&ClockCaptureBackend.available();}
     private static String message = "No clock color preview started.";
@@ -100,7 +107,7 @@ final class ClockColorBackend {
                 end();startupFailure="No eligible attached clock";message=startupFailure+"; temporary preview blocked.";return false;
             }
             message = "Clock preview " + (selectedColor==0?"native tint":ClockColorPolicy.hex(selectedColor)) + " active."; return true;
-        } catch (Throwable unavailable) {startupFailure="Activation failed at "+stage+" ("+unavailable.getClass().getSimpleName()+"): "+String.valueOf(unavailable.getMessage());abort(startupFailure);return false;}
+        } catch (Throwable unavailable) {startupFailure="Activation failed at "+stage+" ("+unavailable.getClass().getSimpleName()+"): "+failureChain(unavailable);abort(startupFailure);return false;}
     }
     static void track(TextView view) {
         if (!active || failed || writing || Looper.myLooper() != Looper.getMainLooper()) return;
