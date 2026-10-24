@@ -49,7 +49,7 @@ public final class AppearanceScope {
    owns(section,page,"quick_settings","grid")?y.qsRows():x.qsRows(),
    bits(x.qsOptions(),y.qsOptions(),optionMask),
    owns(section,page,"status_bar","iconpacks")?y.iconPack():x.iconPack(),
-   owns(section,page,"quick_settings","iconpacks")?y.qsIconPack():x.qsIconPack()).withQsTheme(section.equals("quick_settings")?SurfaceStyle.QsTheme.merge(x.qsTheme(),y.qsTheme(),page):x.qsTheme());
+   owns(section,page,"quick_settings","iconpacks")?y.qsIconPack():x.qsIconPack()).withQsTheme(section.equals("quick_settings")?SurfaceStyle.QsTheme.merge(x.qsTheme(),y.qsTheme(),page):x.qsTheme()).withPalette(SurfaceStyle.Palette.merge(x.palette(),y.palette(),section,page));
   int mask=(owns(section,page,"status_bar","icons")?15:0)|(owns(section,page,"status_bar","inventory")?112:0);
   StatusBarStyle result=new StatusBarStyle(bits(a.mask(),d.mask(),mask),
    owns(section,page,"status_bar","icons")?d.systemScale():a.systemScale(),

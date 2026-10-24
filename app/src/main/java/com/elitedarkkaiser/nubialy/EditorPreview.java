@@ -42,8 +42,8 @@ final class EditorPreview extends View {
             if(!d.hidden){paint.setTextAlign(Paint.Align.LEFT);paint.setTextSize(22*(d.size==0?1:d.size/100f));paint.setColor(d.color);c.drawText("12:34",20,47,paint);}
             paint.setTypeface(Typeface.create("sans-serif-medium",0));
             if(!d.bar.selected(StatusBarStyle.HIDE_NOTIFICATIONS))drawText(c,"●  ●",129,46,13,StatusBarStyle.appearance(d.bar.notificationScale(),d.bar.notificationOpacity()),d.bar.notificationTransform(),0xffeee8f5);
-            if(!d.bar.selected(StatusBarStyle.HIDE_SYSTEM))drawText(c,"VoLTE",239,46,13,StatusBarStyle.appearance(d.bar.systemScale(),d.bar.systemOpacity()),d.bar.systemTransform(),d.bar.selected(StatusBarStyle.TINT)?d.iconColor:0xffeee8f5);
-            BatteryControlsPreview.draw(c,d.bar,315,40,false);
+            if(!d.bar.selected(StatusBarStyle.HIDE_SYSTEM))drawText(c,"◉",270,46,13,StatusBarStyle.appearance(d.bar.systemScale(),d.bar.systemOpacity()),d.bar.systemTransform(),s.palette().system()!=0?s.palette().system():d.bar.selected(StatusBarStyle.TINT)?d.iconColor:0xffeee8f5);
+            plain(c,"Wi-Fi",184,46,11,s.palette().wifi()==0?0xffeee8f5:s.palette().wifi());plain(c,"▂▄▆",230,46,13,s.palette().mobile()==0?0xffeee8f5:s.palette().mobile());BatteryControlsPreview.draw(c,d.bar,315,40,false);
         }
         paint.setAlpha(255);c.restore();
     }

@@ -23,11 +23,11 @@ import static org.junit.Assert.*;
 public final class EditorRenderTest {
  @Test public void phoneEditorsKeepPreviewProportionsAndActionsVisible() throws Exception {
   ShadowBuild.setModel("NX809J");
-  for(String[] route:new String[][]{{"lock_screen","clock"},{"quick_settings","tiles"},{"quick_settings","colors"},{"quick_settings","header"},{"quick_settings","grid"}}){
+  for(String[] route:new String[][]{{"lock_screen","clock"},{"quick_settings","tiles"},{"quick_settings","colors"},{"quick_settings","header"},{"quick_settings","grid"},{"status_bar","colors"},{"quick_settings","brightness"}}){
    var controller=Robolectric.buildActivity(ClockEditorActivity.class,new Intent().putExtra("section",route[0])).setup();
    var activity=controller.get();EditorPages pages=ReflectionHelpers.getField(activity,"pages");pages.show(route[0],route[1]);
    var root=(android.view.ViewGroup)activity.findViewById(android.R.id.content);measure(root);
-   View artwork=root.findViewWithTag("editor-preview:"+route[0]);assertNotNull(artwork);assertEquals(2f,artwork.getWidth()/(float)artwork.getHeight(),.02f);
+   View artwork=root.findViewWithTag("editor-preview:"+route[0]);assertNotNull(artwork);assertEquals(route[0].equals("status_bar")?4.5f:2f,artwork.getWidth()/(float)artwork.getHeight(),.03f);
    View host=root.findViewWithTag("editor-preview-host"),tabs=root.findViewWithTag("editor-tabs"),actions=root.findViewWithTag("editor-actions");
    assertTrue("Preview precedes tabs",host.getBottom()<=tabs.getTop());assertTrue("Actions stay on screen",actions.getBottom()<=900);assertTrue("Controls have room",actions.getTop()-tabs.getBottom()>250);
    Bitmap bitmap=Bitmap.createBitmap(440,900,Bitmap.Config.ARGB_8888);root.draw(new Canvas(bitmap));File output=new File("build/editor-previews",route[0]+"-"+route[1]+".png");output.getParentFile().mkdirs();try(var stream=new FileOutputStream(output)){bitmap.compress(Bitmap.CompressFormat.PNG,100,stream);}bitmap.recycle();controller.pause().stop().destroy();

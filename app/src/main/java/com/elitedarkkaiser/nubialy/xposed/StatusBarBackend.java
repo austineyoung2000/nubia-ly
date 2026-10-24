@@ -168,6 +168,8 @@ final class StatusBarBackend {
         ArrayDeque<View> queue=new ArrayDeque<>();queue.add(root);int count=0;
         while(!queue.isEmpty()&&count++<512){View v=queue.removeFirst();track(v);if(v instanceof ViewGroup g)for(int n=0;n<g.getChildCount()&&queue.size()<512;n++)queue.addLast(g.getChildAt(n));}
     }
+    static void invalidateHeadersAndBars(){for(ViewGroup root:new ArrayList<>(roots.keySet()))invalidateTree(root);for(View root:new ArrayList<>(QsHeaderScope.headers))invalidateTree(root);}
+    private static void invalidateTree(View v){v.invalidate();if(v instanceof ViewGroup g)for(int i=0;i<g.getChildCount();i++)invalidateTree(g.getChildAt(i));}
     static void observeHeader(View header){if(header instanceof ViewGroup root){roots.put(root,true);if(active)scan(root);}}
     static void refresh(){
         if(!active||failed||Looper.myLooper()!=Looper.getMainLooper())return;

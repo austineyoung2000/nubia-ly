@@ -52,3 +52,24 @@ and unrelated containers remain excluded. Isolated backend tests cover a capture
 header battery with a non-status-bar vendor type and header-vs-tile icon packs;
 native graphics tests exercise text tint/scale without any outer View.draw call,
 custom clock artwork, unchanged native text/font and balanced canvas restoration.
+
+## Indicator and brightness palette (APK 104)
+
+Status bar > Colors adds independent Wi-Fi, mobile signal/data, battery and other
+system-icon colors using the shared hex/RGB editor. Notification icons remain
+excluded by notification provenance and notification-container ancestry. Scoped
+content layers also tint replacement artwork without mutating native tints. These
+applied selections extend into the captured QS header; an explicit header-wide
+tint remains the outer header override.
+
+Quick Settings > Brightness adds track and progress colors and optional two-tone
+progress. A cloned native GradientDrawable leaf supplies the requested color or
+gradient to the existing Stock/Outline/Neumorph/Thin effect. The native
+LayerDrawable and ClipDrawable continue to own clipping and brightness levels.
+Native leaves, levels, listeners and touch handling are unchanged. Native reset
+or restoration removes the drawing override.
+
+The optional palette is a third serialized SurfaceStyle component. Older one/two
+component configurations decode with native colors. Palette validation accepts
+only opaque colors and a bounded two-tone flag. Applying/restoring Status bar
+Colors and QS Brightness merges only the corresponding palette fields.

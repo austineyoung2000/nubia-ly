@@ -54,6 +54,8 @@ BrightnessBackend.begin(1);Canvas c=new Canvas();c.during=()->BrightnessBackend.
 BrightnessBackend.begin(1);c=new Canvas();c.failOnce=true;owner.slider.onDraw(c);check(!BrightnessBackend.healthy());check(BrightnessBackend.end());check(de.robv.android.xposed.XposedBridge.hooks.isEmpty());System.out.println("Brightness ownership, mirror, replacement, detach, thread, unknown layers, revocation, failure and cleanup passed");}}
 '''
 })
+sources['com/elitedarkkaiser/nubialy/SurfaceStyle.java']='package com.elitedarkkaiser.nubialy;public class SurfaceStyle {public static class Palette {public static final Palette STOCK=new Palette();public boolean brightnessAny(){return false;}}}'
+sources['com/elitedarkkaiser/nubialy/BrightnessColors.java']='package com.elitedarkkaiser.nubialy;public class BrightnessColors {public static android.graphics.drawable.GradientDrawable copy(android.graphics.drawable.GradientDrawable d,boolean fill,SurfaceStyle.Palette p){return null;}}'
 with tempfile.TemporaryDirectory(prefix='nubialy-brightness-') as folder:
  folder=Path(folder)
  for name,content in sources.items():
