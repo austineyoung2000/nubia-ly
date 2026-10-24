@@ -29,6 +29,12 @@ public final class NubiaLyModule implements IXposedHookLoadPackage, de.robv.andr
             }
             return;
         }
+        if("com.zte.floatassist".equals(param.packageName)&&param.packageName.equals(param.processName)){
+            if(!CompatibilityPolicy.isSupportedDevice(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36)return;
+            try{XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
+                @Override protected void afterHookedMethod(MethodHookParam hook){if(!hook.hasThrowable()&&hook.thisObject instanceof Application app&&"com.zte.floatassist".equals(app.getPackageName()))SidebarRuntime.install(app);}
+            });}catch(Throwable unavailable){XposedBridge.log("nubia-ly: sidebar attachment unavailable; stock retained");}return;
+        }
         if("com.zte.mifavor.launcher".equals(param.packageName)&&param.packageName.equals(param.processName)){
             if(!CompatibilityPolicy.isLauncherPlatform(Build.MODEL,Build.DEVICE,Build.VERSION.SDK_INT))return;
             try{XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){

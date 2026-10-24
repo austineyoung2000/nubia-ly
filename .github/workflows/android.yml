@@ -55,6 +55,7 @@ jobs:
           python3 tests/test_launcher_layout_mappings.py
           python3 tests/test_sensor_animation_backend.py
           python3 tests/test_animation_catalog.py
+          python3 tests/test_sidebar_style.py
           python3 tests/test_fingerprint_broker.py
           python3 tests/test_fingerprint_service_client.py
           python3 tests/test_preview_sleep.py
