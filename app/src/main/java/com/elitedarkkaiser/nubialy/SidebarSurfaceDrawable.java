@@ -9,12 +9,14 @@ public final class SidebarSurfaceDrawable extends Drawable implements Drawable.C
     private final GradientDrawable tint=new GradientDrawable();
     private final Drawable blur;
     private final int surface;
+    private final SidebarStyle style;
     private final float density,radius;
     private final BooleanSupplier allowed;
     public SidebarSurfaceDrawable(SidebarStyle style,float density,Drawable blur,BooleanSupplier allowed){
-        this.blur=blur;this.surface=style.surface();this.density=density;this.radius=style.corner()*density;this.allowed=allowed;
+        this.style=style;this.blur=blur;this.surface=style.surface();this.density=density;this.radius=style.corner()*density;this.allowed=allowed;
         tint.setColor((style.opacity()*255/100<<24)|(style.color()&0xffffff));tint.setCornerRadius(radius);if(blur!=null)blur.setCallback(this);
     }
+    public boolean matches(SidebarStyle candidate,boolean attached){return style.equals(candidate)&&(candidate.blur()==0||!attached||blur!=null);}
     @Override protected void onBoundsChange(Rect b){tint.setBounds(b);if(blur!=null)blur.setBounds(b);}
     @Override public void draw(Canvas canvas){
         if(!allowed.getAsBoolean())return;

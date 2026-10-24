@@ -4,6 +4,7 @@ import java.util.*;
 /** Independent sidebar draft. Zero dimensions retain the vendor's layout. */
 public record SidebarStyle(int color,int text,int opacity,int blur,int width,int height,int columns,
         int iconSize,int corner,int theme,String iconPack,List<String> apps,int surface) {
+    public static final String REFRESH_ACTION="com.elitedarkkaiser.nubialy.SIDEBAR_REFRESH";
     public static final String PACKAGE="com.zte.floatassist", METHOD="inspect_sidebar_enabled";
     public static final String APK_SHA256="b738d16731604914c2b775d0379156d92b7595d8217ae880b6be1e0d5b5f9580";
     public static final SidebarStyle DEFAULT=new SidebarStyle(0xff25232b,0xfff4efff,85,60,0,0,2,100,28,0,"@launcher",List.of());
