@@ -13,7 +13,7 @@
 ![Root](https://img.shields.io/badge/Root-required-ffbe98?style=flat-square)
 ![Framework](https://img.shields.io/badge/Framework-Vector-bdb1ff?style=flat-square)
 
-[**Releases**](https://github.com/austineyoung2000/nubia-ly/releases) · [**Installation**](#installation) · [**Features**](#features) · [**Report an issue**](https://github.com/austineyoung2000/nubia-ly/issues)
+[**Download v1.1.0**](https://github.com/austineyoung2000/nubia-ly/releases/tag/v1.1.0) · [**Installation**](#installation) · [**Features**](#features) · [**Report an issue**](https://github.com/austineyoung2000/nubia-ly/issues)
 
 </div>
 
