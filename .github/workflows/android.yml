@@ -154,3 +154,51 @@ jobs:
       - name: Remove signing file
         if: always()
         run: rm -f "$RUNNER_TEMP/nubia-ly.jks"
+  publish-1-1-0:
+    name: Publish 1.1.0 release
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Release 1.1.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nubia-ly-signed-release-apk
+          path: downloaded/apk
+      - uses: actions/download-artifact@v4
+        with:
+          name: nubia-ly-guard-test-module
+          path: downloaded/guard
+      - name: Publish verified release assets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const crypto = require('crypto');
+            const {owner, repo} = context.repo;
+            const tag = 'v1.1.0';
+            const gradle = fs.readFileSync('app/build.gradle.kts', 'utf8');
+            if (!/versionName\s*=\s*"1\.1\.0"/.test(gradle) || !/versionCode\s*=\s*105\b/.test(gradle)) throw new Error('Release version mismatch');
+            fs.mkdirSync('release', {recursive: true});
+            const names = ['nubia-ly-v1.1.0.apk', 'nubia-ly-guard-v0.1.17.zip'];
+            fs.copyFileSync('downloaded/apk/app-release.apk', `release/${names[0]}`);
+            fs.copyFileSync('downloaded/guard/nubia-ly-guard-test.zip', `release/${names[1]}`);
+            const sums = names.map(name => `${crypto.createHash('sha256').update(fs.readFileSync(`release/${name}`)).digest('hex')}  ${name}`).join('\n') + '\n';
+            fs.writeFileSync('release/SHA256SUMS.txt', sums);
+            names.push('SHA256SUMS.txt');
+            const releases = await github.paginate(github.rest.repos.listReleases, {owner, repo, per_page: 100});
+            let release = releases.find(item => item.tag_name === tag);
+            if (release && release.target_commitish !== context.sha) throw new Error('Release already targets another commit');
+            if (release && !release.draft) { core.notice('Release already published'); return; }
+            if (!release) release = (await github.rest.repos.createRelease({owner, repo, tag_name: tag, target_commitish: context.sha, name: 'nubia-ly v1.1.0', body: fs.readFileSync('docs/RELEASE_1.1.0.md', 'utf8'), draft: true, prerelease: false})).data;
+            const existing = await github.paginate(github.rest.repos.listReleaseAssets, {owner, repo, release_id: release.id, per_page: 100});
+            for (const name of names) {
+              const old = existing.find(asset => asset.name === name);
+              if (old) await github.rest.repos.deleteReleaseAsset({owner, repo, asset_id: old.id});
+              const data = fs.readFileSync(`release/${name}`);
+              await github.rest.repos.uploadReleaseAsset({owner, repo, release_id: release.id, name, data, headers: {'content-type': name.endsWith('.apk') ? 'application/vnd.android.package-archive' : name.endsWith('.zip') ? 'application/zip' : 'text/plain', 'content-length': data.length}});
+            }
+            await github.rest.repos.updateRelease({owner, repo, release_id: release.id, draft: false, make_latest: 'true'});
+            core.notice(`Published https://github.com/${owner}/${repo}/releases/tag/${tag}`);

@@ -4,4 +4,7 @@
     <color name="surface_container_high">#33333C</color>
     <color name="background">#101014</color><color name="on_surface">#F0EDF4</color>
     <color name="on_surface_variant">#C2BEC9</color>
+    <color name="editor_tab_text">#AAAAB5</color>
+    <color name="editor_tab_selected">#DFD1EF</color>
+    <color name="editor_tab_accent">#B6A3DB</color>
 </resources>
