@@ -43,6 +43,9 @@ public class SidebarRuntimeTest {
     @Test public void warmsWithoutOpenAndCloseDoesNotRemoveAppliedStyle()throws Exception {
         try(Fixture f=new Fixture()){f.call("read");f.settle();assertTrue(f.active());assertFalse((Boolean)ReflectionHelpers.getField(f.runtime,"visible"));View panel=f.panel();var applied=panel.getBackground();assertTrue(applied instanceof SidebarSurfaceDrawable);f.call("onHidden");assertTrue(f.active());assertSame(applied,panel.getBackground());ReflectionHelpers.callInstanceMethod(f.runtime,"onShown",ReflectionHelpers.ClassParameter.from(Object.class,null));assertTrue(f.active());assertEquals(1,f.broker.calls.get());}
     }
+    @Test public void nativeDetachRetainsPreparedBackgroundWithoutAnotherRead()throws Exception {
+        try(Fixture f=new Fixture()){f.call("read");f.settle();View panel=f.panel();var activity=Robolectric.buildActivity(android.app.Activity.class).setup().visible();activity.get().setContentView(panel);Shadows.shadowOf(Looper.getMainLooper()).idle();assertTrue(panel.isAttachedToWindow());f.call("onHidden");panel.setBackground(null);((android.view.ViewGroup)panel.getParent()).removeView(panel);assertFalse(panel.isAttachedToWindow());assertTrue(panel.getBackground() instanceof SidebarSurfaceDrawable);assertTrue(f.active());assertEquals(1,f.broker.calls.get());activity.pause().stop().destroy();}
+    }
     @Test public void busyRenewalKeepsCurrentStyleAndInvalidReplyRestoresStock()throws Exception {
         try(Fixture f=new Fixture()){f.call("read");f.settle();View panel=f.panel();var applied=panel.getBackground();f.broker.status=GuardBrokerPolicy.BUSY;f.call("read");f.settle();assertTrue(f.active());assertSame(applied,panel.getBackground());f.broker.status=GuardBrokerPolicy.READABLE;f.broker.badNonce=true;f.call("read");f.settle();assertFalse(f.active());assertTrue(panel.getBackground() instanceof ColorDrawable);assertEquals(Color.RED,((ColorDrawable)panel.getBackground()).getColor());}
     }

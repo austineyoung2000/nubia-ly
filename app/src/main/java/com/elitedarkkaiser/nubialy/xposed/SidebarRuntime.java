@@ -29,6 +29,7 @@ final class SidebarRuntime {
     private volatile long epoch;
     private long deadline;
     private final Map<View,Snapshot> views=new WeakHashMap<>();
+    private final Set<View> attachmentListeners=Collections.newSetFromMap(new WeakHashMap<>());
     private final Map<Object,Drawable> images=new IdentityHashMap<>();
     private final Set<Object> added=Collections.newSetFromMap(new IdentityHashMap<>());
     private Map<String,Entry> entries=Map.of();
@@ -39,7 +40,7 @@ final class SidebarRuntime {
     private record Entry(String label,Drawable icon,Intent launch){}
     private record Read(SidebarStyle style,long deadline,Map<String,Entry> entries){}
     private static final class Snapshot {
-        final Drawable background;final int width,height;final android.content.res.ColorStateList color;final float sx,sy;
+        Drawable background;final int width,height;final android.content.res.ColorStateList color;final float sx,sy;
         Snapshot(View v){background=v.getBackground();ViewGroup.LayoutParams p=v.getLayoutParams();width=p==null?0:p.width;height=p==null?0:p.height;color=v instanceof TextView t?t.getTextColors():null;sx=v.getScaleX();sy=v.getScaleY();}
         void restore(View v){v.setBackground(background);ViewGroup.LayoutParams p=v.getLayoutParams();if(p!=null){p.width=width;p.height=height;v.setLayoutParams(p);}if(v instanceof TextView t)t.setTextColor(color);v.setScaleX(sx);v.setScaleY(sy);}
     }
@@ -61,7 +62,7 @@ final class SidebarRuntime {
             }
             @Override protected void afterHookedMethod(MethodHookParam p){if(deferred.remove(p)||p.hasThrowable())return;onShown(p.thisObject);}
         });
-        XposedBridge.hookAllMethods(ctl,"hideInner",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){onHidden();}});
+        XposedBridge.hookAllMethods(ctl,"hideInner",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){onHidden();}@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable())prepareHiddenSurfaces();}});
         for(String method:new String[]{"initListAdapter","initEditListAdapter","showEditInitListView","showAllApps"})XposedBridge.hookAllMethods(ctl,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&active()){controller=p.thisObject;dirty=true;applyCached();}}});
         XposedBridge.hookAllMethods(ctl,"updateCtlLay",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&active()&&!applying){controller=p.thisObject;applying=true;try{surfaces();}catch(Throwable failure){revoke();}finally{applying=false;}}}});
         XposedBridge.hookAllMethods(ctl,"setBottomBlurBg",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&active()&&p.args.length==1&&p.args[0] instanceof View v){if(!(v.getBackground() instanceof SidebarSurfaceDrawable))views.put(v,new Snapshot(v));if(v==fieldView("mCtlListView")||v==fieldView("mEditLay"))background(v);else if(v==fieldView("mLLSmallBar"))v.setBackground(null);}}});
@@ -84,6 +85,7 @@ final class SidebarRuntime {
     private boolean active(){return style!=null&&SystemClock.elapsedRealtime()<deadline;}
     private void onShown(Object target){controller=target;visible=true;applyCached();if(!active())read();}
     private void onHidden(){visible=false;deferredShow=null;main.removeCallbacks(openTimeout);}
+    private void prepareHiddenSurfaces(){if(controller==null)return;for(String field:new String[]{"mCtlListView","mEditLay"}){View v=fieldView(field);if(v==null)continue;Snapshot original=views.get(v);if(original!=null)original.background=null;if(active())v.setBackground(new SidebarSurfaceDrawable(style,app.getResources().getDisplayMetrics().density,null,this::active));}}
     private void resumeDeferred(){main.removeCallbacks(openTimeout);Runnable show=deferredShow;deferredShow=null;if(show!=null&&!screenOff)show.run();}
     private void applyCached(){if(active()&&controller!=null&&!applying){applying=true;try{apply();dirty=false;}catch(Throwable failure){revoke();XposedBridge.log("nubia-ly: sidebar cached appearance failed; stock restored");}finally{applying=false;}}}
     private void finishReplies(boolean ready){List<java.util.function.Consumer<Boolean>> pending=new ArrayList<>(replies);replies.clear();for(var reply:pending)reply.accept(ready);}
@@ -142,8 +144,10 @@ final class SidebarRuntime {
     private View fieldView(String name){try{return (View)XposedHelpers.getObjectField(controller,name);}catch(Throwable absent){return null;}}
     private java.util.List<Object> appData(){Set<Object> result=Collections.newSetFromMap(new IdentityHashMap<>());if(controller!=null)for(String field:APP_LISTS)try{Object list=XposedHelpers.getObjectField(controller,field);if(list instanceof List<?> l)result.addAll(l);}catch(Throwable ignored){}return new ArrayList<>(result);}
     private void notifyAdapters(){if(controller==null)return;for(String name:ADAPTERS)try{Object adapter=XposedHelpers.getObjectField(controller,name);if(adapter!=null)XposedHelpers.callMethod(adapter,"notifyDataSetChanged");}catch(Throwable ignored){}}
-    private void background(View v){if(!active()||v==null)return;if(v.getBackground() instanceof SidebarSurfaceDrawable current&&current.matches(style,v.isAttachedToWindow()))return;remember(v);Drawable blur=null;
-        if(style.blur()>0&&v.isAttachedToWindow())try{Object root=XposedHelpers.callMethod(v,"getViewRootImpl");blur=(Drawable)XposedHelpers.callMethod(root,"createBackgroundBlurDrawable");XposedHelpers.callMethod(blur,"setBlurRadius",style.blur());float r=dp(style.corner());XposedHelpers.callMethod(blur,"setCornerRadius",r,r,r,r);}catch(Throwable unavailable){}
+    private void background(View v){if(!active()||v==null)return;if(v.getBackground() instanceof SidebarSurfaceDrawable current&&current.matches(style,visible&&v.isAttachedToWindow()))return;remember(v);
+        if(attachmentListeners.add(v))v.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){public void onViewAttachedToWindow(View view){if(active())background(view);}public void onViewDetachedFromWindow(View view){Snapshot original=views.get(view);if(original!=null)original.background=null;if(active())view.setBackground(new SidebarSurfaceDrawable(style,app.getResources().getDisplayMetrics().density,null,SidebarRuntime.this::active));}});
+        Drawable blur=null;
+        if(style.blur()>0&&visible&&v.isAttachedToWindow())try{Object root=XposedHelpers.callMethod(v,"getViewRootImpl");blur=(Drawable)XposedHelpers.callMethod(root,"createBackgroundBlurDrawable");XposedHelpers.callMethod(blur,"setBlurRadius",style.blur());float r=dp(style.corner());XposedHelpers.callMethod(blur,"setCornerRadius",r,r,r,r);}catch(Throwable unavailable){}
         v.setBackground(new SidebarSurfaceDrawable(style,app.getResources().getDisplayMetrics().density,blur,this::active));
     }
     private void surfaces(){
