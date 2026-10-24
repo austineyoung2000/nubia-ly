@@ -7,5 +7,7 @@ public final class FingerprintAnimations {
     public static boolean valid(int id){return id>=0&&id<NAMES.length;}
     public static int frame(int id,long elapsed){if(!valid(id)||id==0)return 0;int[] d=DURATIONS[id];long total=0;for(int ms:d)total+=ms;long t=Math.floorMod(elapsed,total);for(int i=0;i<d.length;i++){if(t<d[i])return i;t-=d[i];}return d.length-1;}
     public static int duration(int id){int total=0;for(int n:DURATIONS[id])total+=n;return total;}
+    public static boolean validSpeed(int percent){return percent>=25&&percent<=100&&percent%5==0;}
+    public static int mappedFrame(int id,int index,int count,int percent){if(!validSpeed(percent)||!valid(id)||id==0||count<=0||index<0||index>=count)return -1;return frame(id,(long)index*duration(id)*percent/(count*100L));}
     public static int mappedFrame(int id,int index,int count){if(!valid(id)||id==0||count<=0||index<0||index>=count)return -1;return frame(id,(long)index*duration(id)/count);}
 }
