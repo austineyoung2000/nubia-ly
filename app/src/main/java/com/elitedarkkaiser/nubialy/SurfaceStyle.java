@@ -56,18 +56,19 @@ public record SurfaceStyle(int hidden, int primary, int secondary, int clock, in
 
 
     /** Zero means native; the two gradient accents have defaults when enabled. */
-    public record Palette(int wifi,int mobile,int battery,int system,int brightnessTrack,int brightnessFill,int brightnessSecond,int brightnessTwoTone){
+    public record Palette(int wifi,int mobile,int battery,int system,int brightnessTrack,int brightnessFill,int brightnessSecond,int brightnessTwoTone,int batteryText){
+        public Palette(int wifi,int mobile,int battery,int system,int brightnessTrack,int brightnessFill,int brightnessSecond,int brightnessTwoTone){this(wifi,mobile,battery,system,brightnessTrack,brightnessFill,brightnessSecond,brightnessTwoTone,0);}
         public static final Palette STOCK=new Palette(0,0,0,0,0,0,0,0);
         private static boolean color(int value){return value==0||(value>>>24)==255;}
-        public boolean valid(){return color(wifi)&&color(mobile)&&color(battery)&&color(system)&&color(brightnessTrack)&&color(brightnessFill)&&color(brightnessSecond)&&(brightnessTwoTone==0||brightnessTwoTone==1);}
-        public boolean statusAny(){return wifi!=0||mobile!=0||battery!=0||system!=0;}
+        public boolean valid(){return color(batteryText)&&color(wifi)&&color(mobile)&&color(battery)&&color(system)&&color(brightnessTrack)&&color(brightnessFill)&&color(brightnessSecond)&&(brightnessTwoTone==0||brightnessTwoTone==1);}
+        public boolean statusAny(){return wifi!=0||mobile!=0||battery!=0||system!=0||batteryText!=0;}
         public boolean brightnessAny(){return brightnessTrack!=0||brightnessFill!=0||brightnessTwoTone!=0;}
         public int first(){return brightnessFill==0?0xffd3cbef:brightnessFill;}public int second(){return brightnessSecond==0?0xff80d8ff:brightnessSecond;}
-        public int get(int key){return switch(key){case 0->wifi;case 1->mobile;case 2->battery;case 3->system;case 4->brightnessTrack;case 5->brightnessFill;case 6->brightnessSecond;case 7->brightnessTwoTone;default->throw new IllegalArgumentException();};}
-        public Palette with(int key,int value){int[] n={wifi,mobile,battery,system,brightnessTrack,brightnessFill,brightnessSecond,brightnessTwoTone};if(key<0||key>=n.length)throw new IllegalArgumentException();n[key]=value;return new Palette(n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7]);}
-        public String encode(){return wifi+":"+mobile+":"+battery+":"+system+":"+brightnessTrack+":"+brightnessFill+":"+brightnessSecond+":"+brightnessTwoTone;}
-        public static Palette decode(String value){if(value==null||value.length()>120)return null;String[] p=value.split(":",-1);if(p.length!=8)return null;try{int[] n=new int[8];for(int i=0;i<8;i++){if(!p[i].matches("-?[0-9]{1,10}"))return null;n[i]=Integer.parseInt(p[i]);}Palette palette=new Palette(n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7]);return palette.valid()?palette:null;}catch(NumberFormatException invalid){return null;}}
-        public static Palette merge(Palette a,Palette b,String section,String page){boolean status=section.equals("status_bar")&&(page.isEmpty()||page.equals("colors")),brightness=section.equals("quick_settings")&&(page.isEmpty()||page.equals("brightness"));return new Palette(status?b.wifi:a.wifi,status?b.mobile:a.mobile,status?b.battery:a.battery,status?b.system:a.system,brightness?b.brightnessTrack:a.brightnessTrack,brightness?b.brightnessFill:a.brightnessFill,brightness?b.brightnessSecond:a.brightnessSecond,brightness?b.brightnessTwoTone:a.brightnessTwoTone);}
+        public int get(int key){return switch(key){case 0->wifi;case 1->mobile;case 2->battery;case 3->system;case 4->brightnessTrack;case 5->brightnessFill;case 6->brightnessSecond;case 7->brightnessTwoTone;case 8->batteryText;default->throw new IllegalArgumentException();};}
+        public Palette with(int key,int value){int[] n={wifi,mobile,battery,system,brightnessTrack,brightnessFill,brightnessSecond,brightnessTwoTone,batteryText};if(key<0||key>=n.length)throw new IllegalArgumentException();n[key]=value;return new Palette(n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],n[8]);}
+        public String encode(){return wifi+":"+mobile+":"+battery+":"+system+":"+brightnessTrack+":"+brightnessFill+":"+brightnessSecond+":"+brightnessTwoTone+":"+batteryText;}
+        public static Palette decode(String value){if(value==null||value.length()>120)return null;String[] p=value.split(":",-1);if(p.length!=8&&p.length!=9)return null;try{int[] n=new int[9];for(int i=0;i<p.length;i++){if(!p[i].matches("-?[0-9]{1,10}"))return null;n[i]=Integer.parseInt(p[i]);}Palette palette=new Palette(n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],n[8]);return palette.valid()?palette:null;}catch(NumberFormatException invalid){return null;}}
+        public static Palette merge(Palette a,Palette b,String section,String page){boolean status=section.equals("status_bar")&&(page.isEmpty()||page.equals("colors")),brightness=section.equals("quick_settings")&&(page.isEmpty()||page.equals("brightness"));return new Palette(status?b.wifi:a.wifi,status?b.mobile:a.mobile,status?b.battery:a.battery,status?b.system:a.system,brightness?b.brightnessTrack:a.brightnessTrack,brightness?b.brightnessFill:a.brightnessFill,brightness?b.brightnessSecond:a.brightnessSecond,brightness?b.brightnessTwoTone:a.brightnessTwoTone,status?b.batteryText:a.batteryText);}
     }
 
     /** Zero colors follow stock; all custom colors are opaque. Images are content hashes, never paths. */
