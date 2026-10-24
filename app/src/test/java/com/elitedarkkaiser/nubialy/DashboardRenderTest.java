@@ -1,0 +1,7 @@
+package com.elitedarkkaiser.nubialy;
+import android.graphics.*;import android.view.*;import android.widget.*;import androidx.appcompat.app.AppCompatActivity;import java.io.*;
+import org.junit.Test;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.*;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=35,qualifiers="w440dp-h1800dp-mdpi") @GraphicsMode(GraphicsMode.Mode.NATIVE)
+public class DashboardRenderTest {
+ @Test public void renderDashboard()throws Exception {var controller=Robolectric.buildActivity(AppCompatActivity.class);var a=controller.get();a.setTheme(R.style.Theme_NubiaLy);controller.setup();LinearLayout root=new LinearLayout(a);root.setOrientation(1);root.setPadding(20,20,20,20);root.setBackgroundColor(a.getColor(R.color.background));TextView title=new TextView(a);title.setText("Personalizations");title.setTextSize(34);title.setTextColor(a.getColor(R.color.on_surface));root.addView(title);root.addView(PersonalizationUi.dashboard(a,section->{}));root.measure(View.MeasureSpec.makeMeasureSpec(440,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));root.layout(0,0,440,root.getMeasuredHeight());Bitmap b=Bitmap.createBitmap(440,root.getHeight(),Bitmap.Config.ARGB_8888);root.draw(new Canvas(b));File output=new File("build/editor-previews/dashboard.png");output.getParentFile().mkdirs();try(var out=new FileOutputStream(output)){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();controller.pause().stop().destroy();}
+}
