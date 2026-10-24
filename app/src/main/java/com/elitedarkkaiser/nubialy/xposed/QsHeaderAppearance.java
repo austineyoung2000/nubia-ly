@@ -12,7 +12,7 @@ final class QsHeaderAppearance {
  private static final Set<View> headers=QsHeaderScope.headers;
  private static QsTheme theme=QsTheme.STOCK;private static boolean installed;private static int observed,textDraws,statusDraws;private static String targets="";
  static void install(){if(installed)return;
-  XC_MethodHook callback=new XC_MethodHook(){
+  XC_MethodHook callback=new XC_MethodHook(2000){
    @Override protected void beforeHookedMethod(MethodHookParam p){
     if(!custom()||Looper.myLooper()!=Looper.getMainLooper()||!(p.thisObject instanceof View v)||!v.isAttachedToWindow()||!ClockColorBackend.authorized())return;
     Content frame=content(v,(Canvas)p.args[0],theme);if(frame==null)return;p.setObjectExtra("nubialy.qs.header.canvas",frame.save());if(frame.replace())p.setResult(null);

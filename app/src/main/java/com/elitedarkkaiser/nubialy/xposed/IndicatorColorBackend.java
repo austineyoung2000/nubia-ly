@@ -10,11 +10,13 @@ import java.util.*;
 final class IndicatorColorBackend {
  private static Palette palette=Palette.STOCK;private static boolean active;
  private static final List<XC_MethodHook.Unhook> hooks=new ArrayList<>();private static final Set<View> seen=Collections.newSetFromMap(new WeakHashMap<>());private static int draws;
+ private static java.lang.reflect.Method notificationMethod;
+ private static boolean notification(View v)throws ReflectiveOperationException{if(notificationMethod==null||notificationMethod.getDeclaringClass()!=v.getClass())notificationMethod=v.getClass().getMethod("isNotification");return Boolean.TRUE.equals(notificationMethod.invoke(v));}
  private static String id(View v){try{return v.getResources().getResourceEntryName(v.getId()).toLowerCase(Locale.ROOT);}catch(Exception absent){return "";}}
  private static boolean scoped(View v){for(int n=0;n<24&&v!=null;n++){String name=v.getClass().getName();if(name.equals("com.android.systemui.statusbar.phone.NotificationIconContainer"))return false;if(name.equals("com.android.systemui.statusbar.phone.PhoneStatusBarView")||QsHeaderScope.isRoot(v))return true;v=v.getParent() instanceof View parent?parent:null;}return false;}
  private static int raw(View v){String name=v.getClass().getSimpleName().toLowerCase(Locale.ROOT),id=id(v);
   if(v instanceof ViewGroup){if(name.contains("batterymeterview")||name.equals("mfvbatteryviewlayout"))return 2;if(name.contains("statusbarwifiview"))return 0;if(name.contains("statusbarmobileview"))return 1;}
-  if(v instanceof ImageView){if(id.equals("wifi_signal"))return 0;if(id.equals("mobile_signal"))return 1;if(v.getClass().getName().equals("com.android.systemui.statusbar.StatusBarIconView")){try{if(Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification")))return -1;}catch(Throwable absent){return -1;}return 3;}if(Set.of("cooling_fan_view","liquid_cooling_view","refresh_rate_view").contains(id))return 3;}return -1;
+  if(v instanceof ImageView){if(id.equals("wifi_signal"))return 0;if(id.equals("mobile_signal"))return 1;if(v.getClass().getName().equals("com.android.systemui.statusbar.StatusBarIconView")){try{if(notification(v))return -1;}catch(Throwable absent){return -1;}return 3;}if(Set.of("cooling_fan_view","liquid_cooling_view","refresh_rate_view").contains(id))return 3;}return -1;
  }
  static int role(View v){if(!scoped(v))return -1;int own=raw(v);if(own<0)return -1;View current=v;for(int i=0;i<24&&current.getParent() instanceof View parent;i++){if(raw(parent)>=0)return -1;if(parent.getClass().getName().equals("com.android.systemui.statusbar.phone.PhoneStatusBarView")||QsHeaderScope.isRoot(parent))break;current=parent;}return own;}
  static int layer(View v,Canvas c,Palette colors){int role=role(v);if(role<0)return -1;int color=colors.get(role);if(color==0)return -1;Paint tint=new Paint();tint.setColorFilter(new PorterDuffColorFilter(color,PorterDuff.Mode.SRC_IN));return c.saveLayer(0,0,v.getWidth(),v.getHeight(),tint);}
