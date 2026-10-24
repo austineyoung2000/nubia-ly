@@ -27,9 +27,10 @@ public final class FingerprintAnimationArtwork {
     }
     public static synchronized void clear(){cache=null;}
     public static final class Preview extends Drawable implements Animatable,Runnable {
-        private final Frames frames;private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);private long started;private boolean running;
-        public Preview(Frames frames){this.frames=frames;}
-        @Override public void draw(Canvas canvas){canvas.drawBitmap(frames.bitmap(),frames.source(FingerprintAnimations.frame(frames.id(),SystemClock.uptimeMillis()-started)),getBounds(),paint);}
+        private final int speed;private final Frames frames;private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);private long started;private boolean running;
+        public Preview(Frames frames){this(frames,100);}
+        public Preview(Frames frames,int speed){this.frames=frames;this.speed=FingerprintAnimations.validSpeed(speed)?speed:100;}
+        @Override public void draw(Canvas canvas){canvas.drawBitmap(frames.bitmap(),frames.source(FingerprintAnimations.frame(frames.id(),(SystemClock.uptimeMillis()-started)*speed/100)),getBounds(),paint);}
         @Override public void start(){stop();running=true;started=SystemClock.uptimeMillis();run();}
         @Override public void stop(){running=false;unscheduleSelf(this);}
         @Override public boolean isRunning(){return running;}

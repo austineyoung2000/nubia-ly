@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /** Substitutes one verified decorative bitmap draw; native surface/control/completion remain intact. */
 final class SensorAnimationBackend {
-    private record Authority(int id,long deadline,long generation,WeakReference<View> target,FingerprintAnimationArtwork.Frames frames){}
+    private record Authority(int id,int speed,long deadline,long generation,WeakReference<View> target,FingerprintAnimationArtwork.Frames frames){}
     private record Draw(long generation,View target,Bitmap original,Paint paint,Bitmap replacement,Rect source){}
     private static final ThreadLocal<Draw> draw=new ThreadLocal<>();
     private static volatile Authority authority;
@@ -29,7 +29,7 @@ final class SensorAnimationBackend {
             @Override protected void beforeHookedMethod(MethodHookParam p){draw.remove();Authority a=authority;if(failed||a==null||SystemClock.elapsedRealtime()>=a.deadline()||p.thisObject!=a.target().get())return;try{
                 View view=(View)p.thisObject;if(!view.isAttachedToWindow()||view.getVisibility()!=View.VISIBLE||Boolean.TRUE.equals(XposedHelpers.getObjectField(view,"isDestroyed"))||!Boolean.TRUE.equals(XposedHelpers.getObjectField(view,"isStart")))return;
                 int index=((Number)XposedHelpers.getObjectField(view,"mCurrentIndex")).intValue(),count=((Number)XposedHelpers.getObjectField(view,"totalCount")).intValue();
-                int frame=FingerprintAnimations.mappedFrame(a.id(),index,count);if(frame<0)return;
+                int frame=FingerprintAnimations.mappedFrame(a.id(),index,count,a.speed());if(frame<0)return;
                 Bitmap original;
                 // Match vendor resource synchronization, releasing it before native holder locking.
                 synchronized(resourceLock){Object bitmaps=XposedHelpers.getObjectField(view,"mBitmaps");if(!(bitmaps instanceof ArrayList<?> list)||index<0||index>=list.size()||!(list.get(index) instanceof Bitmap bitmap)||bitmap.isRecycled())return;original=bitmap;}
@@ -46,13 +46,14 @@ final class SensorAnimationBackend {
             }
         }));ready=true;
     }catch(Throwable unavailable){for(var hook:hooks)try{hook.unhook();}catch(Throwable ignored){}message="Animation renderer unavailable";}}
-    static boolean apply(int id,long until,FingerprintAnimationArtwork.Frames frames){
-        if(!FingerprintAnimations.valid(id)||until<=SystemClock.elapsedRealtime()||until-SystemClock.elapsedRealtime()>ClockEnabledPolicy.HEALTH_MS)return false;
+    static boolean apply(int id,long until,FingerprintAnimationArtwork.Frames frames){return apply(id,until,frames,100);}
+    static boolean apply(int id,long until,FingerprintAnimationArtwork.Frames frames,int speed){
+        if(!FingerprintAnimations.validSpeed(speed)||!FingerprintAnimations.valid(id)||until<=SystemClock.elapsedRealtime()||until-SystemClock.elapsedRealtime()>ClockEnabledPolicy.HEALTH_MS)return false;
         if(id==0){end();return true;}if(!ready||failed||frames==null||frames.id()!=id)return false;
         Authority old=authority;long epoch=old!=null&&old.id()==id?old.generation():++generation;
-        authority=new Authority(id,until,epoch,new WeakReference<>(old!=null&&old.id()==id?old.target().get():null),frames);refresh();message="Animation armed: "+FingerprintAnimations.NAMES[id];return true;
+        authority=new Authority(id,speed,until,epoch,new WeakReference<>(old!=null&&old.id()==id?old.target().get():null),frames);refresh();message="Animation armed: "+FingerprintAnimations.NAMES[id];return true;
     }
-    static void refresh(){Authority a=authority;if(a==null)return;if(SystemClock.elapsedRealtime()>=a.deadline()){end();return;}View target=SensorFingerprintBackend.animationTarget();View old=a.target().get();if(old!=target)authority=new Authority(a.id(),a.deadline(),++generation,new WeakReference<>(target),a.frames());}
+    static void refresh(){Authority a=authority;if(a==null)return;if(SystemClock.elapsedRealtime()>=a.deadline()){end();return;}View target=SensorFingerprintBackend.animationTarget();View old=a.target().get();if(old!=target)authority=new Authority(a.id(),a.speed(),a.deadline(),++generation,new WeakReference<>(target),a.frames());}
     static void end(){authority=null;generation++;message="Stock animation";FingerprintAnimationArtwork.clear();}
     static String status(){Authority a=authority;return "Animation: "+(failed?"renderer failed; stock":message)+"; eligible="+(a!=null&&a.target().get()!=null)+"; frames="+rendered.get()+".";}
 }

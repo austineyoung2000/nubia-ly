@@ -1,0 +1,8 @@
+package com.elitedarkkaiser.nubialy;
+import org.junit.Test;
+import static org.junit.Assert.*;
+public class FingerprintSpeedTest {
+ @Test public void legacyAndRoundTrip(){assertEquals(100,SurfaceStyle.decode(SurfaceStyle.STOCK.encode()).fingerprintSpeed());var slow=SurfaceStyle.STOCK.withFingerprintSpeed(50);assertEquals(slow,SurfaceStyle.decode(slow.encode()));assertEquals(50,slow.withQsTheme(SurfaceStyle.QsTheme.STOCK).withPalette(SurfaceStyle.Palette.STOCK).withBatteryStyle(0).withBatteryControls(0,0).fingerprintSpeed());assertFalse(slow.withFingerprintSpeed(0).valid());assertFalse(slow.withFingerprintSpeed(51).valid());}
+ @Test public void scopedApplyAndRestore(){var stock=AppearanceScope.Snapshot.STOCK;var draft=new AppearanceScope.Snapshot(stock.bar().withSurfaces(SurfaceStyle.STOCK.withFingerprintSpeed(50)),stock.color(),stock.date(),stock.clock());assertEquals(stock,AppearanceScope.merge("quick_settings","tab_colors",stock,draft));var applied=AppearanceScope.merge("lock_screen","tab_fingerprint",stock,draft);assertEquals(50,applied.bar().surfaces().fingerprintSpeed());assertEquals(stock,AppearanceScope.merge("lock_screen","tab_fingerprint",applied,stock));}
+ @Test public void frameRateIsScaledWithinNativeWindow(){for(int id=2;id<FingerprintAnimations.NAMES.length;id++){for(int index=0;index<20;index++){assertEquals(FingerprintAnimations.mappedFrame(id,index,20),FingerprintAnimations.mappedFrame(id,index,20,100));assertEquals(FingerprintAnimations.frame(id,(long)index*FingerprintAnimations.duration(id)/40),FingerprintAnimations.mappedFrame(id,index,20,50));}}assertEquals(-1,FingerprintAnimations.mappedFrame(2,0,20,0));}
+}
