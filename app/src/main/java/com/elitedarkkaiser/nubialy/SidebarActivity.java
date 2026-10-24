@@ -41,6 +41,7 @@ public final class SidebarActivity extends AppCompatActivity {
             boolean qs=page.equals("styles_qs"),power=page.equals("styles_power");
             LinearLayout c=card(qs?"Quick Settings looks":power?"Power menu looks":"Volume looks");
             button(c,"Follow applied style",()->selectSurface(qs?300:power?301:302));
+            c.addView(text("Samples use a neutral tone to show the effect. Your sidebar keeps its chosen color and blur.",14));
             surfaceCards(c,qs?QsTileEffects.NAMES:power?NotificationEffects.NAMES:VolumeEffects.NAMES,qs?0:power?100:200);
         }else if(page.equals("appearance")){
             LinearLayout c=card("Style");String[] styles={"Follow overall UI colors","Tonal","Glass","Custom"};for(int i=0;i<styles.length;i++){final int k=i;button(c,(draft.theme()==i?"✓  ":"")+styles[i],()->{draft=draft.with(9,k);if(k==1)draft=draft.with(0,0xff25232b).with(2,100).with(3,0);if(k==2)draft=draft.with(2,55).with(3,90);changed();render();});}
@@ -67,7 +68,7 @@ public final class SidebarActivity extends AppCompatActivity {
         for(int i=0;i<names.length;i++){
             int id=i==0?0:offset+i;MaterialCardView choice=new MaterialCardView(this);PersonalizationUi.panel(choice);choice.setStrokeWidth(dp(draft.surface()==id?2:1));choice.setStrokeColor(getColor(draft.surface()==id?R.color.primary:R.color.surface_container_high));
             LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(12),dp(10),dp(12),dp(10));
-            View sample=new View(this);sample.setBackground(new SidebarSurfaceDrawable(draft.withSurface(id),getResources().getDisplayMetrics().density,null,()->true));content.addView(sample,new LinearLayout.LayoutParams(-1,dp(72)));content.addView(text((draft.surface()==id?"✓  ":"")+names[i],16));choice.addView(content);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(10);parent.addView(choice,lp);choice.setTag("sidebar-surface-"+id);choice.setContentDescription(names[i]);choice.setClickable(true);choice.setFocusable(true);choice.setOnClickListener(v->selectSurface(id));controls.add(choice);
+            View sample=new View(this);sample.setBackground(new SidebarSurfaceDrawable(draft.withSurface(id).with(0,0xff67626f).with(2,100),getResources().getDisplayMetrics().density,null,()->true));content.addView(sample,new LinearLayout.LayoutParams(-1,dp(72)));content.addView(text((draft.surface()==id?"✓  ":"")+names[i],16));choice.addView(content);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(10);parent.addView(choice,lp);choice.setTag("sidebar-surface-"+id);choice.setContentDescription(names[i]);choice.setClickable(true);choice.setFocusable(true);choice.setOnClickListener(v->selectSurface(id));controls.add(choice);
         }
     }
     private void open(String p){page=p;render();}
