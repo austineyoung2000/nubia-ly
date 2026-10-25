@@ -64,7 +64,7 @@ final class StatusBarBackend {
                 }));
             }
             observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onAttachedToWindow"),new XC_MethodHook(){
-                @Override protected void afterHookedMethod(MethodHookParam p){if(active&&!p.hasThrowable()&&Looper.myLooper()==Looper.getMainLooper())track((View)p.thisObject);}
+                @Override protected void afterHookedMethod(MethodHookParam p){if(ready&&!p.hasThrowable()&&Looper.myLooper()==Looper.getMainLooper()){View view=(View)p.thisObject;ViewGroup owner=owner(view);if(owner!=null&&owner.isAttachedToWindow())roots.put(owner,true);if(active)track(view);}}
             }));
             observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onDetachedFromWindow"),new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){if(active&&Looper.myLooper()==Looper.getMainLooper())restore((View)p.thisObject);}
@@ -145,8 +145,9 @@ final class StatusBarBackend {
             stage="surface activation";SurfaceBackend.begin(style.surfaces());stage="status-bar refresh";active=true;refresh();
             if(failed)throw new IllegalStateException("Status-bar property application failed");
             if(!SurfaceBackend.healthy())throw new IllegalStateException("Surface health check failed after status-bar refresh");
-            if(roots.isEmpty())throw new IllegalStateException("No attached stock status bar.");
-            message="Status-bar styling active.";
+            // Hosts may be absent during native window recreation. Keep the bounded
+            // session armed; attachment callbacks apply only to verified native hosts.
+            message=roots.keySet().stream().anyMatch(View::isAttachedToWindow)?"Status-bar styling active.":"Status-bar styling armed; waiting for attached native host.";
         }catch(Throwable unavailable){end();throw new IllegalStateException("Status-bar activation unavailable at "+stage,unavailable);}
     }
     private static ViewGroup owner(View view){
@@ -176,6 +177,7 @@ final class StatusBarBackend {
     static void refresh(){
         if(!active||failed||Looper.myLooper()!=Looper.getMainLooper())return;
         SurfaceBackend.refresh();
+        for(View header:new ArrayList<>(QsHeaderScope.headers))if(header instanceof ViewGroup group&&group.isAttachedToWindow())roots.put(group,true);
         for(ViewGroup root:new ArrayList<>(roots.keySet()))if(root.isAttachedToWindow())scan(root);
     }
     private static void track(View v){

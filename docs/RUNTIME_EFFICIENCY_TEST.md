@@ -18,3 +18,7 @@ Phone checks:
 5. Use guard Action/Emergency stop. Enabled styling must lose authority within the existing bounded deadline; stock appearance and restart cutoffs must still work.
 
 No merge before phone testing. For actual energy comparison use matched screen brightness/refresh, identical selected effects and comparable foreground apps; code inspection cannot establish a percentage saving.
+
+## Native host activation follow-up
+
+The phone diagnostic reported “No attached stock status bar” while a native QS header was already known. Activation now seeds attached verified QS headers from their existing scope registry and keeps healthy styling armed if a native window is between detach/attach. Native attachment callbacks register host ancestry even while styling is inactive. Only verified native hosts receive transforms; missing views do not expand scope or bypass guard deadlines. Real mutation/restoration failures remain fatal. Regression tests cover no-host activation followed by native attachment and an already-attached known header with no prior host registration. Test version 117 / 1.2.3-host-activation-test.
