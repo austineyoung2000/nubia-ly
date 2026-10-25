@@ -319,7 +319,6 @@ public final class ClockEditorActivity extends AppCompatActivity {
                     &&RecoveryStore.allowEnabled(getApplicationContext());
             }catch(RuntimeException unavailable){}
             final boolean done=allowed;runOnUiThread(()->{if(!alive())return;if(!done){enabled(true);previewStatus.setText("Could not apply this page. Check root, Recovery Guard and Vector.");return;}
-                fingerprintClient.check(ignored->{});
                 client.enableSavedAppearance(result->{if(alive()){enabled(true);previewStatus.setText(title+(restoring?" restored. ":" enabled. ")+"Other pages unchanged.\n"+result);}});
             });
         });

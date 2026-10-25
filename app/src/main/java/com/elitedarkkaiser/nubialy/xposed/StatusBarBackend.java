@@ -20,7 +20,7 @@ final class StatusBarBackend {
     private static final Map<ViewGroup,Boolean> roots=new WeakHashMap<>();
     private static final Map<View,State> states=new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> activeHooks=new ArrayList<>();
-    private static boolean ready, attempted, active, writing;
+    private static boolean ready, attempted, active, writing,vendorReady;private static int vendorUpdates;
     private static volatile boolean failed;
     private static long generation;
     private static int color, captured, restored;
@@ -93,11 +93,26 @@ final class StatusBarBackend {
                     }catch(Throwable unavailable){failed=true;hardFailed=true;}
                 }
             }));
+            installVendorObservers(loader,observers);
             ready=true;message="Status-bar observer ready.";
         }catch(Throwable unavailable){
             for(var h:observers)try{h.unhook();}catch(Throwable ignored){}
             ready=false;message="Status-bar source signatures unavailable: "+unavailable.getClass().getSimpleName()+".";
         }
+    }
+    private static void installVendorObservers(ClassLoader loader,List<XC_MethodHook.Unhook> observers){
+        List<XC_MethodHook.Unhook> added=new ArrayList<>();try{
+            String name="com.zte.feature.statusbar.RedMagicFunctionIconFeature";Class<?> feature=XposedHelpers.findClass(name,loader),host=XposedHelpers.findClass(ROOT,loader);
+            for(String field:new String[]{"coolingFanView","liquidCoolingView","rateRefreshView"})if(feature.getDeclaredField(field).getType()!=ImageView.class)throw new IllegalStateException("Vendor indicator field");
+            added.add(XposedBridge.hookMethod(feature.getDeclaredMethod("onStatusBarInflate",host,boolean.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&mainThread()&&p.args[0] instanceof ViewGroup root){roots.put(root,true);if(active)scan(root);}}}));
+            String[][] types={{"CoolingFanIcon","coolingFanView","initCoolingFanView","updateCoolingFansState"},{"LiquidCoolingIcon","liquidCoolingView","initLiquidCoolingView","updateLiquidCoolingState"},{"RefreshRateIcon","rateRefreshView","initRefreshRateIcon","updateRefreshRate"}};
+            for(String[] spec:types){Class<?> type=XposedHelpers.findClass(name+"$"+spec[0],loader);if(type.getDeclaredField("this$0").getType()!=feature)throw new IllegalStateException("Vendor feature owner");java.lang.reflect.Field enclosing=type.getDeclaredField("this$0"),indicator=feature.getDeclaredField(spec[1]);enclosing.setAccessible(true);indicator.setAccessible(true);for(int n=2;n<spec.length;n++)added.add(XposedBridge.hookMethod(type.getDeclaredMethod(spec[n]),new XC_MethodHook(){
+                private View target(Object nested){try{Object featureOwner=enclosing.get(nested);Object value=indicator.get(featureOwner);return value instanceof View view?view:null;}catch(Throwable absent){return null;}}
+                @Override protected void beforeHookedMethod(MethodHookParam p){if(!active||writing||!mainThread())return;View view=target(p.thisObject);if(view!=null&&vendorIndicator(view)!=0&&owner(view)!=null)restore(view);}
+                @Override protected void afterHookedMethod(MethodHookParam p){if(p.hasThrowable()||!active||writing||!mainThread())return;View view=target(p.thisObject);if(view!=null&&vendorIndicator(view)!=0&&owner(view)!=null){vendorUpdates++;track(view);}}
+            }));}
+            observers.addAll(added);vendorReady=true;
+        }catch(Throwable unavailable){for(var hook:added)try{hook.unhook();}catch(Throwable ignored){}vendorReady=false;}
     }
     static void begin(StatusBarStyle selection,int selectedColor) {
         if(selection==null||!selection.valid())throw new IllegalArgumentException();
@@ -285,5 +300,5 @@ final class StatusBarBackend {
         }return new ArrayList<>(slots);
     }
     static boolean healthy(){return !failed&&SurfaceBackend.healthy();}
-    static String status(){return message+" Requested vendor hide: fan="+style.selected(StatusBarStyle.HIDE_FAN)+", pump="+style.selected(StatusBarStyle.HIDE_PUMP)+", refresh="+style.selected(StatusBarStyle.HIDE_REFRESH)+". "+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+". "+SurfaceBackend.status();}
+    static String status(){return message+" Requested vendor hide: fan="+style.selected(StatusBarStyle.HIDE_FAN)+", pump="+style.selected(StatusBarStyle.HIDE_PUMP)+", refresh="+style.selected(StatusBarStyle.HIDE_REFRESH)+"; native update hooks="+vendorReady+", updates="+vendorUpdates+". "+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+". "+SurfaceBackend.status();}
 }
