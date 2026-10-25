@@ -37,8 +37,11 @@ final class PersonalizationUi {
         if(!stacked){volumeRow.addView(notificationColumn,new LinearLayout.LayoutParams(0,-2,1));}else dashboard.addView(notificationColumn,new LinearLayout.LayoutParams(-1,-2));
         notificationColumn.addView(tile(a,"Notifications","Card styles & layers",4,()->open.accept("notifications"),62),new LinearLayout.LayoutParams(-1,-2));
         LinearLayout.LayoutParams powerParams=new LinearLayout.LayoutParams(-1,-2);powerParams.topMargin=dp(a,12);notificationColumn.addView(tile(a,"Power menu","Button styles",5,()->open.accept("power_menu"),62),powerParams);
-        LinearLayout.LayoutParams bootParams=new LinearLayout.LayoutParams(-1,-2);bootParams.topMargin=dp(a,12);dashboard.addView(tile(a,"Boot animations","Systemless startup styles",6,()->open.accept("boot_animation"),62),bootParams);
-        LinearLayout.LayoutParams launcherParams=new LinearLayout.LayoutParams(-1,-2);launcherParams.topMargin=dp(a,12);dashboard.addView(tile(a,"Launcher","Home screen & launcher settings",7,()->open.accept("launcher"),90),launcherParams);
+        LinearLayout homeRow=new LinearLayout(a);homeRow.setOrientation(stacked?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);LinearLayout.LayoutParams homeRowParams=new LinearLayout.LayoutParams(-1,-2);homeRowParams.topMargin=dp(a,12);dashboard.addView(homeRow,homeRowParams);
+        LinearLayout.LayoutParams homeParams=new LinearLayout.LayoutParams(stacked?-1:0,-2,stacked?0:1);homeParams.setMargins(0,0,stacked?0:dp(a,12),dp(a,12));homeRow.addView(tile(a,"Home screen","Icons, folders & launcher",7,()->open.accept("launcher"),stacked?120:238),homeParams);
+        LinearLayout extras=new LinearLayout(a);extras.setOrientation(LinearLayout.VERTICAL);homeRow.addView(extras,new LinearLayout.LayoutParams(stacked?-1:0,-2,stacked?0:1));
+        extras.addView(tile(a,"Sidebar","Colors, layout & apps",8,()->open.accept("sidebar"),62),new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout.LayoutParams bootParams=new LinearLayout.LayoutParams(-1,-2);bootParams.topMargin=dp(a,12);extras.addView(tile(a,"Boot animations","Startup styles",6,()->open.accept("boot_animation"),62),bootParams);
         return dashboard;
     }
     private static MaterialCardView tile(Activity a,String title,String summary,int kind,Runnable action,int previewHeight){
@@ -55,6 +58,7 @@ final class PersonalizationUi {
         Artwork(Context c,int kind){super(c);this.kind=kind;setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
         @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float w=getWidth(),h=getHeight();if(w<=0||h<=0)return;
             if(kind==7){LauncherPreview.paint(canvas,w,h);return;}
+            if(kind==8){int save=canvas.save();try{float scale=Math.min(w/160f,h/62f);canvas.translate((w-160*scale)/2,(h-62*scale)/2);canvas.scale(scale,scale);p.setColor(0xff44444e);canvas.drawRoundRect(20,0,140,62,16,16,p);p.setColor(0xffd3cbef);canvas.drawRoundRect(30,7,130,21,7,7,p);for(int row=0;row<2;row++)for(int col=0;col<3;col++)canvas.drawRoundRect(40+col*30,29+row*17,50+col*30,39+row*17,3,3,p);}finally{canvas.restoreToCount(save);}return;}
             if(kind==6){p.setColor(0xffd3cbef);p.setTextAlign(Paint.Align.CENTER);p.setTypeface(Typeface.create("sans-serif-medium",0));p.setTextSize(Math.min(h*.6f,w*.12f));canvas.drawText("BOOT",w/2,h*.65f,p);return;}
             if(kind==5){PowerStylePreview.paint(canvas,0,w,h,getResources().getDisplayMetrics().density);return;}
             if(kind==3){VolumeStylePreview.paint(canvas,0,w,h,getResources().getDisplayMetrics().density);return;}

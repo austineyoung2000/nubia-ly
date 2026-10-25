@@ -18,8 +18,8 @@ public final class GuardBrokerProvider extends ContentProvider {
         return CompatibilityPolicy.isSupportedDevice(Build.MODEL, Build.DEVICE) && CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT);
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
-        if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) enforceLauncher(); else if(GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method)) enforceFingerprint(); else enforceSystemUi();
-        if ((!GuardBrokerPolicy.LAUNCHER_METHOD.equals(method) && !GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method) && !GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method) && !GuardBrokerPolicy.ENABLED_METHOD.equals(method) && !GuardBrokerPolicy.STARTUP_METHOD.equals(method))
+        if(SidebarStyle.METHOD.equals(method)) enforceSidebar(); else if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) enforceLauncher(); else if(GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method)) enforceFingerprint(); else enforceSystemUi();
+        if ((!SidebarStyle.METHOD.equals(method) && !GuardBrokerPolicy.LAUNCHER_METHOD.equals(method) && !GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method) && !GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method) && !GuardBrokerPolicy.ENABLED_METHOD.equals(method) && !GuardBrokerPolicy.STARTUP_METHOD.equals(method))
                 || arg != null || extras == null)
             throw new IllegalArgumentException("Unsupported guard request");
         String nonce = extras.getString("nonce");
@@ -37,7 +37,22 @@ public final class GuardBrokerProvider extends ContentProvider {
         int callerPid = Binder.getCallingPid();
         long identity = Binder.clearCallingIdentity();
         try {
-            if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) {
+            if(SidebarStyle.METHOD.equals(method)) {
+                String id=GuardReader.inspectEnabled();boolean allowed=RecoveryStore.enabledAllowed(getContext(),id);
+                SidebarStyle style=allowed?SidebarPreferences.active(getContext()):null;
+                if(style!=null)allowed=RecoveryStore.claimSidebarStartup(getContext(),callerPid);
+                reply.putInt("status",allowed?GuardBrokerPolicy.READABLE:GuardBrokerPolicy.BLOCKED);
+                if(allowed){reply.putString("permit_id",id);reply.putLong("deadline_ms",android.os.SystemClock.elapsedRealtime()+ClockEnabledPolicy.HEALTH_MS);
+                    if(style!=null){
+                        SurfaceStyle applied=StatusBarPreferences.active(getContext(),id).surfaces();
+                        SurfaceStyle.QsTheme theme=applied.qsTheme();
+                        style=style.withSurface(switch(style.surface()){case 300->applied.qsStyle();case 301->applied.powerStyle()==0?0:100+applied.powerStyle();case 302->applied.volumeStyle()==0?0:200+applied.volumeStyle();default->style.surface();});
+                        if(style.theme()==0)style=style.with(0,theme.inactiveBackground()==0?0xff25232b:theme.inactiveBackground()).with(1,theme.primaryLabel()==0?0xfff4efff:theme.primaryLabel());
+                        if("@launcher".equals(style.iconPack()))style=style.withPack(LauncherPreferences.active(getContext()).iconPack());
+                        reply.putString("sidebar_style",style.encode());
+                    }
+                }
+            } else if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) {
                 String id=GuardReader.inspectEnabled();boolean allowed=RecoveryStore.enabledAllowed(getContext(),id);
                 LauncherStyle style=allowed?LauncherPreferences.active(getContext()):LauncherStyle.STOCK;
                 if(allowed&&style.custom())allowed=RecoveryStore.claimLauncherStartup(getContext(),callerPid);
@@ -93,6 +108,10 @@ public final class GuardBrokerProvider extends ContentProvider {
             Binder.restoreCallingIdentity(identity);
             busy.set(false);
         }
+    }
+    private void enforceSidebar(){
+        int uid;try{uid=getContext().getPackageManager().getApplicationInfo(SidebarStyle.PACKAGE,0).uid;}catch(Exception unavailable){throw new SecurityException("Sidebar unavailable");}
+        if(uid!=Binder.getCallingUid()||!SidebarStyle.PACKAGE.equals(getCallingPackage()))throw new SecurityException("Sidebar caller required");
     }
     private void enforceLauncher(){
         int uid;try{uid=getContext().getPackageManager().getApplicationInfo(GuardBrokerPolicy.LAUNCHER_PACKAGE,0).uid;}catch(Exception unavailable){throw new SecurityException("Launcher identity unavailable");}

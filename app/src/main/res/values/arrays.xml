@@ -1,1 +1,1 @@
-<resources><string-array name="xposed_scope"><item>com.android.systemui</item><item>com.fingerprint.sensorservice</item><item>com.zte.mifavor.launcher</item></string-array></resources>
+<resources><string-array name="xposed_scope"><item>com.android.systemui</item><item>com.fingerprint.sensorservice</item><item>com.zte.mifavor.launcher</item><item>com.zte.floatassist</item></string-array></resources>

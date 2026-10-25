@@ -99,7 +99,7 @@ public final class LauncherActivityTest {
     }
     @Test public void dashboardLauncherTileHasItsOwnRoute(){
         var controller=Robolectric.buildActivity(androidx.appcompat.app.AppCompatActivity.class);var a=controller.get();a.setTheme(R.style.Theme_NubiaLy);controller.setup();
-        String[] route={null};ViewGroup dashboard=PersonalizationUi.dashboard(a,value->route[0]=value);View launcher=find(dashboard,"Launcher. Home screen & launcher settings");assertNotNull(launcher);launcher.performClick();assertEquals("launcher",route[0]);controller.pause().stop().destroy();
+        String[] route={null};ViewGroup dashboard=PersonalizationUi.dashboard(a,value->route[0]=value);View launcher=find(dashboard,"Home screen. Icons, folders & launcher");assertNotNull(launcher);launcher.performClick();assertEquals("launcher",route[0]);controller.pause().stop().destroy();
     }
     private View find(View view,String description){if(description.contentEquals(view.getContentDescription()==null?"":view.getContentDescription()))return view;if(view instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++){View found=find(group.getChildAt(i),description);if(found!=null)return found;}return null;}
 }
