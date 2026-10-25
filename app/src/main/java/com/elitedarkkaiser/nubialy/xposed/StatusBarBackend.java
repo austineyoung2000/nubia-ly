@@ -132,6 +132,7 @@ final class StatusBarBackend {
                 }catch(Throwable unavailable){failed=true;hardFailed=true;}
             }
         };
+        String stage="status-bar property hooks";
         try {
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setScaleX",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setScaleY",float.class,callback));
@@ -141,11 +142,12 @@ final class StatusBarBackend {
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setAlpha",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setVisibility",int.class,callback));
             if(style.selected(StatusBarStyle.TINT))activeHooks.add(XposedHelpers.findAndHookMethod(ImageView.class,"setImageTintList",ColorStateList.class,callback));
-            SurfaceBackend.begin(style.surfaces());active=true;refresh();
-            if(failed||!SurfaceBackend.healthy())throw new IllegalStateException("Status-bar apply failed");
+            stage="surface activation";SurfaceBackend.begin(style.surfaces());stage="status-bar refresh";active=true;refresh();
+            if(failed)throw new IllegalStateException("Status-bar property application failed");
+            if(!SurfaceBackend.healthy())throw new IllegalStateException("Surface health check failed after status-bar refresh");
             if(roots.isEmpty())throw new IllegalStateException("No attached stock status bar.");
             message="Status-bar styling active.";
-        }catch(Throwable unavailable){end();throw new IllegalStateException("Status-bar activation unavailable",unavailable);}
+        }catch(Throwable unavailable){end();throw new IllegalStateException("Status-bar activation unavailable at "+stage,unavailable);}
     }
     private static ViewGroup owner(View view){
         View current=view;
