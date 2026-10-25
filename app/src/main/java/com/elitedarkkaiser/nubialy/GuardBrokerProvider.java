@@ -18,8 +18,8 @@ public final class GuardBrokerProvider extends ContentProvider {
         return CompatibilityPolicy.isSupportedDevice(Build.MODEL, Build.DEVICE) && CompatibilityPolicy.isSupportedSdk(Build.VERSION.SDK_INT);
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
-        if(SidebarStyle.METHOD.equals(method)) enforceSidebar(); else if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) enforceLauncher(); else if(GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method)) enforceFingerprint(); else enforceSystemUi();
-        if ((!SidebarStyle.METHOD.equals(method) && !GuardBrokerPolicy.LAUNCHER_METHOD.equals(method) && !GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method) && !GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method) && !GuardBrokerPolicy.ENABLED_METHOD.equals(method) && !GuardBrokerPolicy.STARTUP_METHOD.equals(method))
+        if(SettingsStyle.METHOD.equals(method)) enforceSettings(); else if(SidebarStyle.METHOD.equals(method)) enforceSidebar(); else if(GuardBrokerPolicy.LAUNCHER_METHOD.equals(method)) enforceLauncher(); else if(GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method)) enforceFingerprint(); else enforceSystemUi();
+        if ((!SettingsStyle.METHOD.equals(method) && !SidebarStyle.METHOD.equals(method) && !GuardBrokerPolicy.LAUNCHER_METHOD.equals(method) && !GuardBrokerPolicy.FINGERPRINT_METHOD.equals(method) && !GuardBrokerPolicy.METHOD.equals(method) && !GuardBrokerPolicy.PREVIEW_METHOD.equals(method) && !GuardBrokerPolicy.CLOCK_METHOD.equals(method) && !GuardBrokerPolicy.ENABLED_METHOD.equals(method) && !GuardBrokerPolicy.STARTUP_METHOD.equals(method))
                 || arg != null || extras == null)
             throw new IllegalArgumentException("Unsupported guard request");
         String nonce = extras.getString("nonce");
@@ -37,7 +37,12 @@ public final class GuardBrokerProvider extends ContentProvider {
         int callerPid = Binder.getCallingPid();
         long identity = Binder.clearCallingIdentity();
         try {
-            if(SidebarStyle.METHOD.equals(method)) {
+            if(SettingsStyle.METHOD.equals(method)) {
+                String id=GuardReader.inspectEnabled();boolean allowed=RecoveryStore.enabledAllowed(getContext(),id);SettingsStyle style=allowed?SettingsPreferences.active(getContext()):null;
+                if(style!=null)allowed=RecoveryStore.claimSettingsStartup(getContext(),callerPid);
+                reply.putInt("status",allowed?GuardBrokerPolicy.READABLE:GuardBrokerPolicy.BLOCKED);
+                if(allowed){reply.putString("permit_id",id);reply.putLong("deadline_ms",android.os.SystemClock.elapsedRealtime()+ClockEnabledPolicy.HEALTH_MS);if(style!=null)reply.putString("settings_style",style.resolve(StatusBarPreferences.active(getContext(),id).surfaces(),extras.getInt("night",1)==1).encode());}
+            } else if(SidebarStyle.METHOD.equals(method)) {
                 String id=GuardReader.inspectEnabled();boolean allowed=RecoveryStore.enabledAllowed(getContext(),id);
                 SidebarStyle style=allowed?SidebarPreferences.active(getContext()):null;
                 if(style!=null)allowed=RecoveryStore.claimSidebarStartup(getContext(),callerPid);
@@ -109,6 +114,7 @@ public final class GuardBrokerProvider extends ContentProvider {
             busy.set(false);
         }
     }
+    private void enforceSettings(){int uid;try{uid=getContext().getPackageManager().getApplicationInfo(SettingsStyle.PACKAGE,0).uid;}catch(Exception unavailable){throw new SecurityException("Settings unavailable");}if(uid!=Binder.getCallingUid()||!SettingsStyle.PACKAGE.equals(getCallingPackage()))throw new SecurityException("Settings caller required");}
     private void enforceSidebar(){
         int uid;try{uid=getContext().getPackageManager().getApplicationInfo(SidebarStyle.PACKAGE,0).uid;}catch(Exception unavailable){throw new SecurityException("Sidebar unavailable");}
         if(uid!=Binder.getCallingUid()||!SidebarStyle.PACKAGE.equals(getCallingPackage()))throw new SecurityException("Sidebar caller required");

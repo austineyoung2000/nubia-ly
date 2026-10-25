@@ -32,7 +32,7 @@ public final class RecoveryStore {
         String id = GuardReader.inspectEnabled();
         if (id == null || !ModuleStatus.isActive()) return false;
         return context.getSharedPreferences("recovery", Context.MODE_PRIVATE).edit()
-            .putBoolean("emergency_stopped", false).putBoolean("restart_recovery_stopped", false).putString("enabled_clock_id", id).remove("startup_boot").remove("startup_pid").remove("startup_attempts").remove("sensor_startup_boot").remove("sensor_startup_pid").remove("sensor_startup_attempts").remove("launcher_startup_boot").remove("launcher_startup_pid").remove("launcher_startup_attempts").remove("sidebar_startup_boot").remove("sidebar_startup_pid").remove("sidebar_startup_attempts").commit();
+            .putBoolean("emergency_stopped", false).putBoolean("restart_recovery_stopped", false).putString("enabled_clock_id", id).remove("startup_boot").remove("startup_pid").remove("startup_attempts").remove("sensor_startup_boot").remove("sensor_startup_pid").remove("sensor_startup_attempts").remove("launcher_startup_boot").remove("launcher_startup_pid").remove("launcher_startup_attempts").remove("settings_startup_boot").remove("settings_startup_pid").remove("settings_startup_attempts").remove("sidebar_startup_boot").remove("sidebar_startup_pid").remove("sidebar_startup_attempts").commit();
     }
     public static boolean enabledAllowed(Context context, String id) {
         return !isStopped(context) && id != null && id.equals(context.getSharedPreferences("recovery", Context.MODE_PRIVATE).getString("enabled_clock_id", ""));
@@ -40,6 +40,7 @@ public final class RecoveryStore {
     public static synchronized boolean claimStartup(Context context, int pid) {return claimStartup(context,pid,"startup_");}
     public static synchronized boolean claimSensorStartup(Context context,int pid){return claimStartup(context,pid,"sensor_startup_");}
     public static synchronized boolean claimLauncherStartup(Context context,int pid){return claimStartup(context,pid,"launcher_startup_");}
+    public static synchronized boolean claimSettingsStartup(Context context,int pid){return claimStartup(context,pid,"settings_startup_");}
     public static synchronized boolean claimSidebarStartup(Context context,int pid){return claimStartup(context,pid,"sidebar_startup_");}
     private static boolean claimStartup(Context context,int pid,String prefix) {
         if (pid <= 0) return false;

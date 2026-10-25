@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, test/sidebar-personalization]
   workflow_dispatch:
 permissions:
   contents: read

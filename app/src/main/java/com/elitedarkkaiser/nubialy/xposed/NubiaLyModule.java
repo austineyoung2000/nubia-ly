@@ -29,6 +29,10 @@ public final class NubiaLyModule implements IXposedHookLoadPackage, de.robv.andr
             }
             return;
         }
+        if("com.android.settings".equals(param.packageName)&&param.packageName.equals(param.processName)){
+            if(!"NX809J".equals(Build.MODEL)&&!"NX809J".equals(Build.DEVICE)||Build.VERSION.SDK_INT!=36)return;
+            try{XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&p.thisObject instanceof Application app&&"com.android.settings".equals(app.getPackageName()))SettingsRuntime.install(app);}});}catch(Throwable e){XposedBridge.log("nubia-ly: Settings attachment unavailable; stock retained");}return;
+        }
         if("com.zte.floatassist".equals(param.packageName)&&param.packageName.equals(param.processName)){
             if(!CompatibilityPolicy.isSupportedDevice(Build.MODEL,Build.DEVICE)||Build.VERSION.SDK_INT!=36)return;
             try{XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){

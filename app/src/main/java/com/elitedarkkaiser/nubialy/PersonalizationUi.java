@@ -37,11 +37,8 @@ final class PersonalizationUi {
         if(!stacked){volumeRow.addView(notificationColumn,new LinearLayout.LayoutParams(0,-2,1));}else dashboard.addView(notificationColumn,new LinearLayout.LayoutParams(-1,-2));
         notificationColumn.addView(tile(a,"Notifications","Card styles & layers",4,()->open.accept("notifications"),62),new LinearLayout.LayoutParams(-1,-2));
         LinearLayout.LayoutParams powerParams=new LinearLayout.LayoutParams(-1,-2);powerParams.topMargin=dp(a,12);notificationColumn.addView(tile(a,"Power menu","Button styles",5,()->open.accept("power_menu"),62),powerParams);
-        LinearLayout homeRow=new LinearLayout(a);homeRow.setOrientation(stacked?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);LinearLayout.LayoutParams homeRowParams=new LinearLayout.LayoutParams(-1,-2);homeRowParams.topMargin=dp(a,12);dashboard.addView(homeRow,homeRowParams);
-        LinearLayout.LayoutParams homeParams=new LinearLayout.LayoutParams(stacked?-1:0,-2,stacked?0:1);homeParams.setMargins(0,0,stacked?0:dp(a,12),dp(a,12));homeRow.addView(tile(a,"Home screen","Icons, folders & launcher",7,()->open.accept("launcher"),stacked?120:238),homeParams);
-        LinearLayout extras=new LinearLayout(a);extras.setOrientation(LinearLayout.VERTICAL);homeRow.addView(extras,new LinearLayout.LayoutParams(stacked?-1:0,-2,stacked?0:1));
-        extras.addView(tile(a,"Sidebar","Colors, layout & apps",8,()->open.accept("sidebar"),62),new LinearLayout.LayoutParams(-1,-2));
-        LinearLayout.LayoutParams bootParams=new LinearLayout.LayoutParams(-1,-2);bootParams.topMargin=dp(a,12);extras.addView(tile(a,"Boot animations","Startup styles",6,()->open.accept("boot_animation"),62),bootParams);
+        String[][] extraTiles={{"Home screen","Icons, folders & launcher","launcher","7"},{"Sidebar","Colors, layout & apps","sidebar","8"},{"Boot animations","Startup styles","boot_animation","6"},{"Settings app","Layouts, colors & cards","settings_app","9"}};
+        for(int i=0;i<extraTiles.length;i+=2){LinearLayout extras=new LinearLayout(a);extras.setOrientation(stacked?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(a,12);dashboard.addView(extras,rp);for(int j=i;j<i+2;j++){String[] entry=extraTiles[j];LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(stacked?-1:0,-2,stacked?0:1);cp.setMargins(0,0,!stacked&&j==i?dp(a,12):0,stacked?dp(a,12):0);extras.addView(tile(a,entry[0],entry[1],Integer.parseInt(entry[3]),()->open.accept(entry[2]),90),cp);}}
         return dashboard;
     }
     private static MaterialCardView tile(Activity a,String title,String summary,int kind,Runnable action,int previewHeight){
@@ -57,6 +54,7 @@ final class PersonalizationUi {
         private final int kind;private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
         Artwork(Context c,int kind){super(c);this.kind=kind;setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
         @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float w=getWidth(),h=getHeight();if(w<=0||h<=0)return;
+            if(kind==9){int save=canvas.save();canvas.translate(w*.1f,h*.05f);canvas.scale(w*.8f/160,h*.9f/80);for(int i=0;i<3;i++){p.setColor(0xff44444e);canvas.drawRoundRect(0,i*27,160,i*27+23,10,10,p);p.setColor(0xffd3cbef);canvas.drawCircle(15,i*27+11,6,p);canvas.drawRoundRect(31,i*27+8,133,i*27+13,2,2,p);}canvas.restoreToCount(save);return;}
             if(kind==7){LauncherPreview.paint(canvas,w,h);return;}
             if(kind==8){int save=canvas.save();try{float scale=Math.min(w/160f,h/62f);canvas.translate((w-160*scale)/2,(h-62*scale)/2);canvas.scale(scale,scale);p.setColor(0xff44444e);canvas.drawRoundRect(20,0,140,62,16,16,p);p.setColor(0xffd3cbef);canvas.drawRoundRect(30,7,130,21,7,7,p);for(int row=0;row<2;row++)for(int col=0;col<3;col++)canvas.drawRoundRect(40+col*30,29+row*17,50+col*30,39+row*17,3,3,p);}finally{canvas.restoreToCount(save);}return;}
             if(kind==6){p.setColor(0xffd3cbef);p.setTextAlign(Paint.Align.CENTER);p.setTypeface(Typeface.create("sans-serif-medium",0));p.setTextSize(Math.min(h*.6f,w*.12f));canvas.drawText("BOOT",w/2,h*.65f,p);return;}
