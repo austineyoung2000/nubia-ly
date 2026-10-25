@@ -1,0 +1,5 @@
+package com.elitedarkkaiser.nubialy;
+import java.nio.file.*;import org.junit.Test;import static org.junit.Assert.*;
+public class SettingsCompatibilityTest {
+ @Test public void cacheInvalidatesForApkOrFirmwareChanges()throws Exception {var dir=Files.createTempDirectory("settings-cache");try{var apk=dir.resolve("Settings.apk");var marker=dir.resolve("verified");Files.writeString(apk,"original");String key=SettingsCompatibility.verificationKey(apk.toFile(),"firmware-a");assertFalse(SettingsCompatibility.cached(marker.toFile(),key));Files.writeString(marker,key);assertTrue(SettingsCompatibility.cached(marker.toFile(),key));assertFalse(SettingsCompatibility.cached(marker.toFile(),SettingsCompatibility.verificationKey(apk.toFile(),"firmware-b")));Files.writeString(apk,"changed-length");assertFalse(SettingsCompatibility.cached(marker.toFile(),SettingsCompatibility.verificationKey(apk.toFile(),"firmware-a")));Files.writeString(marker,"invalid");assertFalse(SettingsCompatibility.cached(marker.toFile(),key));}finally{try(var files=Files.walk(dir)){files.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.delete(p);}catch(Exception ignored){}});}}}
+}
