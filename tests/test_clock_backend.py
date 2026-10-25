@@ -73,7 +73,10 @@ public class TextView {private ColorStateList colors; public boolean failPaint;p
 'com/elitedarkkaiser/nubialy/xposed/BackendTest.java': '''package com.elitedarkkaiser.nubialy.xposed;
 import android.os.SystemClock;import android.widget.TextView;import android.content.res.ColorStateList;import com.android.systemui.statusbar.policy.Clock;import de.robv.android.xposed.XposedHelpers;
 public class BackendTest {static void check(boolean b){if(!b)throw new AssertionError(ClockColorBackend.status());}
- public static void main(String[] args){Clock a=new Clock(1),b=new Clock(2); ClockCaptureBackend.views.add(a);ClockCaptureBackend.views.add(b);
+ public static void main(String[] args){
+ var nested=new IllegalStateException("Status-bar activation unavailable at surface activation",new IllegalArgumentException("native target missing"));String chain=ClockColorBackend.failureChain(nested);check(chain.contains("surface activation")&&chain.contains("IllegalArgumentException: native target missing"));
+ var cycleA=new RuntimeException("cycle-a");var cycleB=new RuntimeException("cycle-b",cycleA);cycleA.initCause(cycleB);check(ClockColorBackend.failureChain(cycleA).length()<100);check(ClockColorBackend.failureChain(new RuntimeException("x".repeat(1000))).length()<300);
+ Clock a=new Clock(1),b=new Clock(2); ClockCaptureBackend.views.add(a);ClockCaptureBackend.views.add(b);
  if(args.length>0){a.failSpacing=true;check(!ClockColorBackend.begin(130000,0xff112233,0,false,false,false,10));check(a.getLetterSpacing()==0);check(XposedHelpers.hooks.isEmpty());check(!ClockColorBackend.begin(130000,0xff112233));System.out.println("Letter-spacing failure rollback and activation fence passed");return;}
  ClockCaptureBackend.views.clear();
  check(!ClockColorBackend.begin(130000,0xffc0a8ff));check(ClockColorBackend.startupFailure().contains("No eligible"));

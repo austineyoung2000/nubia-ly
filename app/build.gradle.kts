@@ -22,6 +22,7 @@ android {
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
         versionCode = 112
         versionName = "1.1.7-qs-battery-color-control-test"
+
     }
     signingConfigs {
         if (releaseSigning) create("persistent") {
