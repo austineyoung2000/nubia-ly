@@ -108,7 +108,11 @@ final class StatusBarBackend {
         XC_MethodHook callback=new XC_MethodHook(){
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!active||writing)return;
-                State s=states.get(p.thisObject);if(s==null)return;
+                State s=states.get(p.thisObject);
+                // Vendor indicators may be inserted/rebound without an observed root attach.
+                // Capture their native state at the first visibility write, then reassert Hide.
+                if(s==null&&p.thisObject instanceof View view&&mainThread()&&vendorIndicator(view)!=0){track(view);s=states.get(view);}
+                if(s==null)return;
                 if(Looper.myLooper()!=Looper.getMainLooper()){failed=true;hardFailed=true;return;}
                 p.setObjectExtra("nubia-ly:status-write",new Frame(generation,s));
             }
@@ -125,7 +129,7 @@ final class StatusBarBackend {
                         case "setTranslationY" -> f.state.ty=v.getTranslationY();
                         case "setRotation" -> f.state.rotation=v.getRotation();
                         case "setAlpha" -> f.state.a=v.getAlpha();
-                        case "setVisibility" -> f.state.visibility=v.getVisibility();
+                        case "setVisibility", "setTransitionVisibility" -> f.state.visibility=v.getVisibility();
                         case "setImageTintList" -> {if(f.state.tint){f.state.colors=((ImageView)v).getImageTintList();f.state.tintRevision++;}}
                     }
                     paint(v,f.state);
@@ -141,6 +145,7 @@ final class StatusBarBackend {
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setRotation",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setAlpha",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setVisibility",int.class,callback));
+            activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setTransitionVisibility",int.class,callback));
             if(style.selected(StatusBarStyle.TINT))activeHooks.add(XposedHelpers.findAndHookMethod(ImageView.class,"setImageTintList",ColorStateList.class,callback));
             stage="surface activation";SurfaceBackend.begin(style.surfaces());stage="status-bar refresh";active=true;refresh();
             if(failed)throw new IllegalStateException("Status-bar property application failed");
@@ -150,6 +155,7 @@ final class StatusBarBackend {
             message=roots.keySet().stream().anyMatch(View::isAttachedToWindow)?"Status-bar styling active.":"Status-bar styling armed; waiting for attached native host.";
         }catch(Throwable unavailable){end();throw new IllegalStateException("Status-bar activation unavailable at "+stage,unavailable);}
     }
+    private static boolean mainThread(){return Looper.myLooper()==Looper.getMainLooper();}
     private static ViewGroup owner(View view){
         View current=view;
         for(int depth=0;depth<24&&current!=null;depth++){
@@ -185,6 +191,7 @@ final class StatusBarBackend {
         String name=v.getClass().getName();
         ViewGroup root=owner(v);if(root==null)return;
         int indicator=vendorIndicator(v);
+        if(indicator!=0)roots.put(root,true);
         if(!name.equals(ICON)&&!name.equals(BATTERY)&&indicator==0){if(states.containsKey(v))restore(v);return;}
         try {
             boolean notification=name.equals(ICON)&&Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification"));
@@ -278,5 +285,5 @@ final class StatusBarBackend {
         }return new ArrayList<>(slots);
     }
     static boolean healthy(){return !failed&&SurfaceBackend.healthy();}
-    static String status(){return message+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+". "+SurfaceBackend.status();}
+    static String status(){return message+" Requested vendor hide: fan="+style.selected(StatusBarStyle.HIDE_FAN)+", pump="+style.selected(StatusBarStyle.HIDE_PUMP)+", refresh="+style.selected(StatusBarStyle.HIDE_REFRESH)+". "+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+". "+SurfaceBackend.status();}
 }

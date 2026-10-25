@@ -26,6 +26,7 @@ final class SensorFingerprintBackend {
     private static final List<XC_MethodHook.Unhook> activeHooks=new ArrayList<>();
     private static boolean ready,active,writing,failed,pressed;private static int style,captured,restored;private static boolean hidden;private static long deadline,generation;
     private static String message="Not initialized";
+    private static Drawable preparedGlyph;private static int preparedStyle=-1,preparedColor;
     private static final class State {Drawable stock,custom;int depth;State(ImageView view){stock=view.getBackground();}}
     private record Frame(long generation,State state){}
     private static boolean main(){return Looper.myLooper()==Looper.getMainLooper();}
@@ -40,6 +41,7 @@ final class SensorFingerprintBackend {
                     if(method.equals("setSensorViewVisible")&&p.args.length>0&&Boolean.FALSE.equals(p.args[0]))event("vendor view hidden");
                     if(method.equals("removeSensorView")||method.equals("removeAuthenticateSensorWindow"))event("vendor removes sensor window");refresh();}catch(Throwable failure){fail(failure);}}};
             for(Class<?> type:new Class<?>[]{svc,manager,owner,machine})for(Method method:type.getDeclaredMethods())if(Set.of("onCreate","onDestroy","setState","handleTpActionDownState","handleTpActionUpState","initSensorView","setSensorViewBackground","setSensorViewIconForRedMagic","updateSensorViewIcon","updateSensorViewIconForStyle","setSensorViewVisible","setSensorViewAlpha","setAuthenticateViewAlpha","showSensorViewFloatWindow","removeAuthenticateSensorWindow","removeSensorView","removeAllFloatWindow","startQuickApp","stopQuickApp","tpKeyEventActionDown","tpKeyEventActionUp","tpUp","setAodStart").contains(method.getName()))observers.add(XposedBridge.hookMethod(method,observe));
+            observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onAttachedToWindow"),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(ready&&!p.hasThrowable()&&main()&&p.thisObject==image())refresh();}}));
             observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onDetachedFromWindow"),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){if(main()&&p.thisObject instanceof ImageView view){if(states.containsKey(view))event("sensor view detached");restore(view);knownGraphics.remove(view);}}}));
             ready=true;message="SensorService observers ready";return true;
         }catch(Throwable unavailable){for(var hook:observers)try{hook.unhook();}catch(Throwable ignored){}message="SensorService source unavailable: "+unavailable.getClass().getSimpleName();return false;}
@@ -78,7 +80,7 @@ final class SensorFingerprintBackend {
                     if(stockUpdate!=null&&stockUpdate!=state.custom)knownGraphics.put(view,true);else if(stockUpdate==null)event("vendor idle background cleared");paint(view,state);
                 }}catch(Throwable failure){fail(failure);}}
         };
-        try{activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setBackground",Drawable.class,callback));activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setBackgroundResource",int.class,callback));activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setBackgroundDrawable",Drawable.class,callback));active=true;message="Fingerprint appearance armed";refresh();return !failed;}
+        try{activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setBackground",Drawable.class,callback));activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setBackgroundResource",int.class,callback));activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setBackgroundDrawable",Drawable.class,callback));active=true;if(!hidden)glyph();message="Fingerprint appearance armed";refresh();return !failed;}
         catch(Throwable unavailable){fail(unavailable);return false;}
     }
     private static void background(ImageView view,Drawable drawable){int l=view.getPaddingLeft(),t=view.getPaddingTop(),r=view.getPaddingRight(),b=view.getPaddingBottom();view.setBackground(drawable);view.setPadding(l,t,r,b);}
@@ -87,9 +89,9 @@ final class SensorFingerprintBackend {
         // Once this view has displayed a genuine idle graphic, keep the user's
         // selected replacement while eligible instead of interpreting null as Hide.
         if(!hidden&&!knownGraphics.containsKey(view))return;
-        int color=((Number)XposedHelpers.getObjectField(service.get(),"mKeyguardColor")).intValue();if((color>>>24)==0)color=0xffffffff;
-        state.custom=hidden?null:new FingerprintGlyphDrawable(style,color);writing=true;try{background(view,state.custom);if(view.getBackground()!=state.custom)throw new IllegalStateException("Fingerprint background rejected");}finally{writing=false;}
+        state.custom=hidden?null:glyph();if(view.getBackground()==state.custom)return;writing=true;try{background(view,state.custom);if(view.getBackground()!=state.custom)throw new IllegalStateException("Fingerprint background rejected");}finally{writing=false;}
     }
+    private static Drawable glyph(){int color=0xffffffff;Object svc=service.get();if(svc!=null)color=((Number)XposedHelpers.getObjectField(svc,"mKeyguardColor")).intValue();if((color>>>24)==0)color=0xffffffff;if(preparedGlyph==null||preparedStyle!=style||preparedColor!=color){preparedGlyph=new FingerprintGlyphDrawable(style,color);preparedStyle=style;preparedColor=color;}return preparedGlyph;}
     static void refresh(){if(main())SensorAnimationBackend.refresh();if(!main()||!active||failed)return;try{
         if(SystemClock.elapsedRealtime()>=deadline){event("guard expired");end();message="Fingerprint guard expired; stock restored";return;}
         ImageView current=image();boolean allowed=eligible();
