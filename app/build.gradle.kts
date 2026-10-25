@@ -20,8 +20,8 @@ android {
         targetSdk = 35
         buildConfigField("String", "BASELINE_FINGERPRINT", baselineLiteral("fingerprint"))
         buildConfigField("String", "BASELINE_SYSTEM_UI_SHA256", baselineLiteral("systemUiSha256"))
-        versionCode = 112
-        versionName = "1.1.7-qs-battery-color-control-test"
+        versionCode = 116
+        versionName = "1.2.2-runtime-efficiency-test"
 
     }
     signingConfigs {

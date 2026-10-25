@@ -15,7 +15,7 @@ final class SensorFingerprintRuntime {
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private String authority="not checked";
     private String status(){String text="Fingerprint guard: "+authority+". "+SensorAnimationBackend.status()+" "+SensorFingerprintBackend.status();return text.length()>790?text.substring(0,789)+"…":text;}
-    private boolean busy;private long generation;private Runnable expiry;
+    private boolean busy,screenOff,needsPolling;private final Runnable poll=()->read(null);private long generation;private Runnable expiry;
     private SensorFingerprintRuntime(Context context){this.context=context;}
     static void install(Context context){
         if(!SensorFingerprintBackend.install(context.getClassLoader()))return;
@@ -31,12 +31,13 @@ final class SensorFingerprintRuntime {
             timeout[0]=()->{runtime.authority="diagnostic read timed out";runtime.revoke();finish.accept(runtime.status());};runtime.main.postDelayed(timeout[0],2500);runtime.read(finish);
         }},filter,SystemUiGuardProtocol.PERMISSION,null,Context.RECEIVER_EXPORTED);
         IntentFilter screen=new IntentFilter(Intent.ACTION_SCREEN_ON);screen.addAction(Intent.ACTION_SCREEN_OFF);
-        context.registerReceiver(new BroadcastReceiver(){@Override public void onReceive(Context c,Intent intent){SensorFingerprintBackend.refresh();if(Intent.ACTION_SCREEN_ON.equals(intent.getAction()))runtime.read(null);}},screen,Context.RECEIVER_NOT_EXPORTED);
-        runtime.poll();
+        context.registerReceiver(new BroadcastReceiver(){@Override public void onReceive(Context c,Intent intent){runtime.screenOff=Intent.ACTION_SCREEN_OFF.equals(intent.getAction());runtime.main.removeCallbacks(runtime.poll);if(runtime.screenOff)runtime.revoke();else{SensorFingerprintBackend.refresh();runtime.read(null);}}},screen,Context.RECEIVER_NOT_EXPORTED);
+        runtime.read(null);
     }
-    private void poll(){read(null);main.postDelayed(this::poll,3000);}
-    private void revoke(){generation++;if(expiry!=null)main.removeCallbacks(expiry);expiry=null;SensorAnimationBackend.end();SensorFingerprintBackend.end();}
+    private void schedule(){main.removeCallbacks(poll);if(needsPolling&&!screenOff)main.postDelayed(poll,8000);}
+    private void revoke(){main.removeCallbacks(poll);needsPolling=false;generation++;if(expiry!=null)main.removeCallbacks(expiry);expiry=null;SensorAnimationBackend.end();SensorFingerprintBackend.end();}
     private void read(Consumer<String> reply){
+        if(screenOff){if(reply!=null)reply.accept(status());return;}
         if(busy){if(reply!=null)reply.accept("Fingerprint guard check pending. "+status());return;}
         busy=true;long ticket=generation,started=SystemClock.elapsedRealtime();String nonce=UUID.randomUUID().toString();
         try{worker.execute(()->{
@@ -48,10 +49,10 @@ final class SensorFingerprintRuntime {
                 if(result!=null&&SystemUiGuardProtocol.accepts(nonce,result.getString("nonce"),BuildConfig.VERSION_CODE,result.getInt("version",-1),now-started)&&result.getInt("status",-1)==GuardBrokerPolicy.BUSY){authority="busy; existing deadline retained";SensorFingerprintBackend.refresh();return;}
                 long until=valid?result.getLong("deadline_ms",0):0;int style=valid?result.getInt("fingerprint_style",-1):-1;int animation=valid?result.getInt("fingerprint_animation",-1):-1;
                 valid=valid&&until>now&&until-now<=ClockEnabledPolicy.HEALTH_MS&&com.elitedarkkaiser.nubialy.FingerprintStyles.valid(style)&&FingerprintAnimations.valid(animation)&&FingerprintAnimations.validSpeed(result.getInt("fingerprint_speed",100));
-                if(!valid){authority="blocked or stale";revoke();}else if((!SensorFingerprintBackend.apply(style,result.getBoolean("fingerprint_hidden",false),until)||!SensorAnimationBackend.apply(animation,until,frames,result.getInt("fingerprint_speed",100)))){authority="backend unavailable";revoke();}else{authority="readable";
+                if(!valid){authority="blocked or stale";revoke();}else if((!SensorFingerprintBackend.apply(style,result.getBoolean("fingerprint_hidden",false),until)||!SensorAnimationBackend.apply(animation,until,frames,result.getInt("fingerprint_speed",100)))){authority="backend unavailable";revoke();}else{authority="readable";needsPolling=style!=0||result.getBoolean("fingerprint_hidden",false)||animation!=0;
                     if(expiry!=null)main.removeCallbacks(expiry);long epoch=generation;expiry=()->{if(epoch==generation){authority="expired";revoke();}};main.postDelayed(expiry,until-now);
                 }
-            }catch(Throwable unavailable){revoke();}finally{if(reply!=null)reply.accept(status());}});
+            }catch(Throwable unavailable){revoke();}finally{schedule();if(reply!=null)reply.accept(status());}});
         });}catch(Throwable unavailable){busy=false;revoke();if(reply!=null)reply.accept(status());}
     }
 }
