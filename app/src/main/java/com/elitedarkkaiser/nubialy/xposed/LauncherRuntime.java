@@ -53,7 +53,7 @@ final class LauncherRuntime {
         });});
     }
     private String status(){return authority+". "+LauncherBackend.status();}
-    private void scheduleRefresh(){main.removeCallbacks(poll);if(needsPolling&&!screenOff)main.postDelayed(poll,resumed.isEmpty()?5000:3000);}
+    private void scheduleRefresh(){main.removeCallbacks(poll);if(needsPolling&&!screenOff)main.postDelayed(poll,8000);}
     private void revoke(){main.removeCallbacks(poll);needsPolling=false;generation++;if(expiry!=null)main.removeCallbacks(expiry);expiry=null;LauncherBackend.end();}
     private void read(Consumer<String> reply){read(reply,null);}
     private void read(Consumer<String> reply,java.util.function.Supplier<String> operation){

@@ -22,7 +22,7 @@ final class ClockColorBackend {
     static boolean refreshHealth(long until) {
         long now = SystemClock.elapsedRealtime();
         if (!active || failed || now >= deadline || until <= now || until - now > ClockEnabledPolicy.HEALTH_MS) return false;
-        StatusBarBackend.refresh();
+        // Lease renewal does not change appearance; lifecycle hooks handle view updates.
         if (!StatusBarBackend.healthy()) return false;
         deadline = until; return true;
     }

@@ -20,7 +20,7 @@ final class StatusBarBackend {
     private static final Map<ViewGroup,Boolean> roots=new WeakHashMap<>();
     private static final Map<View,State> states=new WeakHashMap<>();
     private static final List<XC_MethodHook.Unhook> activeHooks=new ArrayList<>();
-    private static boolean ready, attempted, active, writing;
+    private static boolean ready, attempted, active, writing,vendorReady;private static int vendorUpdates;
     private static volatile boolean failed;
     private static long generation;
     private static int color, captured, restored;
@@ -64,7 +64,7 @@ final class StatusBarBackend {
                 }));
             }
             observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onAttachedToWindow"),new XC_MethodHook(){
-                @Override protected void afterHookedMethod(MethodHookParam p){if(active&&!p.hasThrowable()&&Looper.myLooper()==Looper.getMainLooper())track((View)p.thisObject);}
+                @Override protected void afterHookedMethod(MethodHookParam p){if(ready&&!p.hasThrowable()&&Looper.myLooper()==Looper.getMainLooper()){View view=(View)p.thisObject;ViewGroup owner=owner(view);if(owner!=null&&owner.isAttachedToWindow())roots.put(owner,true);if(active)track(view);}}
             }));
             observers.add(XposedBridge.hookMethod(View.class.getDeclaredMethod("onDetachedFromWindow"),new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){if(active&&Looper.myLooper()==Looper.getMainLooper())restore((View)p.thisObject);}
@@ -93,11 +93,26 @@ final class StatusBarBackend {
                     }catch(Throwable unavailable){failed=true;hardFailed=true;}
                 }
             }));
+            installVendorObservers(loader,observers);
             ready=true;message="Status-bar observer ready.";
         }catch(Throwable unavailable){
             for(var h:observers)try{h.unhook();}catch(Throwable ignored){}
             ready=false;message="Status-bar source signatures unavailable: "+unavailable.getClass().getSimpleName()+".";
         }
+    }
+    private static void installVendorObservers(ClassLoader loader,List<XC_MethodHook.Unhook> observers){
+        List<XC_MethodHook.Unhook> added=new ArrayList<>();try{
+            String name="com.zte.feature.statusbar.RedMagicFunctionIconFeature";Class<?> feature=XposedHelpers.findClass(name,loader),host=XposedHelpers.findClass(ROOT,loader);
+            for(String field:new String[]{"coolingFanView","liquidCoolingView","rateRefreshView"})if(feature.getDeclaredField(field).getType()!=ImageView.class)throw new IllegalStateException("Vendor indicator field");
+            added.add(XposedBridge.hookMethod(feature.getDeclaredMethod("onStatusBarInflate",host,boolean.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!p.hasThrowable()&&mainThread()&&p.args[0] instanceof ViewGroup root){roots.put(root,true);if(active)scan(root);}}}));
+            String[][] types={{"CoolingFanIcon","coolingFanView","initCoolingFanView","updateCoolingFansState"},{"LiquidCoolingIcon","liquidCoolingView","initLiquidCoolingView","updateLiquidCoolingState"},{"RefreshRateIcon","rateRefreshView","initRefreshRateIcon","updateRefreshRate"}};
+            for(String[] spec:types){Class<?> type=XposedHelpers.findClass(name+"$"+spec[0],loader);if(type.getDeclaredField("this$0").getType()!=feature)throw new IllegalStateException("Vendor feature owner");java.lang.reflect.Field enclosing=type.getDeclaredField("this$0"),indicator=feature.getDeclaredField(spec[1]);enclosing.setAccessible(true);indicator.setAccessible(true);for(int n=2;n<spec.length;n++)added.add(XposedBridge.hookMethod(type.getDeclaredMethod(spec[n]),new XC_MethodHook(){
+                private View target(Object nested){try{Object featureOwner=enclosing.get(nested);Object value=indicator.get(featureOwner);return value instanceof View view?view:null;}catch(Throwable absent){return null;}}
+                @Override protected void beforeHookedMethod(MethodHookParam p){if(!active||writing||!mainThread())return;View view=target(p.thisObject);if(view!=null&&vendorIndicator(view)!=0&&owner(view)!=null)restore(view);}
+                @Override protected void afterHookedMethod(MethodHookParam p){if(p.hasThrowable()||!active||writing||!mainThread())return;View view=target(p.thisObject);if(view!=null&&vendorIndicator(view)!=0&&owner(view)!=null){vendorUpdates++;track(view);}}
+            }));}
+            observers.addAll(added);vendorReady=true;
+        }catch(Throwable unavailable){for(var hook:added)try{hook.unhook();}catch(Throwable ignored){}vendorReady=false;}
     }
     static void begin(StatusBarStyle selection,int selectedColor) {
         if(selection==null||!selection.valid())throw new IllegalArgumentException();
@@ -108,7 +123,11 @@ final class StatusBarBackend {
         XC_MethodHook callback=new XC_MethodHook(){
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!active||writing)return;
-                State s=states.get(p.thisObject);if(s==null)return;
+                State s=states.get(p.thisObject);
+                // Vendor indicators may be inserted/rebound without an observed root attach.
+                // Capture their native state at the first visibility write, then reassert Hide.
+                if(s==null&&p.thisObject instanceof View view&&mainThread()&&vendorIndicator(view)!=0){track(view);s=states.get(view);}
+                if(s==null)return;
                 if(Looper.myLooper()!=Looper.getMainLooper()){failed=true;hardFailed=true;return;}
                 p.setObjectExtra("nubia-ly:status-write",new Frame(generation,s));
             }
@@ -125,7 +144,7 @@ final class StatusBarBackend {
                         case "setTranslationY" -> f.state.ty=v.getTranslationY();
                         case "setRotation" -> f.state.rotation=v.getRotation();
                         case "setAlpha" -> f.state.a=v.getAlpha();
-                        case "setVisibility" -> f.state.visibility=v.getVisibility();
+                        case "setVisibility", "setTransitionVisibility" -> f.state.visibility=v.getVisibility();
                         case "setImageTintList" -> {if(f.state.tint){f.state.colors=((ImageView)v).getImageTintList();f.state.tintRevision++;}}
                     }
                     paint(v,f.state);
@@ -141,14 +160,17 @@ final class StatusBarBackend {
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setRotation",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setAlpha",float.class,callback));
             activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setVisibility",int.class,callback));
+            activeHooks.add(XposedHelpers.findAndHookMethod(View.class,"setTransitionVisibility",int.class,callback));
             if(style.selected(StatusBarStyle.TINT))activeHooks.add(XposedHelpers.findAndHookMethod(ImageView.class,"setImageTintList",ColorStateList.class,callback));
             stage="surface activation";SurfaceBackend.begin(style.surfaces());stage="status-bar refresh";active=true;refresh();
             if(failed)throw new IllegalStateException("Status-bar property application failed");
             if(!SurfaceBackend.healthy())throw new IllegalStateException("Surface health check failed after status-bar refresh");
-            if(roots.isEmpty())throw new IllegalStateException("No attached stock status bar.");
-            message="Status-bar styling active.";
+            // Hosts may be absent during native window recreation. Keep the bounded
+            // session armed; attachment callbacks apply only to verified native hosts.
+            message=roots.keySet().stream().anyMatch(View::isAttachedToWindow)?"Status-bar styling active.":"Status-bar styling armed; waiting for attached native host.";
         }catch(Throwable unavailable){end();throw new IllegalStateException("Status-bar activation unavailable at "+stage,unavailable);}
     }
+    private static boolean mainThread(){return Looper.myLooper()==Looper.getMainLooper();}
     private static ViewGroup owner(View view){
         View current=view;
         for(int depth=0;depth<24&&current!=null;depth++){
@@ -176,6 +198,7 @@ final class StatusBarBackend {
     static void refresh(){
         if(!active||failed||Looper.myLooper()!=Looper.getMainLooper())return;
         SurfaceBackend.refresh();
+        for(View header:new ArrayList<>(QsHeaderScope.headers))if(header instanceof ViewGroup group&&group.isAttachedToWindow())roots.put(group,true);
         for(ViewGroup root:new ArrayList<>(roots.keySet()))if(root.isAttachedToWindow())scan(root);
     }
     private static void track(View v){
@@ -183,6 +206,7 @@ final class StatusBarBackend {
         String name=v.getClass().getName();
         ViewGroup root=owner(v);if(root==null)return;
         int indicator=vendorIndicator(v);
+        if(indicator!=0)roots.put(root,true);
         if(!name.equals(ICON)&&!name.equals(BATTERY)&&indicator==0){if(states.containsKey(v))restore(v);return;}
         try {
             boolean notification=name.equals(ICON)&&Boolean.TRUE.equals(XposedHelpers.callMethod(v,"isNotification"));
@@ -276,5 +300,5 @@ final class StatusBarBackend {
         }return new ArrayList<>(slots);
     }
     static boolean healthy(){return !failed&&SurfaceBackend.healthy();}
-    static String status(){return message+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+". "+SurfaceBackend.status();}
+    static String status(){return message+" Requested vendor hide: fan="+style.selected(StatusBarStyle.HIDE_FAN)+", pump="+style.selected(StatusBarStyle.HIDE_PUMP)+", refresh="+style.selected(StatusBarStyle.HIDE_REFRESH)+"; native update hooks="+vendorReady+", updates="+vendorUpdates+". "+" Captured: "+captured+"; restored: "+restored+"; status-bar remaining: "+states.size()+". "+SurfaceBackend.status();}
 }

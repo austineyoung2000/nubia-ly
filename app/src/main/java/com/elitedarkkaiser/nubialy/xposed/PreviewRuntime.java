@@ -133,7 +133,7 @@ final class PreviewRuntime {
         actor.postDelayed(expiry, Math.max(0, session.deadline() - now()));
     }
     private void schedule(long ticket) {
-        schedule(ticket,enabledMode?5000:2000);
+        schedule(ticket,enabledMode?8000:2000);
     }
     private void schedule(long ticket,long delay){
         if(tick!=null)actor.removeCallbacks(tick);
