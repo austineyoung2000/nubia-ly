@@ -562,6 +562,7 @@ public final class ClockEditorActivity extends AppCompatActivity {
         for(int n=0;n<choices.size();n++){MaterialCardView card=choices.get(n);card.setStrokeWidth(dp(n==visualSelection(kind)?3:0));card.setStrokeColor(getColor(R.color.primary));card.setSelected(n==visualSelection(kind));card.setContentDescription(names[n]+(n==visualSelection(kind)?", selected":""));}
     }
     private void notificationAppearanceControls(LinearLayout parent){
+        paletteEditor.notifications(parent);
         parent.addView(text("Adjust the compatible card background without fading text or actions. Corner clipping adds rounding inside the stock shape; grouped and newer vendor surfaces may keep stock. Press Apply to apply.",14,false));
         TextView label=text("",16,true);parent.addView(label);Slider opacity=new Slider(this);opacity.setValueFrom(50);opacity.setValueTo(100);opacity.setStepSize(5);int selectedOpacity=NotificationControls.opacity(notificationAppearance);opacity.setValue(selectedOpacity==0?100:selectedOpacity);parent.addView(opacity);statusControls.add(opacity);
         Runnable redraw=()->label.setText("Background opacity: "+(NotificationControls.opacity(notificationAppearance)==0?"Stock":NotificationControls.opacity(notificationAppearance)+"%"));redraw.run();opacity.addOnChangeListener((v,value,user)->{if(user){notificationAppearance=NotificationControls.encode((int)value,NotificationControls.corners(notificationAppearance));redraw.run();saveStatusBar();}});

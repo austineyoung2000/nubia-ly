@@ -61,3 +61,7 @@ light/dark mode, dismiss/reopen, then Restore stock. If stock remains visible,
 Check customization reports Notification backgrounds/decorated draws. No merging
 until phone testing and explicit user authorization. This draft includes the
 unmerged Volume PR #23 so the full current dashboard can be reviewed together.
+
+## Card colors
+
+Notifications → Appearance controls offers Native, Solid, Gradient and Two sections, with two independent color pickers and native resets. Colors are translucent tints drawn within the existing background clip before the chosen style treatment, so native blur and content stay separate. The existing opacity and corner controls still apply. Native text and action colors are unchanged; contrast is not automatically adjusted, so check readability with light and dark themes. The same native pass exclusions described above still apply.

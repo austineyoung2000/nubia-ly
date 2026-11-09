@@ -23,7 +23,8 @@ final class NotificationBackend {
         for(int depth=0;depth<12&&parent instanceof View owner;depth++,parent=owner.getParent())if(owner.getClass().getName().equals(ROW))try{return XposedHelpers.getObjectField(owner,"mBackgroundNormal")==view;}catch(Throwable unavailable){return false;}return false;
     }
     static void begin(int style){begin(style,0);}
-    static void begin(int style,int controls){if(!NotificationControls.valid(controls))throw new IllegalArgumentException();appearance=controls;if(style<0||style>5||!main())throw new IllegalArgumentException();if(!end())throw new IllegalStateException("Notification cleanup incomplete");selection=style;draws=0;if(style==0&&appearance==0)return;if(!ready||failed)throw new IllegalStateException(message);final long ticket=++generation;
+    static void begin(int style,int controls){begin(style,controls,0,0,0);}
+    static void begin(int style,int controls,int first,int second,int mode){if(mode<0||mode>3)throw new IllegalArgumentException();if(!NotificationControls.valid(controls))throw new IllegalArgumentException();appearance=controls;if(style<0||style>5||!main())throw new IllegalArgumentException();if(!end())throw new IllegalStateException("Notification cleanup incomplete");selection=style;draws=0;if(style==0&&appearance==0&&mode==0)return;if(!ready||failed)throw new IllegalStateException(message);final long ticket=++generation;
         try{hook=XposedBridge.hookMethod(background.getDeclaredMethod("draw",Canvas.class,Drawable.class),new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
             if(!active||failed||!main()||!(p.thisObject instanceof View view)||!eligible(view))return;observed.put(view,true);boolean nativeDrawn=false;
             try{if(p.args[1]==null||XposedHelpers.getObjectField(view,"mBackground")!=p.args[1]||!(p.args[1] instanceof Drawable nativeBg))return;
@@ -31,6 +32,7 @@ final class NotificationBackend {
                 try{XposedBridge.invokeOriginalMethod(p.method,p.thisObject,p.args);nativeDrawn=true;
                     if(active&&!failed&&generation==ticket&&eligible(view)){
                         RectF bounds=new RectF(nativeBg.getBounds());float[] radii=(float[])XposedHelpers.getObjectField(view,"mCornerRadii");
+                        if(mode!=0)NotificationEffects.color(canvas,bounds,radii,first,second,mode);
                         if(NotificationEffects.draw(style,canvas,bounds,radii,view.getResources().getDisplayMetrics().density,()->active&&!failed&&generation==ticket&&eligible(view)&&XposedHelpers.getObjectField(view,"mBackground")==nativeBg,()->{}))draws++;
                         int radius=NotificationControls.radius(appearance);if(radius!=0&&!bounds.isEmpty()){
                             Path path=new Path();path.addRoundRect(bounds,radius*view.getResources().getDisplayMetrics().density,radius*view.getResources().getDisplayMetrics().density,Path.Direction.CW);
