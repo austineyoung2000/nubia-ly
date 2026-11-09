@@ -32,3 +32,4 @@ with tempfile.TemporaryDirectory(prefix='nubialy-notifications-') as folder:
  files=[str(p) for p in folder.rglob('*.java')]+[str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/xposed/NotificationBackend.java'),str(root/'app/src/main/java/com/elitedarkkaiser/nubialy/NotificationControls.java')]
  subprocess.run(['java','com.sun.tools.javac.Main','-d',str(folder/'classes'),*files],check=True)
  subprocess.run(['java','-cp',str(folder/'classes'),'com.elitedarkkaiser.nubialy.xposed.NotificationTest'],check=True)
+subprocess.run(['python3',str(root/'tests/test_notification_text_backend.py')],check=True)

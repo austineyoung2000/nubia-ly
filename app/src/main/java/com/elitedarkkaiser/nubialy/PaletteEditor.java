@@ -18,13 +18,13 @@ final class PaletteEditor {
  void status(LinearLayout parent){row(parent,"Wi-Fi",0);row(parent,"Mobile signal & data",1);row(parent,"Battery icon",2);row(parent,"Battery percentage text",8);row(parent,"Other system icons",3);TextView note=new TextView(a);note.setText("Notification icons keep their own appearance. Applied colors also follow your status-bar artwork into the QS header.");note.setPadding(0,dp(12),0,dp(8));parent.addView(note);refresh();}
  void brightness(LinearLayout parent){row(parent,"Track background",4);row(parent,"Progress / first accent",5);MaterialSwitch twoTone=new MaterialSwitch(a);twoTone.setTag("brightness-two-tone");twoTone.setText("Two-tone progress");twoTone.setChecked(read.get().brightnessTwoTone()!=0);parent.addView(twoTone);twoTone.setOnCheckedChangeListener((v,checked)->{save.accept(read.get().with(7,checked?1:0));refresh();});row(parent,"Second accent",6);refresh();}
  void notifications(LinearLayout parent){
-  row(parent,"First card color",9);row(parent,"Second card color",10);
+  row(parent,"First card color",9);row(parent,"Second card color",10);row(parent,"Notification text color",12);
   TextView title=new TextView(a);title.setText("Color effect");title.setTextSize(16);parent.addView(title);
   RadioGroup modes=new RadioGroup(a);String[] names={"Native","Solid","Two-tone gradient"};
   for(int i=0;i<names.length;i++){RadioButton choice=new RadioButton(a);choice.setId(1000+i);choice.setText(names[i]);modes.addView(choice);}
   modes.check(1000+Math.min(2,read.get().notificationMode()));parent.addView(modes);
   modes.setOnCheckedChangeListener((group,id)->{if(id>=1000&&id<=1002){save.accept(read.get().with(11,id-1000));refresh();}});
-  TextView note=new TextView(a);note.setText("The two-tone gradient blends the first color into the second from left to right, like Quick Settings. Use background opacity to adjust transparency. Text and actions retain their system colors; check readability with your chosen colors.");note.setPadding(0,dp(12),0,dp(8));parent.addView(note);refresh();
+  TextView note=new TextView(a);note.setText("The two-tone gradient blends the first color into the second from left to right, like Quick Settings. Use background opacity to adjust transparency. Choose a text color for readable notifications, or reset it to Native. Some custom notification layouts may keep their own colors.");note.setPadding(0,dp(12),0,dp(8));parent.addView(note);refresh();
  }
 
 }
