@@ -26,11 +26,12 @@ public final class NotificationEffects {
     public static void color(Canvas canvas,RectF b,float[] corners,int first,int second,int mode){
         if(mode<1||mode>3||b.isEmpty()||corners==null||corners.length!=8)return;
         for(float r:corners)if(!Float.isFinite(r)||r<0)return;
-        int a=(first==0?0xff9b83d6:first)&0x00ffffff|0x70000000;
-        int z=(second==0?0xff4c9ac7:second)&0x00ffffff|0x70000000;
+        int a=first==0?0xff9b83d6:first;
+        int z=second==0?0xff4c9ac7:second;
         int save=canvas.save();try{canvas.clipPath(outline(b,corners,0));Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-            if(mode==2)p.setShader(new LinearGradient(b.left,b.top,b.right,b.bottom,a,z,Shader.TileMode.CLAMP));
-            if(mode==3){p.setColor(a);canvas.drawRect(b.left,b.top,b.right,b.centerY(),p);p.setColor(z);canvas.drawRect(b.left,b.centerY(),b.right,b.bottom,p);}else{if(mode==1)p.setColor(a);canvas.drawRect(b,p);}
+            if(mode==2||mode==3)p.setShader(new LinearGradient(b.left,b.centerY(),b.right,b.centerY(),a,z,Shader.TileMode.CLAMP));
+            else p.setColor(a);
+            canvas.drawRect(b,p);
         }finally{canvas.restoreToCount(save);}
     }
     private static Path outline(RectF bounds,float[] corners,float inset){RectF b=new RectF(bounds);b.inset(inset,inset);Path p=new Path();if(b.isEmpty())return p;float[] radii=corners.clone();for(int i=0;i<8;i++)radii[i]=Math.max(0,radii[i]-inset);p.addRoundRect(b,radii,Path.Direction.CW);return p;}

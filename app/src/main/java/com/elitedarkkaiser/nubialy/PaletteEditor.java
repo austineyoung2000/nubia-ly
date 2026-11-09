@@ -20,11 +20,11 @@ final class PaletteEditor {
  void notifications(LinearLayout parent){
   row(parent,"First card color",9);row(parent,"Second card color",10);
   TextView title=new TextView(a);title.setText("Color effect");title.setTextSize(16);parent.addView(title);
-  RadioGroup modes=new RadioGroup(a);String[] names={"Native","Solid","Gradient","Two sections"};
+  RadioGroup modes=new RadioGroup(a);String[] names={"Native","Solid","Two-tone gradient"};
   for(int i=0;i<names.length;i++){RadioButton choice=new RadioButton(a);choice.setId(1000+i);choice.setText(names[i]);modes.addView(choice);}
-  modes.check(1000+read.get().notificationMode());parent.addView(modes);
-  modes.setOnCheckedChangeListener((group,id)->{if(id>=1000&&id<=1003){save.accept(read.get().with(11,id-1000));refresh();}});
-  TextView note=new TextView(a);note.setText("Colors tint the native background, preserving its blur. Text and actions retain their system colors; check readability with your chosen colors.");note.setPadding(0,dp(12),0,dp(8));parent.addView(note);refresh();
+  modes.check(1000+Math.min(2,read.get().notificationMode()));parent.addView(modes);
+  modes.setOnCheckedChangeListener((group,id)->{if(id>=1000&&id<=1002){save.accept(read.get().with(11,id-1000));refresh();}});
+  TextView note=new TextView(a);note.setText("The two-tone gradient blends the first color into the second from left to right, like Quick Settings. Use background opacity to adjust transparency. Text and actions retain their system colors; check readability with your chosen colors.");note.setPadding(0,dp(12),0,dp(8));parent.addView(note);refresh();
  }
 
 }
