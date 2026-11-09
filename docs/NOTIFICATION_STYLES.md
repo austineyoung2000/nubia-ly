@@ -61,3 +61,7 @@ light/dark mode, dismiss/reopen, then Restore stock. If stock remains visible,
 Check customization reports Notification backgrounds/decorated draws. No merging
 until phone testing and explicit user authorization. This draft includes the
 unmerged Volume PR #23 so the full current dashboard can be reviewed together.
+
+## Card colors
+
+Notifications → Appearance controls offers Native, Solid and Two-tone gradient, with two independent color pickers and native resets. Custom colors are drawn within the existing background clip before the chosen style treatment. Two-tone blends horizontally like the QS tiles; the existing background opacity setting controls transparency. The existing opacity and corner controls still apply. An optional text color applies while compatible notification text is drawn; Native restores system colors. Custom app layouts, images, and input fields may retain their own colors. Contrast is not automatically adjusted, so check readability with light and dark themes. The same native pass exclusions described above still apply.

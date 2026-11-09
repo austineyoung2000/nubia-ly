@@ -22,5 +22,17 @@ public final class NotificationEffects {
             if(!allowed.getAsBoolean())return true;complete=true;return true;
         }finally{try{if(!complete)canvas.drawColor(Color.TRANSPARENT,PorterDuff.Mode.CLEAR);}finally{canvas.restoreToCount(save);}}
     }
+    /** Tint only the background pass; preserve native clipping and leave content untouched. */
+    public static void color(Canvas canvas,RectF b,float[] corners,int first,int second,int mode){
+        if(mode<1||mode>3||b.isEmpty()||corners==null||corners.length!=8)return;
+        for(float r:corners)if(!Float.isFinite(r)||r<0)return;
+        int a=first==0?0xff9b83d6:first;
+        int z=second==0?0xff4c9ac7:second;
+        int save=canvas.save();try{canvas.clipPath(outline(b,corners,0));Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+            if(mode==2||mode==3)p.setShader(new LinearGradient(b.left,b.centerY(),b.right,b.centerY(),a,z,Shader.TileMode.CLAMP));
+            else p.setColor(a);
+            canvas.drawRect(b,p);
+        }finally{canvas.restoreToCount(save);}
+    }
     private static Path outline(RectF bounds,float[] corners,float inset){RectF b=new RectF(bounds);b.inset(inset,inset);Path p=new Path();if(b.isEmpty())return p;float[] radii=corners.clone();for(int i=0;i<8;i++)radii[i]=Math.max(0,radii[i]-inset);p.addRoundRect(b,radii,Path.Direction.CW);return p;}
 }

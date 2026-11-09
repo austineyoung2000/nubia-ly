@@ -20,4 +20,10 @@ public final class NotificationEffectsTest {
         for(int style=1;style<=5;style++){Bitmap image=Bitmap.createBitmap(120,60,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(image);int save=c.getSaveCount();float[] corners=new float[8];AtomicInteger checks=new AtomicInteger();
             assertTrue(NotificationEffects.draw(style,c,new RectF(0,0,120,60),corners,1,()->checks.incrementAndGet()<3,()->c.drawColor(Color.BLUE)));assertEquals(Color.BLUE,image.getPixel(50,30));assertEquals(save,c.getSaveCount());image.recycle();}
     }
+    @Test public void colorsRenderInsideCornersAndLeaveCanvasBalanced(){
+        for(int mode=1;mode<=3;mode++){Bitmap image=Bitmap.createBitmap(120,60,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(image);int save=c.getSaveCount();float[] corners={16,16,16,16,16,16,16,16};
+            NotificationEffects.color(c,new RectF(0,0,120,60),corners,0xffff0000,0xff0000ff,mode);
+            assertEquals(save,c.getSaveCount());assertEquals(0,image.getPixel(0,0));assertNotEquals(0,image.getPixel(60,15));
+            assertEquals(255,Color.alpha(image.getPixel(60,30)));if(mode>=2){assertNotEquals(image.getPixel(20,30),image.getPixel(100,30));assertEquals(image.getPixel(60,15),image.getPixel(60,45));}image.recycle();}
+    }
 }

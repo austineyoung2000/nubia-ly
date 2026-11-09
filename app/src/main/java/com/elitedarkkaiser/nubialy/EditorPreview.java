@@ -34,7 +34,7 @@ final class EditorPreview extends View {
                 if(!s.hide(1))drawText(c,i==0?"Connected":"Off",x+78,y+37,8,s.appearance(1),s.position(1),theme.secondaryLabel()!=0?theme.secondaryLabel():i==0?0xff514965:0xffc8c2d0);
             }
             for(int i=0;i<6;i++){paint.setColor(i==0?(theme.activeBackground()==0?0xffd3cbef:theme.activeBackground()):(theme.inactiveBackground()==0?0xff68646f:theme.inactiveBackground()));tileGradient=i==0&&theme.twoTone()!=0?new int[]{theme.accent(),theme.secondAccent()}:null;shape(c,23+i*54,157,34,18,s.tileShape());}
-        }else if(section.equals("notifications")){NotificationStylePreview.paint(c,s.notificationStyle(),360,height,1,s.notificationAppearance());
+        }else if(section.equals("notifications")){NotificationStylePreview.paint(c,s.notificationStyle(),360,height,1,s.notificationAppearance(),s.palette());
         }else if(section.equals("power_menu")){PowerStylePreview.paint(c,s.powerStyle(),360,height,1);
         }else if(section.equals("volume")){VolumeStylePreview.paint(c,s.volumeStyle(),360,height,1);
         }else{
