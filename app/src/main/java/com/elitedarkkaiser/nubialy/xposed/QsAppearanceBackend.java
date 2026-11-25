@@ -21,7 +21,8 @@ final class QsAppearanceBackend {
  private static final Map<View,Integer> shadeStates=new WeakHashMap<>();
  private static final Map<View,Float> qsFractions=new WeakHashMap<>();
  private static final Map<View,Float> panelFractions=new WeakHashMap<>();
- private static final Set<View> tiles=Collections.newSetFromMap(new WeakHashMap<>());private static long generation;
+ private static final Set<View> tiles=Collections.newSetFromMap(new WeakHashMap<>());
+ private static final Map<View,Integer> tileStates=new WeakHashMap<>();private static long generation;
  private static boolean attempted,ready,active,failed,restorePending;private static QsTheme theme=QsTheme.STOCK;
  private static volatile Bitmap image;private static volatile String imageHash="";private static volatile long imageGeneration;
  private static String message="Not installed";private static int draws;
@@ -80,7 +81,7 @@ final class QsAppearanceBackend {
   }}));
   Class<?> base=XposedHelpers.findClass("com.zte.qs.tileimpl.QSTileViewBase",loader),wide=XposedHelpers.findClass("com.zte.qs.tileimpl.QSTileViewWide",loader);
   for(Class<?> c:new Class<?>[]{base,wide})for(String name:new String[]{"getBackgroundColorForState","getBackgroundStartColorForState","getBackgroundEndColorForState","getLabelColorForState","getSecondaryLabelColorForState"}){
-   for(Method m:c.getDeclaredMethods())if(m.getName().equals(name)&&m.getReturnType()==int.class&&m.getParameterTypes().length>0&&m.getParameterTypes()[0]==int.class)hooks.add(XposedBridge.hookMethod(m,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(Looper.myLooper()==Looper.getMainLooper()&&p.thisObject instanceof View v)tiles.add(v);if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[0];if(state==0)return;int value=color(name,state);if(value!=0)p.setResult(value);}}));
+   for(Method m:c.getDeclaredMethods())if(m.getName().equals(name)&&m.getReturnType()==int.class&&m.getParameterTypes().length>0&&m.getParameterTypes()[0]==int.class)hooks.add(XposedBridge.hookMethod(m,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(Looper.myLooper()==Looper.getMainLooper()&&p.thisObject instanceof View v){tiles.add(v);if(!p.hasThrowable())tileStates.put(v,(Integer)p.args[0]);}if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[0];if(state==0)return;int value=color(name,state);if(value!=0)p.setResult(value);}}));
   }
   Class<?> multi=XposedHelpers.findClass("com.zte.feature.qs.theme.MultiThemeFeature",loader);
   hooks.add(XposedBridge.hookMethod(multi.getDeclaredMethod("getQSIconViewColor",int.class,Context.class,int.class,boolean.class,String.class),new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(!allowed()||p.hasThrowable())return;int state=(Integer)p.args[2];if(state==0)return;int value=state==2?theme.activeIcon():theme.inactiveIcon();if(value!=0)p.setResult(value);}}));
@@ -106,6 +107,13 @@ final class QsAppearanceBackend {
  static void observe(View view){String n=view.getClass().getName();if(n.equals("com.zte.qs.tileimpl.QSTileViewWide")||n.equals("com.zte.qs.tileimpl.QSTileViewCircle"))tiles.add(view);}
  private static boolean refreshColors(){boolean ok=true;for(View tile:new ArrayList<>(tiles))if(tile!=null&&tile.isAttachedToWindow())try{XposedHelpers.callMethod(tile,"updateColors");tile.invalidate();}catch(Throwable error){ok=false;message="Tile color refresh failed: "+error.getClass().getSimpleName();}return ok;}
  static boolean end(){generation++;restorePending|=active;active=false;theme=QsTheme.STOCK;QsHeaderAppearance.end();boolean ok=!restorePending||refreshColors();if(ok)restorePending=false;invalidate();return ok;}
+ static int[] neonParams(View owner){
+  if(!allowed())return null;int state=tileStates.getOrDefault(owner,0);if(state!=1&&state!=2)return null;
+  int mode=state==2?theme.activeNeon():theme.inactiveNeon();if(mode==0||theme.neonIntensity()==0)return null;
+  int first=state==2&&theme.twoTone()!=0?theme.accent():state==2?theme.activeBackground():theme.inactiveBackground();
+  if(first==0)first=theme.accent();int second=mode==2?theme.secondAccent():first;
+  return new int[]{first,second,theme.neonIntensity()};
+ }
  static boolean twoTone(){return allowed()&&theme.twoTone()!=0;}
  static boolean healthy(){return !active||!failed;}
  static String status(){return "QS colors/background: "+message+"; "+(active?"enabled":"stock")+"; image="+(imageHash.isEmpty()?"none":"cached")+"; draws="+draws+". "+QsHeaderAppearance.status();}
