@@ -39,21 +39,33 @@ final class QsThemeEditor {
   p.addView(text("QS clock & date",20));color(p,"Clock color",15,true);slider(p,"Clock size",18,read.get().clockScale(),70,130);color(p,"Date color",16,true);slider(p,"Date size",19,read.get().dateScale(),70,130);
   p.addView(text("QS status icons",20));p.addView(text("Uses your applied status-bar icon pack, battery, Wi-Fi and signal styles. These controls adjust the header tint and visual size.",14));color(p,"Status icon color",17,true);color(p,"Battery percentage text color",23,true);slider(p,"Status icon size",20,read.get().statusScale(),70,130);p.addView(text("Applies only inside the QS header. Visibility stays managed by System UI. Large sizes may clip inside native bounds.",14));refresh();
  }
- private void neonChoice(LinearLayout parent,String title,int key){
-  String[] names={"Off","Neon glow","Dual neon glow"};
-  MaterialButton b=button(parent,title);b.setTag("qs-neon:"+key);
-  labels.add(()->b.setText(title+" · "+names[get(key)]));
-  b.setOnClickListener(v->new com.google.android.material.dialog.MaterialAlertDialogBuilder(a)
-      .setTitle(title).setSingleChoiceItems(names,get(key),(dialog,which)->{change(key,which);dialog.dismiss();})
-      .setNegativeButton(android.R.string.cancel,null).show());
+ private void effectChoice(LinearLayout parent,boolean active){
+  String title=active?"Active tile color effect":"Inactive tile color effect";
+  String[] names=active?new String[]{"Native","Solid","Two-color gradient","Neon glow","Dual neon glow"}:new String[]{"Native","Solid","Neon glow","Dual neon glow"};
+  int[] values=active?new int[]{0,1,2,3,4}:new int[]{0,1,3,4};
+  MaterialButton b=button(parent,title);b.setTag(active?"qs-active-effect":"qs-inactive-effect");
+  Runnable update=()->{int selected=QsColorEffects.selected(read.get(),active),i=0;while(i<values.length-1&&values[i]!=selected)i++;b.setText(title+" · "+names[i]);};
+  labels.add(update);
+  b.setOnClickListener(v->{int selected=QsColorEffects.selected(read.get(),active),i=0;while(i<values.length-1&&values[i]!=selected)i++;
+   new com.google.android.material.dialog.MaterialAlertDialogBuilder(a).setTitle(title).setSingleChoiceItems(names,i,(dialog,which)->{save.accept(QsColorEffects.select(read.get(),active,values[which]));refresh();dialog.dismiss();}).setNegativeButton(android.R.string.cancel,null).show();});
  }
- void colors(LinearLayout p){String[] names={"Active tile background","Inactive tile background","Active icons","Inactive icons","Main labels","Secondary labels"};for(int i=0;i<6;i++)color(p,names[i],i,true);p.addView(text("Unavailable tiles keep their native state colors. Tile actions and labels remain stock.",14));twoTone(p);
-  p.addView(text("Neon glow",20));neonChoice(p,"Active tiles",24);neonChoice(p,"Inactive tiles",25);
-  LinearLayout glow=new LinearLayout(a);glow.setOrientation(LinearLayout.VERTICAL);p.addView(glow);
-  slider(glow,"Glow intensity",26,read.get().neonIntensity(),0,100);
-  color(glow,"Dual neon second color",8,false);
-  glow.addView(text("Uses the tile background color as the first glow color. If native is selected, the first Two-Tone accent is used.",14));
-  labels.add(()->glow.setVisibility(read.get().activeNeon()!=0||read.get().inactiveNeon()!=0?View.VISIBLE:View.GONE));refresh();}
- void twoTone(LinearLayout p){p.addView(text("Two-Tone",20));toggle(p,"Enable Two-Tone active tiles",6,read.get().twoTone()!=0);color(p,"First accent",7,false);color(p,"Second accent",8,false);p.addView(text("Active tiles blend these accents. Your selected tile style adds its shading and rim over the gradient. Inactive tiles follow native or your chosen colors.",14));refresh();}
+ private LinearLayout group(LinearLayout parent){LinearLayout group=new LinearLayout(a);group.setOrientation(LinearLayout.VERTICAL);parent.addView(group);return group;}
+ void colors(LinearLayout p){
+  p.addView(text("Active tiles",20));effectChoice(p,true);
+  LinearLayout activeSolid=group(p);color(activeSolid,"Active color",0,true);
+  LinearLayout activeGradient=group(p);color(activeGradient,"First active color",7,false);
+  LinearLayout activeSecond=group(p);color(activeSecond,"Second color",8,false);
+  labels.add(()->{int effect=QsColorEffects.selected(read.get(),true);boolean gradient=read.get().twoTone()!=0&&effect!=QsColorEffects.NATIVE&&effect!=QsColorEffects.SOLID;activeSolid.setVisibility(effect!=QsColorEffects.NATIVE&&!gradient?View.VISIBLE:View.GONE);activeGradient.setVisibility(gradient?View.VISIBLE:View.GONE);activeSecond.setVisibility(gradient||effect==QsColorEffects.DUAL_NEON?View.VISIBLE:View.GONE);});
+  p.addView(text("Inactive tiles",20));effectChoice(p,false);
+  LinearLayout inactiveColor=group(p);color(inactiveColor,"Inactive color",1,true);
+  labels.add(()->inactiveColor.setVisibility(QsColorEffects.selected(read.get(),false)==QsColorEffects.NATIVE?View.GONE:View.VISIBLE));
+  LinearLayout inactiveSecond=group(p);color(inactiveSecond,"Second color",8,false);
+  labels.add(()->inactiveSecond.setVisibility(QsColorEffects.selected(read.get(),false)==QsColorEffects.DUAL_NEON?View.VISIBLE:View.GONE));
+  LinearLayout glow=group(p);slider(glow,"Glow intensity",26,read.get().neonIntensity(),0,100);
+  glow.addView(text("The second color is shared by gradients and dual neon. Glow can be combined with your selected tile style.",14));
+  labels.add(()->glow.setVisibility(read.get().activeNeon()!=0||read.get().inactiveNeon()!=0?View.VISIBLE:View.GONE));
+  p.addView(text("Icons and labels",20));color(p,"Active icon color",2,true);color(p,"Inactive icon color",3,true);color(p,"Primary label color",4,true);color(p,"Secondary label color",5,true);
+  p.addView(text("Unavailable tiles keep their native colors.",14));refresh();
+ }
  void background(LinearLayout p){toggle(p,"Enable upper QS background",9,read.get().header()!=0);color(p,"Background color",10,false);TextView current=text("",14);p.addView(current);labels.add(()->current.setText(read.get().image().isEmpty()?"Solid background selected":"Custom image selected · center crop"));button(p,"Choose background image").setOnClickListener(v->pick.run());button(p,"Use solid background").setOnClickListener(v->{save.accept(read.get().withImage(""));refresh();});slider(p,"Background opacity",12,read.get().opacity(),0,100);slider(p,"Dark overlay",13,read.get().dim(),0,100);slider(p,"Upper area height",14,read.get().height(),10,80);p.addView(text("Images are center-cropped into the upper QS area. Controls and notifications remain interactive. Enable this page after importing. Expansion and landscape need device testing.",14));refresh();}
 }
