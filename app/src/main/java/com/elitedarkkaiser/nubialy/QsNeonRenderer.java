@@ -18,6 +18,7 @@ import java.util.function.BooleanSupplier;
 
 /** Draw-only neon decoration; never changes the native drawable or its state. */
 public final class QsNeonRenderer {
+    private static final int FILL_ALPHA = 76; // 30% opacity, independent of the outline and glow.
     private static final int MAX_BITMAP_BYTES = 4 * 1024 * 1024;
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(MAX_BITMAP_BYTES) {
         @Override protected int sizeOf(String key, Bitmap value) { return value.getAllocationByteCount(); }
@@ -62,7 +63,9 @@ public final class QsNeonRenderer {
             if (!permitted.getAsBoolean()) return false;
             Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG); bitmapPaint.setAlpha(tile.getAlpha());
             canvas.drawBitmap(bitmap, null, extent, bitmapPaint);
-            nativeDraw.draw();
+            int fillLayer = canvas.saveLayerAlpha(new RectF(bounds), FILL_ALPHA);
+            try { nativeDraw.draw(); }
+            finally { canvas.restoreToCount(fillLayer); }
             if (!permitted.getAsBoolean()) return false;
             Path outline = path(tile.getShape(), new RectF(bounds), radii);
             int clip = canvas.save();
