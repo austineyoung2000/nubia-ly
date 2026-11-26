@@ -51,6 +51,8 @@ public final class QsNeonRenderer {
             Canvas software = new Canvas(bitmap); software.scale(.5f, .5f); software.translate(padding, padding);
             Path local = path(tile.getShape(), new RectF(0, 0, width, height), radii);
             Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+            glow.setStyle(Paint.Style.STROKE);
+            glow.setStrokeWidth(2f * density);
             glow.setMaskFilter(new BlurMaskFilter(blur, BlurMaskFilter.Blur.NORMAL));
             glow.setShader(new LinearGradient(0, 0, Math.max(1, width), 0, first, second, Shader.TileMode.CLAMP));
             glow.setAlpha(intensity * 65 * 255 / 10000);
